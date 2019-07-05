@@ -133,7 +133,7 @@ parameters {
   vector[S] exposure_rate;
 
   // Gene-wise properties of the data
-  //vector[G] lambda_log_param;
+  matrix[C,G] alpha; // Linear model for calculating lambda_log
   vector[G] sigma_raw_param;
 
   // Signa linear model
@@ -142,15 +142,12 @@ parameters {
   real sigma_intercept;
   real<lower=0>sigma_sigma;
 
-	// Linear model
-	matrix[C,G] beta;
-
 }
 transformed parameters {
   // Sigma
   vector[G] sigma = 1.0 ./ exp(sigma_raw_param) ;
 
-	matrix[S,G] lambda_log_param = X * beta;
+	matrix[S,G] lambda_log_param = X * alpha;
 }
 
 model {
@@ -167,8 +164,9 @@ model {
   sigma_sigma ~ normal(0,2);
 
   // Gene-wise properties of the data
-  to_vector(lambda_log_param[1,]) ~ exp_gamma_meanSd(lambda_mu,lambda_sigma);
-  if(C>1) to_vector(lambda_log_param[2:C,]) ~ cauchy(0,2);
+  to_vector(alpha[1,]) ~ exp_gamma_meanSd(lambda_mu,lambda_sigma);
+  if(C>1) to_vector(alpha[2:C,]) ~ cauchy(0,2);
+
   sigma_raw_param ~ normal(sigma_slope * lambda_log_param[1,] + sigma_intercept,sigma_sigma);
 
   // Exposure prior
