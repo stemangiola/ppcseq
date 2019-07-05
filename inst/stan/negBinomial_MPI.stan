@@ -29,20 +29,21 @@ functions{
 	  return log(gamma_rng(a, b));
 	}
 
-	vector[] get_reference_parameters_MPI(int n_shards, int M, int[] G_per_shard, int[,] G_ind, vector lambda_log, vector sigma, vector exposure_rate){
+	vector[] get_reference_parameters_MPI(int n_shards, int M, int[] G_per_shard, int[,] G_ind, matrix lambda_log, vector sigma, vector exposure_rate){
 
-		vector[2*M + cols(exposure_rate)] lambda_sigma_exposure_MPI[n_shards];
+		int S = cols(exposure_rate);
+		vector[(M*S) + M + S] lambda_sigma_exposure_MPI[n_shards];
 
 		for( i in 1:n_shards ) {
 
-			int size_buffer = (M*2) - (G_per_shard[i]*2) ;
+			int size_buffer = ((M*S) + M) - ((G_per_shard[i]*S) + G_per_shard[i]) ;
 		  vector[ size_buffer] buffer = rep_vector(0.0,size_buffer);
 
 			lambda_sigma_exposure_MPI[i] =
 	  		append_row(
 	  		  append_row(
 		  		    append_row(
-		  		    	lambda_log[G_ind[i, 1:G_per_shard[i]]],
+		  		    	to_vector(lambda_log[,G_ind[i, 1:G_per_shard[i]]]),
 		      		  sigma[G_ind[i, 1:G_per_shard[i]]]
 		      		),
 	      		buffer
@@ -66,27 +67,25 @@ functions{
 	 	int counts[N] = int_data[(4+1+M+1+N-1+1):size(int_data)];
 
 		// Parameters unpack
-	 	vector[G_per_shard] lambda_MPI = local_parameters[1:G_per_shard];
-	 	vector[G_per_shard] sigma_MPI = local_parameters[(G_per_shard+1):(G_per_shard*2)];
-	 	vector[S] exposure_rate = local_parameters[((M*2)+1):rows(local_parameters)];
+	 	vector[G_per_shard*S] lambda_MPI = local_parameters[1:(G_per_shard*S)];
+	 	vector[G_per_shard] sigma_MPI = local_parameters[((G_per_shard*S)+1):((G_per_shard*S) + G_per_shard)];
+	 	vector[S] exposure_rate = local_parameters[(((M*S) + M)+1):rows(local_parameters)];
 
 		// Vectorise lpmf
-		vector[symbol_end[G_per_shard+1]] lambda_MPI_c;
+		//vector[symbol_end[G_per_shard+1]] lambda_MPI_c;
 		vector[symbol_end[G_per_shard+1]] sigma_MPI_c;
 		for(g in 1:G_per_shard){
 			int how_many = symbol_end[g+1] - (symbol_end[g]);
-			lambda_MPI_c[(symbol_end[g]+1):symbol_end[g+1]] = rep_vector(lambda_MPI[g], how_many);
+			//lambda_MPI_c[(symbol_end[g]+1):symbol_end[g+1]] = rep_vector(lambda_MPI[g], how_many);
 			sigma_MPI_c [(symbol_end[g]+1):symbol_end[g+1]] = rep_vector(sigma_MPI[g],  how_many);
 		}
 
-
 		// Return
-
 		return [
 			neg_binomial_2_log_lpmf(
     		counts[1:symbol_end[G_per_shard+1]] |
     		exposure_rate[sample_idx[1:symbol_end[G_per_shard+1]]] +
-    		lambda_MPI_c,
+    		lambda_MPI,
 	    	sigma_MPI_c
     	)
     ]';
@@ -134,7 +133,7 @@ parameters {
   vector[S] exposure_rate;
 
   // Gene-wise properties of the data
-  vector[G] lambda_log_param;
+  //vector[G] lambda_log_param;
   vector[G] sigma_raw_param;
 
   // Signa linear model
@@ -143,14 +142,15 @@ parameters {
   real sigma_intercept;
   real<lower=0>sigma_sigma;
 
+	// Linear model
+	matrix[C,G] beta;
 
 }
 transformed parameters {
   // Sigma
   vector[G] sigma = 1.0 ./ exp(sigma_raw_param) ;
-	vector[G] lambda_log = lambda_log_param;
 
-	//matrix[]  =
+	matrix[S,G] lambda_log_param = X * beta;
 }
 
 model {
@@ -166,9 +166,10 @@ model {
   sigma_slope ~ normal(0,2);
   sigma_sigma ~ normal(0,2);
 
-    // Gene-wise properties of the data
-  lambda_log_param ~ exp_gamma_meanSd(lambda_mu,lambda_sigma);
-  sigma_raw_param ~ normal(sigma_slope * lambda_log_param + sigma_intercept,sigma_sigma);
+  // Gene-wise properties of the data
+  to_vector(lambda_log_param[1,]) ~ exp_gamma_meanSd(lambda_mu,lambda_sigma);
+  if(C>1) to_vector(lambda_log_param[2:C,]) ~ cauchy(0,2);
+  sigma_raw_param ~ normal(sigma_slope * lambda_log_param[1,] + sigma_intercept,sigma_sigma);
 
   // Exposure prior
   exposure_rate ~ normal(0,1);
@@ -183,7 +184,7 @@ model {
 			M,
 			G_per_shard,
 			G_ind,
-			lambda_log,
+			lambda_log_param,
 			sigma,
 			exposure_rate
 		),
@@ -197,6 +198,6 @@ generated quantities{
 	vector[G] counts_rng[S];
 
 	for(g in 1:G) for(s in 1:S)
-		counts_rng[s,g] =	neg_binomial_2_log_rng(exposure_rate[s] + lambda_log_param[g],	sigma[g]);
+		counts_rng[s,g] =	neg_binomial_2_log_rng(exposure_rate[s] + lambda_log_param[g,s],	sigma[g]);
 
 }

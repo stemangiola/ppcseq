@@ -290,7 +290,7 @@ pcc_seq = function(
 	# Prior info
 
 	lambda_mu_mu = 5.612671
-
+browser()
 	########################################
 	# MODEL
 
