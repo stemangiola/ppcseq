@@ -78,7 +78,7 @@ parse_formula <- function(fm) {
 #' Get matrix from tibble
 #'
 #' @import dplyr
-#' @import tidyr
+#' @importFrom tidyr gather
 #' @importFrom magrittr set_rownames
 #'
 #' @param tbl A tibble
@@ -93,8 +93,8 @@ as_matrix <- function(tbl, rownames = NULL) {
 				tbl %>% {
 					if (!is.null(rownames)) (.) %>% dplyr::select(-contains(rownames)) else (.)
 				} %>%
-				dplyr::summarise_all(class) %>%
-				tidyr::gather(variable, class) %>%
+				summarise_all(class) %>%
+				gather(variable, class) %>%
 				pull(class) %>%
 				unique() %>%
 				`%in%`(c("numeric", "integer")) %>% `!`() %>% any()
@@ -111,8 +111,8 @@ as_matrix <- function(tbl, rownames = NULL) {
 		{
 			if (!is.null(rownames)) {
 				(.) %>%
-					magrittr::set_rownames(tbl %>% pull(!!rownames)) %>%
-					dplyr::select(-!!rownames)
+					set_rownames(tbl %>% pull(!!rownames)) %>%
+					select(-!!rownames)
 			} else {
 				(.)
 			}
@@ -126,57 +126,40 @@ as_matrix <- function(tbl, rownames = NULL) {
 #'
 #' @description This function calls the stan model.
 #'
-#'
-#' @importFrom tibble tibble
-#'
-#' @importFrom dplyr %>%
-#' @importFrom dplyr select
-#' @importFrom dplyr mutate
-#' @importFrom dplyr filter
-#' @importFrom dplyr mutate_if
-#'
+#' @importFrom tibble as_tibble
+#' @importFrom rstan sampling
+#' @importFrom rstan vb
+#' @importFrom rstan summary
+#' @import dplyr
 #' @importFrom tidyr spread
-#' @importFrom tidyr gather
-#' @importFrom tidyr drop_na
+#' @import tidybayes
+#' @importFrom magrittr %$%
+#' @importFrom purrr map2
+#' @importFrom purrr map_int
 #'
-#' @importFrom tidybayes gather_samples
-#' @importFrom tidybayes median_qi
+#' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
+#' @param formula A formula
+#' @param sample_column A character string
+#' @param gene_column A character string
+#' @param value_column A character string
+#' @param full_bayes A boolean
+
 #'
-#' @importFrom foreach foreach
-#' @importFrom foreach %do%
-#'
-#' @param mix A matrix
-#' @param my_design A matrix
-#' @param cov_to_test A character string
-#' @param fully_bayesian A boolean
-#' @param is_mix_microarray A boolean
-#' @param ct_to_omit A character string
-#' @param verbose A boolean
-#' @param save_report A boolean
-#' @param custom_ref A matrix
-#' @param multithread A boolean
-#' @param do_debug A boolean
-#' @param cell_type_root A character string
-#' @param choose_internal_ref A design matrix
-#' @param omit_regression A boolean
-#' @param save_fit A boolean
-#' @param seed An integer
-#'
-#' @return An ARMET object
+#' @return A tibble with additional columns
 #'
 #' @export
 #'
-pcc_seq = function(
+ppc_seq = function(
 	input.df,
 	formula = ~ 1,
 	sample_column = "sample",
 	gene_column = "symbol",
-	value_column = "read count"
+	value_column = "read count",
+	significant_genes_column = "is_significant",
+	full_bayes = F
 ){
 
-	library(rstan)
-
-	input = c(as.list(environment()))
+	#input = c(as.list(environment()))
 	cores = 30/3 %>% floor
 	shards = cores * 2
 
@@ -201,10 +184,21 @@ pcc_seq = function(
 
 	if(input.df %>% filter(!!as.symbol(gene_column) %>% is.na) %>% nrow > 0) stop("There are NAs in the gene_column. Please filter those records")
 
+	if(input.df %>% select(!!value_column) %>% sapply(class) != "integer") stop("The algorithm takes raw integer read counts only")
+
 	# distinct_at is not released yet for dplyr, thus we have to use this trick
 	my_df <- input.df %>%
-		select(!!gene_column, !!sample_column, !!value_column, one_of(parse_formula(formula))) %>%
-		setNames(c("symbol", "sample", "read count", parse_formula(formula))) %>%
+
+		# Select only significant genes plus background
+		{
+			bind_rows(
+				(.) %>% filter((!!as.symbol(significant_genes_column))),
+				(.) %>% filter((!!as.symbol(significant_genes_column)) %>% `!`) %>% inner_join( (.) %>% select(!!gene_column) %>% distinct() %>% sample_n(500))
+			)
+		} %>%
+
+		select(!!gene_column, !!sample_column, !!value_column, one_of(parse_formula(formula)), !!significant_genes_column) %>%
+		setNames(c("symbol", "sample", "read count", parse_formula(formula), significant_genes_column)) %>%
 		distinct() %>%
 
 		# Add symbol idx
@@ -216,6 +210,7 @@ pcc_seq = function(
 
 		# Add sample indeces
 		mutate(S = factor(sample, levels = .$sample %>% unique) %>% as.integer)
+
 
 
 	# Create design matrix
@@ -290,7 +285,7 @@ pcc_seq = function(
 	# Prior info
 
 	lambda_mu_mu = 5.612671
-browser()
+
 	########################################
 	# MODEL
 
@@ -300,24 +295,21 @@ browser()
 	# Sys.setenv("STAN_NUM_THREADS" = cores)
 	# pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
 
-	# Sys.time() %>% print
-	# fit =
-	# 	sampling(
-	# 		stanmodels$negBinomial_MPI, #pcc_seq_model, #
-	# 		chains=3, cores=3,
-	# 		iter=600, warmup=500,   save_warmup = FALSE
-	# 	)
-	# Sys.time() %>% print
-
 	Sys.time() %>% print
-	fit_vb =
-		vb(
-			stanmodels$negBinomial_MPI, #pcc_seq_model, #
-			iter = 50000,
-			tol_rel_obj=0.001,
-			output_samples = 500,
-			par=c("counts_rng")
-
+	fit =
+		switch(
+			full_bayes %>% `!` %>% as.integer %>% sum(1),
+			sampling(
+				stanmodels$negBinomial_MPI, #pcc_seq_model, #
+				chains=3, cores=3,
+				iter=600, warmup=500,   save_warmup = FALSE
+			),
+			vb(
+				stanmodels$negBinomial_MPI, #pcc_seq_model, #
+				output_samples=1000,
+				iter = 50000,
+				tol_rel_obj=0.005
+			)
 		)
 	Sys.time() %>% print
 
@@ -325,21 +317,21 @@ browser()
 	# Parse results
 
 	# Relation expected value, variance
-	fit_draws = fit@sim$samples[[1]] %>% bind_rows() %>% mutate(.draw = 1:n()) %>% gather(.variable, .value, -.draw)
-
-	# Plot relation lambda sigma
-	fit_draws %>% filter(grepl("^alpha", .variable)) %>% separate(.variable, c(".variable", "C", "G"), sep="\\.") %>%
-		mutate(C = C %>% as.integer, G = G %>% as.integer) %>%
-		filter(C == 1) %>%
-		select(-C) %>%
-		bind_rows(
-			fit_draws %>% filter(grepl("^sigma_raw_param", .variable)) %>% separate(.variable, c(".variable", "G"), sep="\\.") %>%
-				mutate( G = G %>% as.integer)
-		) %>%
-	spread(.variable, .value) %>%
-	ggplot(aes(x=alpha, y=sigma_raw_param, group=G)) +
-	stat_ellipse( alpha=0.2) +
-	my_theme
+	# fit_draws = fit@sim$samples[[1]] %>% bind_rows() %>% mutate(.draw = 1:n()) %>% gather(.variable, .value, -.draw)
+	#
+	# # Plot relation lambda sigma
+	# fit_draws %>% filter(grepl("^alpha", .variable)) %>% separate(.variable, c(".variable", "C", "G"), sep="\\.") %>%
+	# 	mutate(C = C %>% as.integer, G = G %>% as.integer) %>%
+	# 	filter(C == 1) %>%
+	# 	select(-C) %>%
+	# 	bind_rows(
+	# 		fit_draws %>% filter(grepl("^sigma_raw_param", .variable)) %>% separate(.variable, c(".variable", "G"), sep="\\.") %>%
+	# 			mutate( G = G %>% as.integer)
+	# 	) %>%
+	# 	spread(.variable, .value) %>%
+	# 	ggplot(aes(x=alpha, y=sigma_raw_param, group=G)) +
+	# 	stat_ellipse( alpha=0.2) +
+	# 	my_theme
 
 	# fit %>%
 	# 	tidybayes::spread_draws(counts_rng[S,G]) %>%
@@ -367,8 +359,10 @@ browser()
 
 				# Check if data is within posterior
 				left_join(my_df) %>%
+				filter((!!as.symbol(significant_genes_column))) %>% # Filter only DE genes
 				rowwise() %>%
 				mutate(`ppc` = `read count` %>% between(`2.5%`, `97.5%`)) %>%
+				ungroup %>%
 
 				# Add plots
 				group_by(symbol) %>%
@@ -392,5 +386,5 @@ browser()
 				rename(symbol := !!gene_column) %>%
 				select(-data)
 		)
-
 }
+
