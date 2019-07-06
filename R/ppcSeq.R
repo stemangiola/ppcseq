@@ -300,70 +300,97 @@ pcc_seq = function(
 	# Sys.setenv("STAN_NUM_THREADS" = cores)
 	# pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
 
-	Sys.time() %>% print
-	fit =
-		sampling(
-			stanmodels$negBinomial_MPI, #pcc_seq_model, #
-			chains=3, cores=3,
-			iter=600, warmup=500,   save_warmup = FALSE
-		)
-	Sys.time() %>% print
+	# Sys.time() %>% print
+	# fit =
+	# 	sampling(
+	# 		stanmodels$negBinomial_MPI, #pcc_seq_model, #
+	# 		chains=3, cores=3,
+	# 		iter=600, warmup=500,   save_warmup = FALSE
+	# 	)
+	# Sys.time() %>% print
 
 	Sys.time() %>% print
 	fit_vb =
 		vb(
 			stanmodels$negBinomial_MPI, #pcc_seq_model, #
-			output_samples=2000,
 			iter = 50000,
-			tol_rel_obj=0.001
+			tol_rel_obj=0.001,
+			output_samples = 500,
+			par=c("counts_rng")
 
 		)
 	Sys.time() %>% print
-
-
 
 	########################################
 	# Parse results
 
 	# Relation expected value, variance
-	fit %>%
-		tidybayes::spread_draws(lambda_log_param[G], sigma_raw_param[G]) %>%
-		ggplot(aes(x=lambda_log_param, y=sigma_raw_param, group=G, alpha=)) +
-		stat_ellipse( alpha=0.2) +
-		my_theme
+	fit_draws = fit@sim$samples[[1]] %>% bind_rows() %>% mutate(.draw = 1:n()) %>% gather(.variable, .value, -.draw)
 
-	fit %>%
-		tidybayes::spread_draws(counts_rng[S,G]) %>%
-		filter(G==1) %>%
-		ggplot(aes(x=counts_rng+1, group=S)) +
-		geom_density(fill="grey") +
-		geom_vline(data = my_df %>% filter(G==1), aes(xintercept = `read count`, color=ct),
-			linetype="dotted",
-			size=1.5
-		) +
-		facet_wrap(~ S) +
-		my_theme
+	# Plot relation lambda sigma
+	fit_draws %>% filter(grepl("^alpha", .variable)) %>% separate(.variable, c(".variable", "C", "G"), sep="\\.") %>%
+		mutate(C = C %>% as.integer, G = G %>% as.integer) %>%
+		filter(C == 1) %>%
+		select(-C) %>%
+		bind_rows(
+			fit_draws %>% filter(grepl("^sigma_raw_param", .variable)) %>% separate(.variable, c(".variable", "G"), sep="\\.") %>%
+				mutate( G = G %>% as.integer)
+		) %>%
+	spread(.variable, .value) %>%
+	ggplot(aes(x=alpha, y=sigma_raw_param, group=G)) +
+	stat_ellipse( alpha=0.2) +
+	my_theme
 
-	fit %>%
-		tidybayes::spread_draws(counts_rng[S,G]) %>%
-		tidybayes::median_qi() %>%
-		left_join(my_df) %>%
-		rowwise() %>%
-		mutate(`ppc` = `read count` %>% between(`.lower`, `.upper`)) %>%
-		filter(G==30) %>%
-		ggplot(aes(y=`read count`, x=sample)) +
-		geom_errorbar(aes(ymin=`.lower`, ymax=`.upper`, color=ppc)) +
-		geom_point(aes(color=ct)) +
-		my_theme
+	# fit %>%
+	# 	tidybayes::spread_draws(counts_rng[S,G]) %>%
+	# 	filter(G==1) %>%
+	# 	ggplot(aes(x=counts_rng+1, group=S)) +
+	# 	geom_density(fill="grey") +
+	# 	geom_vline(data = my_df %>% filter(G==1), aes(xintercept = `read count`, color=ct),
+	# 		linetype="dotted",
+	# 		size=1.5
+	# 	) +
+	# 	facet_wrap(~ S) +
+	# 	my_theme
 
 	# Return
-	list(
+	input.df %>%
+		left_join(
 
-		# Return the input itself
-		input = input,
+			# Parse fit
+			fit %>%
+				summary("counts_rng") %$%
+				summary %>%
+				as_tibble(rownames = ".variable") %>%
+				separate(.variable, c(".variable", "S", "G"), sep="[\\[,\\]]") %>%
+				mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
 
-		# Return the fitted object
-		fit = fit
-	)
+				# Check if data is within posterior
+				left_join(my_df) %>%
+				rowwise() %>%
+				mutate(`ppc` = `read count` %>% between(`2.5%`, `97.5%`)) %>%
+
+				# Add plots
+				group_by(symbol) %>%
+				nest %>%
+				mutate(plot = map2(data, symbol, ~
+													 	{
+													 		ggplot(data = .x, aes(y=`read count`, x=sample)) +
+													 			geom_errorbar(aes(ymin=`2.5%`, ymax=`97.5%`, color =ppc)) +
+													 			my_theme
+													 	} %>%
+													 	{
+													 		if(parse_formula(formula)[1] %>% is.null %>% `!`) (.) + geom_point(aes(fill=parse_formula(formula)[1]))
+													 		(.) + geom_point(shape=21, fill="black")
+													 	}
+				)) %>%
+
+				# Add summary statistics
+				mutate(
+					`ppc samples failed` = map_int(data, ~ .x %>% pull(ppc) %>% `!` %>% sum)
+				) %>%
+				rename(symbol := !!gene_column) %>%
+				select(-data)
+		)
 
 }
