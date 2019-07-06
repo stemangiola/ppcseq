@@ -168,7 +168,7 @@ as_matrix <- function(tbl, rownames = NULL) {
 #'
 pcc_seq = function(
 	input.df,
-	formula,
+	formula = ~ 1,
 	sample_column = "sample",
 	gene_column = "symbol",
 	value_column = "read count"
@@ -290,7 +290,7 @@ pcc_seq = function(
 	# Prior info
 
 	lambda_mu_mu = 5.612671
-
+browser()
 	########################################
 	# MODEL
 
