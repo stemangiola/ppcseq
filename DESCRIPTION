@@ -18,7 +18,13 @@ Imports:
     methods,
     Rcpp (>= 0.12.0),
     rstan (>= 2.18.1),
-    rstantools (>= 2.0.0.9000)
+    rstantools (>= 2.0.0.9000),
+    tibble, 
+    dplyr, 
+    magrittr, 
+    purrr,
+    tidyr, 
+    ggplot2
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
@@ -26,3 +32,4 @@ LinkingTo:
     rstan (>= 2.18.1),
     StanHeaders (>= 2.18.0)
 SystemRequirements: GNU make
+RoxygenNote: 6.1.1
