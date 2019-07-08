@@ -184,7 +184,7 @@ ppc_seq = function(
 
 	if(input.df %>% filter(!!as.symbol(gene_column) %>% is.na) %>% nrow > 0) stop("There are NAs in the gene_column. Please filter those records")
 
-	if(input.df %>% select(!!value_column) %>% sapply(class) != "integer") stop("The algorithm takes raw integer read counts only")
+	if(input.df %>% select(!!value_column) %>% sapply(class) != "integer") stop("The algorithm takes raw (un-normalised) integer read counts only")
 
 	# distinct_at is not released yet for dplyr, thus we have to use this trick
 	my_df <- input.df %>%
@@ -357,6 +357,18 @@ ppc_seq = function(
 				separate(.variable, c(".variable", "S", "G"), sep="[\\[,\\]]") %>%
 				mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
 
+				# Add exposure rate
+				left_join(
+					fit %>%
+						summary("exposure_rate") %$%
+						summary %>%
+						as_tibble(rownames = ".variable") %>%
+						separate(.variable, c(".variable", "S"), sep="[\\[,\\]]") %>%
+						mutate(S = S %>% as.integer) %>%
+						rename(`exposure rate` = mean) %>%
+						select(S, `exposure rate`)
+				) %>%
+
 				# Check if data is within posterior
 				left_join(my_df) %>%
 				filter((!!as.symbol(significant_genes_column))) %>% # Filter only DE genes
@@ -370,12 +382,15 @@ ppc_seq = function(
 				mutate(plot = map2(data, symbol, ~
 													 	{
 													 		ggplot(data = .x, aes(y=`read count`, x=sample)) +
-													 			geom_errorbar(aes(ymin=`2.5%`, ymax=`97.5%`, color =ppc)) +
+													 			geom_errorbar(aes(ymin=`2.5%`, ymax=`97.5%`, color =ppc), width=0) +
+													 			scale_colour_manual(values = c("red", "black")) +
 													 			my_theme
 													 	} %>%
 													 	{
-													 		if(parse_formula(formula)[1] %>% is.null %>% `!`) (.) + geom_point(aes(fill=parse_formula(formula)[1]))
-													 		(.) + geom_point(shape=21, fill="black")
+													 		if(parse_formula(formula)[1] %>% is.null %>% `!`)
+													 			(.) + geom_point(aes(size=`exposure rate`, fill = !!as.symbol(parse_formula(formula)[1])), shape = 21)
+													 		else
+													 			(.) + geom_point(aes(size=`exposure rate`), shape=21, fill="black")
 													 	}
 				)) %>%
 
