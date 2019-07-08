@@ -1,3 +1,6 @@
 .Rproj.user
 *.so
 *.o
+*.h
+.Rhistory
+.RData
