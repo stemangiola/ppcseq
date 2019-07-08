@@ -4,3 +4,7 @@
 *.h
 .Rhistory
 .RData
+
+# filter chache
+*cache*
+.Rproj.user
