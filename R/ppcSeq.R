@@ -122,6 +122,38 @@ as_matrix <- function(tbl, rownames = NULL) {
 		as.matrix()
 }
 
+other_code = function(){
+
+	# Relation expected value, variance
+	# fit_draws = fit@sim$samples[[1]] %>% bind_rows() %>% mutate(.draw = 1:n()) %>% gather(.variable, .value, -.draw)
+	#
+	# # Plot relation lambda sigma
+	# fit_draws %>% filter(grepl("^alpha", .variable)) %>% separate(.variable, c(".variable", "C", "G"), sep="\\.") %>%
+	# 	mutate(C = C %>% as.integer, G = G %>% as.integer) %>%
+	# 	filter(C == 1) %>%
+	# 	select(-C) %>%
+	# 	bind_rows(
+	# 		fit_draws %>% filter(grepl("^sigma_raw_param", .variable)) %>% separate(.variable, c(".variable", "G"), sep="\\.") %>%
+	# 			mutate( G = G %>% as.integer)
+	# 	) %>%
+	# 	spread(.variable, .value) %>%
+	# 	ggplot(aes(x=alpha, y=sigma_raw_param, group=G)) +
+	# 	stat_ellipse( alpha=0.2) +
+	# 	my_theme
+
+	# fit %>%
+	# 	tidybayes::spread_draws(counts_rng[S,G]) %>%
+	# 	filter(G==1) %>%
+	# 	ggplot(aes(x=counts_rng+1, group=S)) +
+	# 	geom_density(fill="grey") +
+	# 	geom_vline(data = my_df %>% filter(G==1), aes(xintercept = `read count`, color=ct),
+	# 		linetype="dotted",
+	# 		size=1.5
+	# 	) +
+	# 	facet_wrap(~ S) +
+	# 	my_theme
+}
+
 #' pcc_seq main
 #'
 #' @description This function calls the stan model.
@@ -155,7 +187,8 @@ ppc_seq = function(
 	sample_column = "sample",
 	gene_column = "symbol",
 	value_column = "read count",
-	significant_genes_column = "is_significant",
+	significance_column = "p-value",
+	do_check_column,
 	full_bayes = F
 ){
 
@@ -192,13 +225,26 @@ ppc_seq = function(
 		# Select only significant genes plus background
 		{
 			bind_rows(
-				(.) %>% filter((!!as.symbol(significant_genes_column))),
-				(.) %>% filter((!!as.symbol(significant_genes_column)) %>% `!`) %>% inner_join( (.) %>% select(!!gene_column) %>% distinct() %>% sample_n(500))
+
+				# Genes to check
+				(.) %>%
+					filter((!!as.symbol(do_check_column))),
+
+				# Least changing genes
+				(.) %>%
+					filter((!!as.symbol(do_check_column)) %>% `!`) %>%
+					inner_join(
+						(.) %>%
+							arrange(!!as.symbol(significance_column)) %>%
+							select(!!gene_column) %>%
+							distinct() %>%
+							tail(1000)
+						)
 			)
 		} %>%
 
-		select(!!gene_column, !!sample_column, !!value_column, one_of(parse_formula(formula)), !!significant_genes_column) %>%
-		setNames(c("symbol", "sample", "read count", parse_formula(formula), significant_genes_column)) %>%
+		select(!!gene_column, !!sample_column, !!value_column, one_of(parse_formula(formula)), !!do_check_column) %>%
+		setNames(c("symbol", "sample", "read count", parse_formula(formula), do_check_column)) %>%
 		distinct() %>%
 
 		# Add symbol idx
@@ -211,7 +257,7 @@ ppc_seq = function(
 		# Add sample indeces
 		mutate(S = factor(sample, levels = .$sample %>% unique) %>% as.integer)
 
-
+	how_many_to_check = input.df %>% filter(!!as.symbol(do_check_column)) %>% select(!!gene_column) %>% distinct() %>% nrow
 
 	# Create design matrix
 	X =
@@ -288,12 +334,18 @@ ppc_seq = function(
 
 	########################################
 	# MODEL
+	Sys.setenv("STAN_NUM_THREADS" = cores)
 
 	# fileConn<-file("~/.R/Makevars")
 	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
 	# close(fileConn)
-	# Sys.setenv("STAN_NUM_THREADS" = cores)
 	# pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
+	# fit = vb(
+	# 	pcc_seq_model, #
+	# 	output_samples=1000,
+	# 	iter = 50000,
+	# 	tol_rel_obj=0.001
+	# )
 
 	Sys.time() %>% print
 	fit =
@@ -315,36 +367,6 @@ ppc_seq = function(
 
 	########################################
 	# Parse results
-
-	# Relation expected value, variance
-	# fit_draws = fit@sim$samples[[1]] %>% bind_rows() %>% mutate(.draw = 1:n()) %>% gather(.variable, .value, -.draw)
-	#
-	# # Plot relation lambda sigma
-	# fit_draws %>% filter(grepl("^alpha", .variable)) %>% separate(.variable, c(".variable", "C", "G"), sep="\\.") %>%
-	# 	mutate(C = C %>% as.integer, G = G %>% as.integer) %>%
-	# 	filter(C == 1) %>%
-	# 	select(-C) %>%
-	# 	bind_rows(
-	# 		fit_draws %>% filter(grepl("^sigma_raw_param", .variable)) %>% separate(.variable, c(".variable", "G"), sep="\\.") %>%
-	# 			mutate( G = G %>% as.integer)
-	# 	) %>%
-	# 	spread(.variable, .value) %>%
-	# 	ggplot(aes(x=alpha, y=sigma_raw_param, group=G)) +
-	# 	stat_ellipse( alpha=0.2) +
-	# 	my_theme
-
-	# fit %>%
-	# 	tidybayes::spread_draws(counts_rng[S,G]) %>%
-	# 	filter(G==1) %>%
-	# 	ggplot(aes(x=counts_rng+1, group=S)) +
-	# 	geom_density(fill="grey") +
-	# 	geom_vline(data = my_df %>% filter(G==1), aes(xintercept = `read count`, color=ct),
-	# 		linetype="dotted",
-	# 		size=1.5
-	# 	) +
-	# 	facet_wrap(~ S) +
-	# 	my_theme
-
 	# Return
 	input.df %>%
 		left_join(
@@ -371,7 +393,7 @@ ppc_seq = function(
 
 				# Check if data is within posterior
 				left_join(my_df) %>%
-				filter((!!as.symbol(significant_genes_column))) %>% # Filter only DE genes
+				filter((!!as.symbol(do_check_column))) %>% # Filter only DE genes
 				rowwise() %>%
 				mutate(`ppc` = `read count` %>% between(`2.5%`, `97.5%`)) %>%
 				ungroup %>%

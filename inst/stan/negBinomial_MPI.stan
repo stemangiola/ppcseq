@@ -92,6 +92,24 @@ functions{
 
   }
 
+matrix merge_coefficients(row_vector intercept, row_vector alpha_sub_1, matrix alpha_2,  int C, int S, int G){
+	matrix[C,G] my_alpha;
+
+
+	if(C==1)
+		my_alpha = to_matrix(intercept);
+	else if(C>1)
+		my_alpha =
+			append_row(
+				append_row(
+					intercept,
+					append_col(alpha_sub_1, rep_row_vector(0.0, G-cols(alpha_sub_1)))
+				),
+				alpha_2
+			);
+
+	return my_alpha;
+}
 
 }
 data {
@@ -117,6 +135,8 @@ data {
 
 	real<lower=0> lambda_mu_mu;
 
+	int<lower=0> how_many_to_check;
+
 }
 transformed data {
 
@@ -127,13 +147,15 @@ transformed data {
 parameters {
 
 
-   // Overall properties of the data
+  // Overall properties of the data
   real lambda_mu; // So is compatible with logGamma prior
   real<lower=0> lambda_sigma;
   vector[S] exposure_rate;
 
   // Gene-wise properties of the data
-  matrix[C,G] alpha; // Linear model for calculating lambda_log
+  row_vector[G] intercept;
+  row_vector[how_many_to_check] alpha_sub_1;
+  matrix[max(0, C-2),G] alpha_2; // Linear model for calculating lambda_log
   vector[G] sigma_raw_param;
 
   // Signa linear model
@@ -146,7 +168,7 @@ parameters {
 transformed parameters {
   // Sigma
   vector[G] sigma = 1.0 ./ exp(sigma_raw_param) ;
-
+	matrix[C,G] alpha = merge_coefficients(intercept, alpha_sub_1, alpha_2,  C,  S,  G);
 	matrix[S,G] lambda_log_param = X * alpha;
 }
 
@@ -164,8 +186,9 @@ model {
   sigma_sigma ~ normal(0,2);
 
   // Gene-wise properties of the data
-  to_vector(alpha[1,]) ~ exp_gamma_meanSd(lambda_mu,lambda_sigma);
-  if(C>1) to_vector(alpha[2:C,]) ~ double_exponential(0,1);
+  to_vector(intercept) ~ exp_gamma_meanSd(lambda_mu,lambda_sigma);
+  if(C>1) alpha_sub_1 ~ double_exponential(0,1);
+	if(C>2) to_vector(alpha_2) ~ normal(0,2.5);
 
   sigma_raw_param ~ normal(sigma_slope * alpha[1,] + sigma_intercept,sigma_sigma);
 

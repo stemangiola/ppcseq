@@ -6,7 +6,7 @@
 \usage{
 ppc_seq(input.df, formula = ~1, sample_column = "sample",
   gene_column = "symbol", value_column = "read count",
-  significant_genes_column = "is_significant", full_bayes = F)
+  significance_column = "p-value", do_check_column, full_bayes = F)
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
