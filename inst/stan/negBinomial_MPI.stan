@@ -31,7 +31,7 @@ functions{
 
 	vector[] get_reference_parameters_MPI(int n_shards, int M, int[] G_per_shard, int[,] G_ind, matrix lambda_log, vector sigma, vector exposure_rate){
 
-		int S = cols(exposure_rate);
+		int S = rows(exposure_rate);
 		vector[(M*S) + M + S] lambda_sigma_exposure_MPI[n_shards];
 
 		for( i in 1:n_shards ) {
@@ -165,9 +165,9 @@ model {
 
   // Gene-wise properties of the data
   to_vector(alpha[1,]) ~ exp_gamma_meanSd(lambda_mu,lambda_sigma);
-  if(C>1) to_vector(alpha[2:C,]) ~ cauchy(0,2);
+  if(C>1) to_vector(alpha[2:C,]) ~ double_exponential(0,1);
 
-  sigma_raw_param ~ normal(sigma_slope * lambda_log_param[1,] + sigma_intercept,sigma_sigma);
+  sigma_raw_param ~ normal(sigma_slope * alpha[1,] + sigma_intercept,sigma_sigma);
 
   // Exposure prior
   exposure_rate ~ normal(0,1);
