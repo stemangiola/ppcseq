@@ -205,8 +205,8 @@ ppc_seq = function(
 			panel.grid.minor = element_line(size = 0.1),
 			text = element_text(size=12),
 			legend.position="bottom",
-			aspect.ratio=1,
-			axis.text.x = element_text(angle = 90, hjust = 1),
+			#aspect.ratio=1,
+			axis.text.x = element_text(angle = 90, hjust = 0.5, vjust=1),
 			strip.background = element_blank(),
 			axis.title.x  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
 			axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
@@ -359,7 +359,7 @@ ppc_seq = function(
 			sampling(
 				stanmodels$negBinomial_MPI, #pcc_seq_model, #
 				chains=3, cores=3,
-				iter=600, warmup=500,   save_warmup = FALSE
+				iter=600, warmup=400,   save_warmup = FALSE
 			),
 			vb(
 				stanmodels$negBinomial_MPI, #pcc_seq_model, #
@@ -410,7 +410,7 @@ ppc_seq = function(
 													 	{
 													 		ggplot(data = .x, aes(y=`read count`, x=sample)) +
 													 			geom_errorbar(aes(ymin=`2.5%`, ymax=`97.5%`, color =ppc), width=0) +
-													 			scale_colour_manual(values = c("red", "black")) +
+													 			scale_colour_manual(values = c( "FALSE"= "red", "TRUE"= "black")) +
 													 			my_theme
 													 	} %>%
 													 	{
