@@ -202,7 +202,7 @@ model {
 
   // Exposure prior
   exposure_rate_raw ~ normal(0,1);
-  sum(exposure_rate_raw) ~ normal(0, 0.001 * S);
+  sum(exposure_rate_raw) ~ normal(0, 0.01 * S);
 
 	// Gene-wise properties of the data
 	target += sum(map_rect(
