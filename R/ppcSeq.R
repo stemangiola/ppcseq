@@ -345,8 +345,8 @@ ppc_seq = function(
 		add_normalised_counts() %>%
 		distinct(sample, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
-		summarise(l %>% mean) %>%
-		pull(`l %>% mean`)
+		summarise(l %>% sd) %>%
+		pull(`l %>% sd`)
 
 	intercept_shift_scale =
 		my_df %>%
