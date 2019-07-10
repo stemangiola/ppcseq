@@ -105,7 +105,7 @@ matrix merge_coefficients(row_vector intercept, row_vector alpha_sub_1, matrix a
 					intercept,
 					append_col(alpha_sub_1, rep_row_vector(0.0, G-cols(alpha_sub_1)))
 				),
-				alpha_2
+				append_col(alpha_2, rep_matrix(0.0, rows(alpha_2), G-cols(alpha_2)))
 			);
 
 	return my_alpha;
@@ -155,7 +155,7 @@ parameters {
   // Gene-wise properties of the data
   row_vector[G] intercept;
   row_vector[how_many_to_check] alpha_sub_1;
-  matrix[max(0, C-2),G] alpha_2; // Linear model for calculating lambda_log
+  matrix[max(0, C-2),how_many_to_check] alpha_2; // Linear model for calculating lambda_log
   vector[G] sigma_raw_param;
 
   // Signa linear model
