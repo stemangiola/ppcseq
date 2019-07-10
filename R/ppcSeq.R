@@ -257,7 +257,12 @@ ppc_seq = function(
 		# Add sample indeces
 		mutate(S = factor(sample, levels = .$sample %>% unique) %>% as.integer)
 
-	how_many_to_check = input.df %>% filter(!!as.symbol(do_check_column)) %>% select(!!gene_column) %>% distinct() %>% nrow
+	how_many_to_check =
+		ifelse(
+			parse_formula(formula) %>% length > 0,
+			input.df %>% filter(!!as.symbol(do_check_column)) %>% select(!!gene_column) %>% distinct() %>% nrow,
+			0
+		)
 
 	# Create design matrix
 	X =
