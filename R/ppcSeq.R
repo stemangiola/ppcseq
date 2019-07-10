@@ -338,13 +338,40 @@ ppc_seq = function(
 	lambda_mu_mu = 5.612671
 
 	########################################
+	# Build better scales
+
+	exposure_rate_multiplier =
+		my_df %>%
+		add_normalised_counts() %>%
+		distinct(sample, TMM, multiplier) %>%
+		mutate(l = multiplier %>% log) %>%
+		summarise(l %>% mean) %>%
+		pull(`l %>% mean`)
+
+	intercept_shift_scale =
+		my_df %>%
+		add_normalised_counts() %>%
+		mutate(cc = `read count normalised` %>% `+` (1) %>% log) %>%
+		summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
+		as.numeric
+
+	# sigma_shift_scale =
+	# 	my_df %>%
+	# 	add_normalised_counts() %>%
+	# 	mutate(cc = `read count normalised` %>% `+` (1) %>% log) %>%
+	# 	group_by(symbol) %>%
+	# 	summarise(sigma = cc %>% sd %>% log) %>%
+	# 	ungroup() %>%
+	# 	summarise(shift = sigma %>% mean, scale = sigma %>% sd)
+
+	########################################
 	# MODEL
 	Sys.setenv("STAN_NUM_THREADS" = cores)
 
-	# fileConn<-file("~/.R/Makevars")
-	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
-	# close(fileConn)
-	# pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
+	fileConn<-file("~/.R/Makevars")
+	writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
+	close(fileConn)
+	pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
 	# fit = vb(
 	# 	pcc_seq_model, #
 	# 	output_samples=1000,
