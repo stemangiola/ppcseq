@@ -137,6 +137,10 @@ data {
 
 	int<lower=0> how_many_to_check;
 
+	// For better adaptation
+	real exposure_rate_multiplier;
+	real intercept_shift_scale[2];
+
 }
 transformed data {
 
@@ -148,9 +152,9 @@ parameters {
 
 
   // Overall properties of the data
-  real lambda_mu; // So is compatible with logGamma prior
+  real lambda_mu_raw; // So is compatible with logGamma prior
   real<lower=0> lambda_sigma;
-  vector[S] exposure_rate;
+  vector[S] exposure_rate_raw;
 
   // Gene-wise properties of the data
   row_vector[G] intercept;
@@ -166,20 +170,24 @@ parameters {
 
 }
 transformed parameters {
+
+	// For better adaptation
+	real lambda_mu = lambda_mu_raw + lambda_mu_mu;
+	//row_vector[G] intercept = (intercept_raw * intercept_shift_scale[2]) + intercept_shift_scale[1];
+	vector[S] exposure_rate = exposure_rate_raw * exposure_rate_multiplier;
+
   // Sigma
   vector[G] sigma = 1.0 ./ exp(sigma_raw_param) ;
 	matrix[C,G] alpha = merge_coefficients(intercept, alpha_sub_1, alpha_2,  C,  S,  G);
 	matrix[S,G] lambda_log_param = X * alpha;
+
+
 }
 
 model {
 
-  lambda_mu ~ normal(lambda_mu_mu,2);
+  lambda_mu_raw ~ normal(0,2);
   lambda_sigma ~ normal(0,2);
-
-  //sigma_raw ~ normal(0,1);
-  exposure_rate ~ normal(0,1);
-  sum(exposure_rate) ~ normal(0, 0.001 * S);
 
   sigma_intercept ~ normal(0,2);
   sigma_slope ~ normal(0,2);
@@ -187,14 +195,14 @@ model {
 
   // Gene-wise properties of the data
   to_vector(intercept) ~ exp_gamma_meanSd(lambda_mu,lambda_sigma);
-  if(C>1) alpha_sub_1 ~ double_exponential(0,1);
-	if(C>2) to_vector(alpha_2) ~ normal(0,2.5);
+  if(C>=2) alpha_sub_1 ~ double_exponential(0,1);
+	if(C>=3) to_vector(alpha_2) ~ normal(0,2.5);
 
   sigma_raw_param ~ normal(sigma_slope * alpha[1,] + sigma_intercept,sigma_sigma);
 
   // Exposure prior
-  exposure_rate ~ normal(0,1);
-  sum(exposure_rate) ~ normal(0, 0.001 * S);
+  exposure_rate_raw ~ normal(0,1);
+  sum(exposure_rate_raw) ~ normal(0, 0.001 * S);
 
 	// Gene-wise properties of the data
 	target += sum(map_rect(
