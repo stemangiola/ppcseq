@@ -160,7 +160,7 @@ parameters {
   row_vector[G] intercept;
   row_vector[how_many_to_check] alpha_sub_1;
   matrix[max(0, C-2),how_many_to_check] alpha_2; // Linear model for calculating lambda_log
-  vector[G] sigma_raw_param;
+  vector[G] sigma_raw_raw;
 
   // Signa linear model
 
@@ -176,10 +176,13 @@ transformed parameters {
 	//row_vector[G] intercept = (intercept_raw * intercept_shift_scale[2]) + intercept_shift_scale[1];
 	vector[S] exposure_rate = exposure_rate_raw * exposure_rate_multiplier;
 
-  // Sigma
-  vector[G] sigma = 1.0 ./ exp(sigma_raw_param) ;
 	matrix[C,G] alpha = merge_coefficients(intercept, alpha_sub_1, alpha_2,  C,  S,  G);
+
+  // Sigma
+  vector[G]	sigma_raw = to_vector(sigma_slope * alpha[1,] + sigma_intercept) + sigma_raw_raw * sigma_sigma;
+  vector[G] sigma = 1.0 ./ exp(sigma_raw) ;
 	matrix[S,G] lambda_log_param = X * alpha;
+
 
 
 }
@@ -198,7 +201,8 @@ model {
   if(C>=2) alpha_sub_1 ~ double_exponential(0,1);
 	if(C>=3) to_vector(alpha_2) ~ normal(0,2.5);
 
-  sigma_raw_param ~ normal(sigma_slope * alpha[1,] + sigma_intercept,sigma_sigma);
+  //sigma_raw ~ normal(sigma_slope * alpha[1,] + sigma_intercept,sigma_sigma);
+	sigma_raw_raw ~ normal(0,1);
 
   // Exposure prior
   exposure_rate_raw ~ normal(0,1);
