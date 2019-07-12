@@ -6,7 +6,7 @@
 \usage{
 ppc_seq(input.df, formula = ~1, sample_column = sample,
   gene_column = symbol, value_column = `read count`,
-  significance_column = `p-value`, do_check_column, full_bayes = F,
+  significance_column = `p-value`, do_check_column, full_bayes = T,
   how_many_negative_controls = 500, how_many_posterior_draws = 500)
 }
 \arguments{

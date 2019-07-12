@@ -24,9 +24,9 @@ counts.ppc =
 		mutate(is_significant = FDR < 0.05) %>% 
 		ppc_seq(
 			formula = ~ Label + W, 
-			significance_column = "PValue", 
-			do_check_column = "is_significant", 
-			value_column = "value"
+			significance_column = PValue, 
+			do_check_column = is_significant, 
+			value_column = value
 		)
 ```
 
