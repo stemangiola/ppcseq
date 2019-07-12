@@ -452,7 +452,22 @@ ppc_seq = function(
 				filter((!!do_check_column)) %>% # Filter only DE genes
 				rowwise() %>%
 				mutate(`ppc` = !!value_column %>% between(`2.5%`, `97.5%`)) %>%
+				mutate(`is higher than mean` = (!`ppc`) & (!!value_column > mean)) %>%
 				ungroup %>%
+
+				# Add annotation if sample belongs to high or low group
+				left_join(
+					X %>%
+						as_tibble %>%
+						select(2) %>%
+						setNames("factor or interest") %>%
+						mutate(S=1:n()) %>%
+						mutate(`is group high` = `factor or interest` > mean(`factor or interest`)),
+					by = "S"
+				) %>%
+
+				# Check if outlier might be deleterious for the statistics
+				mutate(`outlier deleterious` = (!ppc) & (`is higher than mean` == `is group high`)) %>%
 
 				# Add plots
 				group_by(!!gene_column) %>%
@@ -474,7 +489,8 @@ ppc_seq = function(
 
 				# Add summary statistics
 				mutate(
-					`ppc samples failed` = map_int(data, ~ .x %>% pull(ppc) %>% `!` %>% sum)
+					`ppc samples failed` = map_int(data, ~ .x %>% pull(ppc) %>% `!` %>% sum),
+					`of which deleterious` = map_int(data, ~ .x %>% pull(`outlier deleterious`) %>% sum)
 				) %>%
 				#rename(!!gene_column := !!gene_column) %>%
 				select(-data)
