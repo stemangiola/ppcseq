@@ -25,6 +25,8 @@ Imports:
     purrr,
     tidyr, 
     ggplot2
+Remotes: 
+    github::stemangiola/tidyTranscriptomics
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
