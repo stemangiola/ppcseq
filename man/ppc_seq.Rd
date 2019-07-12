@@ -4,22 +4,29 @@
 \alias{ppc_seq}
 \title{pcc_seq main}
 \usage{
-ppc_seq(input.df, formula = ~1, sample_column = "sample",
-  gene_column = "symbol", value_column = "read count",
-  significance_column = "p-value", do_check_column, full_bayes = F)
+ppc_seq(input.df, formula = ~1, sample_column = sample,
+  gene_column = symbol, value_column = `read count`,
+  significance_column = `p-value`, do_check_column, full_bayes = F,
+  how_many_negative_controls = 500, how_many_posterior_draws = 500)
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
 
 \item{formula}{A formula}
 
-\item{sample_column}{A character string}
+\item{sample_column}{A column name}
 
-\item{gene_column}{A character string}
+\item{gene_column}{A column name}
 
-\item{value_column}{A character string}
+\item{value_column}{A column name}
+
+\item{significance_column}{A column name}
 
 \item{full_bayes}{A boolean}
+
+\item{how_many_negative_controls}{An integer}
+
+\item{how_many_posterior_draws}{An integer}
 }
 \value{
 A tibble with additional columns
