@@ -1,14 +1,18 @@
 #' format_for_MPI
 #'
 #' @description Format reference data frame for MPI
-format_for_MPI = function(df, shards){
+format_for_MPI = function(df, shards, sample_column){
+
+	sample_column = enquo(sample_column)
+
 	df %>%
 
 		left_join(
 			(.) %>%
 				distinct(G) %>%
 				arrange(G) %>%
-				mutate( idx_MPI = head( rep(1:shards, (.) %>% nrow %>% `/` (shards) %>% ceiling ), n=(.) %>% nrow) )
+				mutate( idx_MPI = head( rep(1:shards, (.) %>% nrow %>% `/` (shards) %>% ceiling ), n=(.) %>% nrow) ),
+			by = "G"
 		) %>%
 		arrange(idx_MPI, G) %>%
 
@@ -18,11 +22,12 @@ format_for_MPI = function(df, shards){
 			(.) %>%
 				left_join(
 					(.) %>%
-						distinct(sample, G) %>%
+						distinct(!!sample_column, G) %>%
 						arrange(G) %>%
 						count(G) %>%
 						mutate(end = cumsum(n)) %>%
-						mutate(start = c(1, .$end %>% rev() %>% `[` (-1) %>% rev %>% `+` (1)))
+						mutate(start = c(1, .$end %>% rev() %>% `[` (-1) %>% rev %>% `+` (1))),
+					by = "G"
 				)
 		) %>%
 		ungroup() %>%
@@ -34,7 +39,8 @@ format_for_MPI = function(df, shards){
 				distinct(G) %>%
 				arrange(G) %>%
 				mutate(`symbol MPI row` = 1:n()) %>%
-				ungroup
+				ungroup,
+			by = c("G", "idx_MPI")
 		) %>%
 
 		# Add counts MPI rows indexes
@@ -146,7 +152,7 @@ other_code = function(){
 	# 	filter(G==1) %>%
 	# 	ggplot(aes(x=counts_rng+1, group=S)) +
 	# 	geom_density(fill="grey") +
-	# 	geom_vline(data = my_df %>% filter(G==1), aes(xintercept = `read count`, color=ct),
+	# 	geom_vline(data = my_df %>% filter(G==1), aes(xintercept = !!value_column, color=ct),
 	# 		linetype="dotted",
 	# 		size=1.5
 	# 	) +
@@ -168,13 +174,17 @@ other_code = function(){
 #' @importFrom magrittr %$%
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
+#' @importFrom tidyTranscriptomics add_normalised_counts
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
-#' @param sample_column A character string
-#' @param gene_column A character string
-#' @param value_column A character string
+#' @param sample_column A column name
+#' @param gene_column A column name
+#' @param value_column A column name
+#' @param significance_column A column name
 #' @param full_bayes A boolean
+#' @param how_many_negative_controls An integer
+#' @param how_many_posterior_draws An integer
 
 #'
 #' @return A tibble with additional columns
@@ -184,13 +194,21 @@ other_code = function(){
 ppc_seq = function(
 	input.df,
 	formula = ~ 1,
-	sample_column = "sample",
-	gene_column = "symbol",
-	value_column = "read count",
-	significance_column = "p-value",
+	sample_column = `sample`,
+	gene_column = `symbol`,
+	value_column = `read count`,
+	significance_column = `p-value`,
 	do_check_column,
-	full_bayes = F
+	full_bayes = T,
+	how_many_negative_controls = 500,
+	how_many_posterior_draws = 500
 ){
+
+	sample_column = enquo(sample_column)
+	gene_column = enquo(gene_column)
+	value_column = enquo(value_column)
+	significance_column = enquo(significance_column)
+	do_check_column = enquo(do_check_column)
 
 	#input = c(as.list(environment()))
 	cores = 30/3 %>% floor
@@ -215,7 +233,7 @@ ppc_seq = function(
 	#########################################
 	# For  reference MPI inference
 
-	if(input.df %>% filter(!!as.symbol(gene_column) %>% is.na) %>% nrow > 0) stop("There are NAs in the gene_column. Please filter those records")
+	if(input.df %>% filter(!!gene_column %>% is.na) %>% nrow > 0) stop("There are NAs in the gene_column. Please filter those records")
 
 	if(input.df %>% select(!!value_column) %>% sapply(class) != "integer") stop("The algorithm takes raw (un-normalised) integer read counts only")
 
@@ -228,39 +246,41 @@ ppc_seq = function(
 
 				# Genes to check
 				(.) %>%
-					filter((!!as.symbol(do_check_column))),
+					filter((!!do_check_column)),
 
 				# Least changing genes
 				(.) %>%
-					filter((!!as.symbol(do_check_column)) %>% `!`) %>%
+					filter((!!do_check_column) %>% `!`) %>%
 					inner_join(
 						(.) %>%
-							arrange(!!as.symbol(significance_column)) %>%
+							arrange(!!significance_column) %>%
 							select(!!gene_column) %>%
 							distinct() %>%
-							tail(1000)
+							tail(how_many_negative_controls),
+						by = quo_name(gene_column)
 						)
 			)
 		} %>%
 
 		select(!!gene_column, !!sample_column, !!value_column, one_of(parse_formula(formula)), !!do_check_column) %>%
-		setNames(c("symbol", "sample", "read count", parse_formula(formula), do_check_column)) %>%
+		#setNames(c("symbol", "sample", "read count", parse_formula(formula), do_check_column)) %>%
 		distinct() %>%
 
 		# Add symbol idx
 		left_join(
 			(.) %>%
-				distinct(symbol) %>%
-				mutate(G = 1:n())
+				distinct(!!gene_column) %>%
+				mutate(G = 1:n()),
+			by = quo_name(gene_column)
 		) %>%
 
 		# Add sample indeces
-		mutate(S = factor(sample, levels = .$sample %>% unique) %>% as.integer)
+		mutate(S = factor(!!sample_column, levels = (.) %>% pull(!!sample_column) %>% unique) %>% as.integer)
 
 	how_many_to_check =
 		ifelse(
 			parse_formula(formula) %>% length > 0,
-			input.df %>% filter(!!as.symbol(do_check_column)) %>% select(!!gene_column) %>% distinct() %>% nrow,
+			input.df %>% filter(!!do_check_column) %>% select(!!gene_column) %>% distinct() %>% nrow,
 			0
 		)
 
@@ -268,7 +288,7 @@ ppc_seq = function(
 	X =
 		model.matrix(
 			object = formula,
-			data = my_df %>% select(sample, one_of(parse_formula(formula))) %>% distinct %>% arrange(sample)
+			data = my_df %>% select(!!sample_column, one_of(parse_formula(formula))) %>% distinct %>% arrange(!!sample_column)
 		)
 	C = X %>% ncol
 	#%>%
@@ -276,21 +296,21 @@ ppc_seq = function(
 
 	counts_MPI =
 		my_df %>%
-		select(symbol, sample, `read count`, S, G) %>%
-		format_for_MPI(shards)
+		select(!!gene_column, !!sample_column, !!value_column, S, G) %>%
+		format_for_MPI(shards, !!sample_column)
 
 	G = counts_MPI %>% distinct(G) %>% nrow()
-	S = counts_MPI %>% distinct(sample) %>% nrow()
-	N = counts_MPI %>% distinct(idx_MPI, `read count`, `read count MPI row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
+	S = counts_MPI %>% distinct(!!sample_column) %>% nrow()
+	N = counts_MPI %>% distinct(idx_MPI, !!value_column, `read count MPI row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
 	M = counts_MPI %>% distinct(start, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% max
-	G_per_shard = counts_MPI %>% distinct(symbol, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% as.array
+	G_per_shard = counts_MPI %>% distinct(!!gene_column, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% as.array
 	n_shards = min(shards, counts_MPI %>% distinct(idx_MPI) %>% nrow)
-	G_per_shard_idx = c(0, counts_MPI %>% distinct(symbol, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% cumsum)
+	G_per_shard_idx = c(0, counts_MPI %>% distinct(!!gene_column, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% cumsum)
 
 	counts =
 		counts_MPI %>%
-		distinct(idx_MPI, `read count`, `read count MPI row`)  %>%
-		spread(idx_MPI,  `read count`) %>%
+		distinct(idx_MPI, !!value_column, `read count MPI row`)  %>%
+		spread(idx_MPI,  !!value_column) %>%
 		select(-`read count MPI row`) %>%
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
@@ -343,15 +363,19 @@ ppc_seq = function(
 	exposure_rate_multiplier =
 		my_df %>%
 		add_normalised_counts() %>%
-		distinct(sample, TMM, multiplier) %>%
+		distinct(!!sample_column, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
 		summarise(l %>% sd) %>%
 		pull(`l %>% sd`)
 
 	intercept_shift_scale =
 		my_df %>%
-		add_normalised_counts() %>%
-		mutate(cc = `read count normalised` %>% `+` (1) %>% log) %>%
+		add_normalised_counts(!!sample_column, !!gene_column, !!value_column) %>%
+		mutate(
+			cc =
+				!!as.symbol(sprintf("%s normalised",  quo_name(value_column))) %>%
+				`+` (1) %>% log
+					 ) %>%
 		summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
 		as.numeric
 
@@ -368,10 +392,10 @@ ppc_seq = function(
 	# MODEL
 	Sys.setenv("STAN_NUM_THREADS" = cores)
 
-	fileConn<-file("~/.R/Makevars")
-	writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
-	close(fileConn)
-	pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
+	# fileConn<-file("~/.R/Makevars")
+	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
+	# close(fileConn)
+	# pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
 	# fit = vb(
 	# 	pcc_seq_model, #
 	# 	output_samples=1000,
@@ -386,13 +410,13 @@ ppc_seq = function(
 			sampling(
 				stanmodels$negBinomial_MPI, #pcc_seq_model, #
 				chains=3, cores=3,
-				iter=600, warmup=400,   save_warmup = FALSE
+				iter=how_many_posterior_draws + 150, warmup=150,   save_warmup = FALSE, pars=c("counts_rng", "exposure_rate")
 			),
 			vb(
 				stanmodels$negBinomial_MPI, #pcc_seq_model, #
 				output_samples=1000,
 				iter = 50000,
-				tol_rel_obj=0.005
+				tol_rel_obj=0.005, pars=c("counts_rng", "exposure_rate")
 			)
 		)
 	Sys.time() %>% print
@@ -425,17 +449,17 @@ ppc_seq = function(
 
 				# Check if data is within posterior
 				left_join(my_df) %>%
-				filter((!!as.symbol(do_check_column))) %>% # Filter only DE genes
+				filter((!!do_check_column)) %>% # Filter only DE genes
 				rowwise() %>%
-				mutate(`ppc` = `read count` %>% between(`2.5%`, `97.5%`)) %>%
+				mutate(`ppc` = !!value_column %>% between(`2.5%`, `97.5%`)) %>%
 				ungroup %>%
 
 				# Add plots
-				group_by(symbol) %>%
+				group_by(!!gene_column) %>%
 				nest %>%
-				mutate(plot = map2(data, symbol, ~
+				mutate(plot = map2(data, !!gene_column, ~
 													 	{
-													 		ggplot(data = .x, aes(y=`read count`, x=sample)) +
+													 		ggplot(data = .x, aes(y=!!value_column, x=!!sample_column)) +
 													 			geom_errorbar(aes(ymin=`2.5%`, ymax=`97.5%`, color =ppc), width=0) +
 													 			scale_colour_manual(values = c( "FALSE"= "red", "TRUE"= "black")) +
 													 			my_theme
@@ -452,7 +476,7 @@ ppc_seq = function(
 				mutate(
 					`ppc samples failed` = map_int(data, ~ .x %>% pull(ppc) %>% `!` %>% sum)
 				) %>%
-				rename(symbol := !!gene_column) %>%
+				#rename(!!gene_column := !!gene_column) %>%
 				select(-data)
 		)
 }
