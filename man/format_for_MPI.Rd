@@ -4,7 +4,7 @@
 \alias{format_for_MPI}
 \title{format_for_MPI}
 \usage{
-format_for_MPI(df, shards)
+format_for_MPI(df, shards, sample_column)
 }
 \description{
 Format reference data frame for MPI
