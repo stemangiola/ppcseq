@@ -362,7 +362,7 @@ ppc_seq = function(
 
 	exposure_rate_multiplier =
 		my_df %>%
-		add_normalised_counts() %>%
+		add_normalised_counts(!!sample_column, !!gene_column, !!value_column) %>%
 		distinct(!!sample_column, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
 		summarise(l %>% sd) %>%
