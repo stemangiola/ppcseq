@@ -432,7 +432,7 @@ ppc_seq = function(
 				summary("counts_rng") %$%
 				summary %>%
 				as_tibble(rownames = ".variable") %>%
-				separate(.variable, c(".variable", "S", "G"), sep="[\\[,\\]]") %>%
+				separate(.variable, c(".variable", "S", "G"), sep="[\\[,\\]]", extra="drop") %>%
 				mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
 
 				# Add exposure rate
@@ -441,14 +441,15 @@ ppc_seq = function(
 						summary("exposure_rate") %$%
 						summary %>%
 						as_tibble(rownames = ".variable") %>%
-						separate(.variable, c(".variable", "S"), sep="[\\[,\\]]") %>%
+						separate(.variable, c(".variable", "S"), sep="[\\[,\\]]", extra="drop") %>%
 						mutate(S = S %>% as.integer) %>%
 						rename(`exposure rate` = mean) %>%
-						select(S, `exposure rate`)
+						select(S, `exposure rate`),
+					by="S"
 				) %>%
 
 				# Check if data is within posterior
-				left_join(my_df) %>%
+				left_join(my_df, by = c("S", "G")) %>%
 				filter((!!do_check_column)) %>% # Filter only DE genes
 				rowwise() %>%
 				mutate(`ppc` = !!value_column %>% between(`2.5%`, `97.5%`)) %>%
