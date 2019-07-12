@@ -8,3 +8,5 @@
 # filter chache
 *cache*
 .Rproj.user
+.Rhistory
+*.o
