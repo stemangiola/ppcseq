@@ -172,6 +172,7 @@ other_code = function(){
 #' @importFrom tidyr spread
 #' @import tidybayes
 #' @importFrom magrittr %$%
+#' @importFrom magrittr divide_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
 #' @importFrom tidyTranscriptomics add_normalised_counts
@@ -201,7 +202,21 @@ ppc_seq = function(
 	do_check_column,
 	full_bayes = T,
 	how_many_negative_controls = 500,
-	how_many_posterior_draws = 500
+	return_fit_in_out = F,       # For development purpose
+	additional_parameters_to_save = c(), # For development purpose,
+	cores = system("nproc", intern = TRUE) %>% as.integer %>% sum(-1),
+	chains = 3,
+	error_rate = # On average probability of having one false positive
+		ifelse(
+			input.df %>% filter(!!enquo(do_check_column)) %>% nrow < 100,
+			0.05,
+			ifelse(
+				input.df %>% filter(!!enquo(do_check_column)) %>% nrow %>% between(100, 1000),
+				0.1,
+				1
+			)
+		),
+	how_many_posterior_draws = 1 / ((error_rate) / 2 / (input.df %>% filter(!!enquo(do_check_column)) %>% nrow))
 ){
 
 	sample_column = enquo(sample_column)
@@ -211,8 +226,8 @@ ppc_seq = function(
 	do_check_column = enquo(do_check_column)
 
 	#input = c(as.list(environment()))
-	cores = 30/3 %>% floor
-	shards = cores * 2
+	my_cores = cores %>% divide_by(chains) %>% floor
+	shards = my_cores
 
 	my_theme =
 		theme_bw() +
@@ -235,7 +250,8 @@ ppc_seq = function(
 
 	if(input.df %>% filter(!!gene_column %>% is.na) %>% nrow > 0) stop("There are NAs in the gene_column. Please filter those records")
 
-	if(input.df %>% select(!!value_column) %>% sapply(class) != "integer") stop("The algorithm takes raw (un-normalised) integer read counts only")
+	if(input.df %>% select(!!value_column) %>% sapply(class) != "integer")
+		stop(sprintf("The column %s must be of class integer. You can do as mutate(`%s` = `%s` %>% as.integer)", quo_name(value_column), quo_name(value_column), quo_name(value_column)))
 
 	# distinct_at is not released yet for dplyr, thus we have to use this trick
 	my_df <- input.df %>%
@@ -283,6 +299,9 @@ ppc_seq = function(
 			input.df %>% filter(!!do_check_column) %>% select(!!gene_column) %>% distinct() %>% nrow,
 			0
 		)
+
+	# Adjusted probability_threshold
+	adj_prob_theshold = error_rate / 2 / how_many_to_check
 
 	# Create design matrix
 	X =
@@ -390,7 +409,7 @@ ppc_seq = function(
 
 	########################################
 	# MODEL
-	Sys.setenv("STAN_NUM_THREADS" = cores)
+	Sys.setenv("STAN_NUM_THREADS" = my_cores)
 
 	# fileConn<-file("~/.R/Makevars")
 	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
@@ -409,14 +428,14 @@ ppc_seq = function(
 			full_bayes %>% `!` %>% as.integer %>% sum(1),
 			sampling(
 				stanmodels$negBinomial_MPI, #pcc_seq_model, #
-				chains=3, cores=3,
-				iter=how_many_posterior_draws + 150, warmup=150,   save_warmup = FALSE, pars=c("counts_rng", "exposure_rate")
+				chains=chains, cores=chains,
+				iter=(how_many_posterior_draws/chains) %>% ceiling %>% sum(150), warmup=150,   save_warmup = FALSE, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			),
 			vb(
 				stanmodels$negBinomial_MPI, #pcc_seq_model, #
-				output_samples=1000,
+				output_samples=how_many_posterior_draws,
 				iter = 50000,
-				tol_rel_obj=0.005, pars=c("counts_rng", "exposure_rate")
+				tol_rel_obj=0.005, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			)
 		)
 	Sys.time() %>% print
@@ -424,12 +443,13 @@ ppc_seq = function(
 	########################################
 	# Parse results
 	# Return
+	ret =
 	input.df %>%
 		left_join(
 
 			# Parse fit
 			fit %>%
-				summary("counts_rng") %$%
+				summary("counts_rng", prob=c(adj_prob_theshold, 1-adj_prob_theshold)) %$%
 				summary %>%
 				as_tibble(rownames = ".variable") %>%
 				separate(.variable, c(".variable", "S", "G"), sep="[\\[,\\]]", extra="drop") %>%
@@ -494,7 +514,10 @@ ppc_seq = function(
 					`of which deleterious` = map_int(data, ~ .x %>% pull(`outlier deleterious`) %>% sum)
 				) %>%
 				#rename(!!gene_column := !!gene_column) %>%
-				select(-data)
+				select(-data),
+			by = c("symbol")
 		)
+
+	switch(return_fit_in_out %>% `!` %>% sum(1), list(input = my_df, fit = fit, output = ret), ret)
 }
 
