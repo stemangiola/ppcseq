@@ -57,6 +57,8 @@ functions{
 
 	vector lp_reduce( vector global_parameters , vector local_parameters , real[] real_data , int[] int_data ) {
 
+		real lp;
+
 		// Integer data unpack
 	 	int M = int_data[1];
 	 	int N = int_data[2];
@@ -64,7 +66,11 @@ functions{
 	 	int G_per_shard = int_data[4];
 	 	int symbol_end[M+1] = int_data[(4+1):(4+1+M)];
 	 	int sample_idx[N] = int_data[(4+1+M+1):(4+1+M+1+N-1)];
-	 	int counts[N] = int_data[(4+1+M+1+N-1+1):size(int_data)];
+	 	int counts[N] = int_data[(4+1+M+1+N-1+1):(4+1+M+1+N-1+N)];
+
+	 	// Data to exclude for outliers
+	 	int size_exclude = int_data[(4+1+M+1+N-1+N+1)];
+		int to_exclude[size_exclude] = int_data[(4+1+M+1+N-1+N+1+1):(4+1+M+1+N-1+N+1+size_exclude)]; // we are lucky for packaging it is the last variabe
 
 		// Parameters unpack
 	 	vector[G_per_shard*S] lambda_MPI = local_parameters[1:(G_per_shard*S)];
@@ -80,15 +86,28 @@ functions{
 			sigma_MPI_c [(symbol_end[g]+1):symbol_end[g+1]] = rep_vector(sigma_MPI[g],  how_many);
 		}
 
-		// Return
-		return [
+		lp =
 			neg_binomial_2_log_lpmf(
     		counts[1:symbol_end[G_per_shard+1]] |
     		exposure_rate[sample_idx[1:symbol_end[G_per_shard+1]]] +
     		lambda_MPI,
 	    	sigma_MPI_c
-    	)
-    ]';
+    	) -
+
+    	(
+    		// Exclude outliers by subtracting probability, if needed
+    		size_exclude > 0 ?
+    		neg_binomial_2_log_lpmf(
+	    		counts[1:symbol_end[G_per_shard+1]][to_exclude] |
+	    		exposure_rate[sample_idx[1:symbol_end[G_per_shard+1]]][to_exclude] +
+	    		lambda_MPI[to_exclude],
+		    	sigma_MPI_c[to_exclude]
+	    	) :
+	    	0
+    	);
+
+		// Return
+		return [lp]';
 
   }
 
@@ -204,7 +223,7 @@ model {
   exposure_rate_raw ~ normal(0,1);
   sum(exposure_rate_raw) ~ normal(0, 0.001 * S);
 
-	// Gene-wise properties of the data
+	//Gene-wise properties of the data
 	target += sum(map_rect(
 		lp_reduce ,
 		global_parameters ,
@@ -221,6 +240,21 @@ model {
 		counts_package
 	));
 
+
+	// target += sum(lp_reduce(
+	// 	global_parameters,
+	// 	get_reference_parameters_MPI(
+	// 		n_shards,
+	// 		M,
+	// 		G_per_shard,
+	// 		G_ind,
+	// 		lambda_log_param,
+	// 		sigma,
+	// 		exposure_rate
+	// 	)[1],
+	// 	real_data[1],
+	// 	counts_package[1]
+	// ));
 
 }
 generated quantities{
