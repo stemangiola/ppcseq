@@ -130,28 +130,81 @@ as_matrix <- function(tbl, rownames = NULL) {
 
 
 do_inference = function(
-	my_df, C, X,
+	my_df,
+	formula,
+	sample_column ,
+	gene_column ,
+	value_column,
+	significance_column ,
+	do_check_column,
+	full_bayes = T,
+	C,
+	X,
 	lambda_mu_mu,
+	cores,
 	exposure_rate_multiplier, intercept_shift_scale,
 	additional_parameters_to_save,
 	adj_prob_theshold,
-	to_exclude = matrix(rep(0, shards))
+	to_exclude = tibble(S = integer(), G = integer()),
+	save_generated_quantities = F
 ){
 
+	sample_column = enquo(sample_column)
+	gene_column = enquo(gene_column)
+	value_column = enquo(value_column)
+	significance_column = enquo(significance_column)
+	do_check_column = enquo(do_check_column)
+
+
 	how_many_to_check =
-		ifelse(
-			parse_formula(formula) %>% length > 0,
-			input.df %>% filter(!!do_check_column) %>% select(!!gene_column) %>% distinct() %>% nrow,
-			0
-		)
+		my_df %>%
+		filter(!!do_check_column) %>%
+		distinct(!!gene_column) %>%
+		nrow
 
 	# Calculate the needed posterior draws
-	how_many_posterior_draws =  5 %>% divide_by(adj_prob_theshold) %>% max(1000)
+	how_many_posterior_draws =  5 %>% divide_by(adj_prob_theshold) %>% max(500)
+
+	chains =
+		foreach(cc = 2:min(cores, 6), .combine = bind_rows) %do%
+		{ tibble(chains = cc, tot = how_many_posterior_draws / cc + 150 * cc )  } %>%
+		filter(tot == tot %>% min) %>%
+		pull(chains)
+
+	my_cores = cores %>% divide_by(chains) %>% floor
+	shards = my_cores
 
 	counts_MPI =
 		my_df %>%
 		select(!!gene_column, !!sample_column, !!value_column, S, G) %>%
 		format_for_MPI(shards, !!sample_column)
+
+	to_exclude_MPI =
+		switch(
+			to_exclude %>% nrow %>% `>` (0) %>% `!` %>% sum(1), # If there are genes to exclude
+			foreach(s = 1:shards, .combine=full_join) %do% {
+				counts_MPI %>%
+					inner_join(to_exclude, by=c("S", "G")) %>%
+					filter(idx_MPI == s) %>%
+					distinct(idx_MPI, `read count MPI row`) %>%
+					rowid_to_column %>%
+					spread(idx_MPI, `read count MPI row`)
+
+			} %>%
+
+				# Add length array to the first row for indexing in MPI
+				{
+					bind_rows(
+						(.) %>% map(function(x) x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
+						(.)
+					)
+				} %>%
+				select(-rowid) %>%
+				replace(is.na(.), 0 %>% as.integer) %>%
+				as_matrix() %>% t,
+			matrix(rep(0,shards))
+		)
+
 
 	G = counts_MPI %>% distinct(G) %>% nrow()
 	S = counts_MPI %>% distinct(!!sample_column) %>% nrow()
@@ -204,9 +257,26 @@ do_inference = function(
 		cbind(symbol_end) %>%
 		cbind(sample_idx) %>%
 		cbind(counts) %>%
-		cbind(to_exclude)
+		cbind(to_exclude_MPI)
 
 	CP = ncol(counts_package)
+
+	######################################
+	# Run model
+
+	Sys.setenv("STAN_NUM_THREADS" = my_cores)
+
+
+	# fileConn<-file("~/.R/Makevars")
+	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
+	# close(fileConn)
+	# pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
+	# fit = vb(
+	# 	pcc_seq_model, #
+	# 	output_samples=1000,
+	# 	iter = 50000,
+	# 	tol_rel_obj=0.001
+	# )
 
 	Sys.time() %>% print
 	fit =
@@ -238,6 +308,18 @@ do_inference = function(
 		separate(.variable, c(".variable", "S", "G"), sep="[\\[,\\]]", extra="drop") %>%
 		mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
 		rename(`.lower` = 7, `.upper` = 8) %>%
+
+		{
+			if(save_generated_quantities)
+				(.) %>%
+				left_join(
+					fit %>% tidybayes::gather_draws(counts_rng[S,G])
+				) %>%
+				group_by(`.variable`, S ,G, mean,se_mean , sd, `.lower`, `.upper`, n_eff,  Rhat) %>%
+				nest(.key = "generated quantities")
+			else
+				(.)
+		} %>%
 
 		# Add exposure rate
 		left_join(
@@ -353,10 +435,9 @@ ppc_seq = function(
 	do_check_column,
 	full_bayes = T,
 	how_many_negative_controls = 500,
-	return_fit_in_out = F,       # For development purpose
+	save_generated_quantities = F,       # For development purpose
 	additional_parameters_to_save = c(), # For development purpose,
 	cores = system("nproc", intern = TRUE) %>% as.integer %>% sum(-1),
-	chains = 3,
 	error_rate = 0.05
 ){
 
@@ -367,8 +448,7 @@ ppc_seq = function(
 	do_check_column = enquo(do_check_column)
 
 	#input = c(as.list(environment()))
-	my_cores = cores %>% divide_by(chains) %>% floor
-	shards = my_cores
+
 
 	my_theme =
 		theme_bw() +
@@ -473,75 +553,75 @@ ppc_seq = function(
 
 	########################################
 	# MODEL
-	Sys.setenv("STAN_NUM_THREADS" = my_cores)
-
-	# fileConn<-file("~/.R/Makevars")
-	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
-	# close(fileConn)
-	# pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
-	# fit = vb(
-	# 	pcc_seq_model, #
-	# 	output_samples=1000,
-	# 	iter = 50000,
-	# 	tol_rel_obj=0.001
-	# )
 
 	res_discovery =
+		my_df %>%
 		do_inference(
-			my_df, C, X,
+			formula,
+			!!sample_column ,
+			!!gene_column ,
+			!!value_column ,
+			!!significance_column ,
+			!!do_check_column,
+			full_bayes,
+			C,
+			X,
 			lambda_mu_mu,
-			exposure_rate_multiplier, intercept_shift_scale,
+			cores,
+			exposure_rate_multiplier,
+			intercept_shift_scale,
 			additional_parameters_to_save,
 			adj_prob_theshold  = error_rate
 		)
 
 	# Columns of counts to be ignored from the inference
 	to_exclude =
-		foreach(s = 1:shards, .combine=full_join) %do% {
-			res_discovery %>%
-				filter(`deleterious outliers`) %>%
-				filter(idx_MPI == s) %>%
-				distinct(idx_MPI, `read count MPI row`) %>%
-				rowid_to_column %>%
-				spread(idx_MPI, `read count MPI row`)
+		res_discovery %>%
+		filter(`deleterious outliers`) %>%
+		distinct(S, G)
 
-		} %>%
-
-		# Add length array to the first row for indexing in MPI
-		{
-			bind_rows(
-			 (.) %>% map(function(x) x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
-			 (.)
-			)
-		} %>%
-		select(-rowid) %>%
-		replace(is.na(.), 0 %>% as.integer) %>%
-		as_matrix() %>% t
-
-	how_namy_to_exclude = to_exclude[,1] %>% sum
+	how_namy_to_exclude = to_exclude %>% nrow
 
 	res_test =
+		my_df %>%
 		do_inference(
-			my_df, C, X,
+			formula,
+			!!sample_column ,
+			!!gene_column ,
+			!!value_column ,
+			!!significance_column ,
+			!!do_check_column,
+			full_bayes,
+			C,
+			X,
 			lambda_mu_mu,
-			exposure_rate_multiplier, intercept_shift_scale,
+			cores,
+			exposure_rate_multiplier,
+			intercept_shift_scale,
 			additional_parameters_to_save,
 			adj_prob_theshold = error_rate / how_namy_to_exclude * 2, # * 2 because we just test one side of the distribution
-			to_exclude = to_exclude
+			to_exclude = to_exclude,
+			save_generated_quantities = save_generated_quantities
 		)
 
-
-		res_discovery %>% select(S, G, !!gene_column, !!value_column, !!sample_column, `.lower`, `.upper`, `exposure rate`, !!as.symbol(parse_formula(formula)[1])) %>%
+		# Merge results
+		res_discovery %>%
+			select(
+				S, G, !!gene_column, !!value_column, !!sample_column,
+				`.lower`, `.upper`, `exposure rate`, !!as.symbol(parse_formula(formula)[1])
+			) %>%
 			left_join(
-				res_test %>% select(S, G, `.lower`, `.upper`, `deleterious outliers`) %>%
-					rename(`.lower_2` = `.lower`, `.upper_2` = `.upper`)
+				res_test %>%
+					select(S, G, `.lower`, `.upper`, `deleterious outliers`) %>%
+					rename(`.lower_2` = `.lower`, `.upper_2` = `.upper`),
+				by = c("S", "G")
 			) %>%
 
 		# Rpoduce summary results
 			# Add plots
 			group_by(!!gene_column) %>%
-			nest %>%
-			mutate(plot = map2(data, !!gene_column, ~
+			nest(.key = "sample wise data") %>%
+			mutate(plot = map2(`sample wise data`, !!gene_column, ~
 												 	{
 												 		ggplot(data = .x, aes(y=!!value_column, x=!!sample_column)) +
 												 			geom_errorbar(aes(
@@ -567,7 +647,7 @@ ppc_seq = function(
 			# Add summary statistics
 			mutate(
 				# `ppc samples failed` = map_int(data, ~ .x %>% pull(ppc) %>% `!` %>% sum),
-				`tot deleterious outliers` = map_int(data, ~ .x %>% pull(`deleterious outliers`) %>% sum)
+				`tot deleterious outliers` = map_int(`sample wise data`, ~ .x %>% pull(`deleterious outliers`) %>% sum)
 			)
 			#%>%
 			#rename(!!gene_column := !!gene_column) %>%
