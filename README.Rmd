@@ -12,30 +12,27 @@ library(ppcSeq)
 ```
 
 ```{r eval=FALSE}
-counts # Available at ppcSeq::counts
-
+ppcSeq::counts 
 ```
 
 You can convert a list of BAM/SAM files into a tidy data frame of annotated counts
 
 ```{r cache=TRUE, warning=FALSE, message=FALSE}
 counts.ppc = 
-	ppcSeq::counts %>% 
-		mutate(is_significant = FDR < 0.05) %>% 
-		ppc_seq(
-			formula = ~ Label + W, 
-			significance_column = PValue, 
-			do_check_column = is_significant, 
-			value_column = value
-		)
+	ppcSeq::counts %>%
+	mutate(is_significant = FDR < 0.05) %>%
+	ppc_seq(
+		formula = ~ Label,
+		significance_column = PValue,
+		do_check_column = is_significant,
+		value_column = value
+	)
 ```
 
 The new posterior predictive check has been added to the original data frame
 
 ```{r, cache=TRUE}
-counts.ppc %>% 
-	distinct(symbol, FDR, `ppc samples failed`, plot)
-
+counts.ppc 
 ```
 
 The new data frame contains plots for each gene
@@ -44,8 +41,8 @@ We can visualise the top five differentially transcribed genes
 
 ```{r, cache=TRUE}
 counts.ppc %>% 
-	distinct(symbol, FDR, `ppc samples failed`, plot) %>%
-	slice(1:5) %>%
-	pull(plot) 
+	slice(1:2) %>% 
+	pull(plot) %>% 
+	cowplot::plot_grid(plotlist = ., align = "v", ncol = 1, axis="b", rel_widths = 1 )
 
 ```

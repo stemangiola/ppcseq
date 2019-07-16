@@ -128,7 +128,39 @@ as_matrix <- function(tbl, rownames = NULL) {
 		as.matrix()
 }
 
+#' do_inference
+#'
+#' @description This function calls the stan model.
+#'
+#' @importFrom tibble tibble
+#' @importFrom rstan sampling
+#' @importFrom rstan vb
+#' @importFrom rstan summary
+#' @import dplyr
+#' @importFrom tidyr spread
+#' @import tidybayes
+#' @importFrom foreach foreach
+#' @importFrom foreach %do%
+#' @importFrom magrittr %$%
+#' @importFrom magrittr divide_by
+#' @importFrom magrittr multiply_by
+#' @importFrom purrr map2
+#' @importFrom purrr map_int
+#' @importFrom tidyTranscriptomics add_normalised_counts
+#'
+#' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
+#' @param formula A formula
+#' @param sample_column A column name
+#' @param gene_column A column name
+#' @param value_column A column name
+#' @param significance_column A column name
+#' @param full_bayes A boolean
+#' @param how_many_negative_controls An integer
+#' @param how_many_posterior_draws An integer
 
+#'
+#' @return A tibble with additional columns
+#'
 do_inference = function(
 	my_df,
 	formula,
@@ -397,9 +429,6 @@ other_code = function(){
 #' @description This function calls the stan model.
 #'
 #' @importFrom tibble as_tibble
-#' @importFrom rstan sampling
-#' @importFrom rstan vb
-#' @importFrom rstan summary
 #' @import dplyr
 #' @importFrom tidyr spread
 #' @import tidybayes
