@@ -176,7 +176,9 @@ do_inference = function(
 	additional_parameters_to_save,
 	adj_prob_theshold,
 	to_exclude = tibble(S = integer(), G = integer()),
-	save_generated_quantities = F
+	truncation_values = tibble(S = integer(), G = integer(), `.lower`=integer(), `.upper` = integer()),
+	save_generated_quantities = F,
+	inits_fx = "random"
 ){
 
 	sample_column = enquo(sample_column)
@@ -208,33 +210,6 @@ do_inference = function(
 		my_df %>%
 		select(!!gene_column, !!sample_column, !!value_column, S, G) %>%
 		format_for_MPI(shards, !!sample_column)
-
-	to_exclude_MPI =
-		switch(
-			to_exclude %>% nrow %>% `>` (0) %>% `!` %>% sum(1), # If there are genes to exclude
-			foreach(s = 1:shards, .combine=full_join) %do% {
-				counts_MPI %>%
-					inner_join(to_exclude, by=c("S", "G")) %>%
-					filter(idx_MPI == s) %>%
-					distinct(idx_MPI, `read count MPI row`) %>%
-					rowid_to_column %>%
-					spread(idx_MPI, `read count MPI row`)
-
-			} %>%
-
-				# Add length array to the first row for indexing in MPI
-				{
-					bind_rows(
-						(.) %>% map(function(x) x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
-						(.)
-					)
-				} %>%
-				select(-rowid) %>%
-				replace(is.na(.), 0 %>% as.integer) %>%
-				as_matrix() %>% t,
-			matrix(rep(0,shards))
-		)
-
 
 	G = counts_MPI %>% distinct(G) %>% nrow()
 	S = counts_MPI %>% distinct(!!sample_column) %>% nrow()
@@ -279,6 +254,82 @@ do_inference = function(
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
 
+	# Additional infor for second pass ###############
+
+	to_exclude_MPI =
+		switch(
+			to_exclude %>% nrow %>% `>` (0) %>% `!` %>% sum(1), # If there are genes to exclude
+			foreach(s = 1:shards, .combine=full_join) %do% {
+				counts_MPI %>%
+					inner_join(to_exclude, by=c("S", "G")) %>%
+					filter(idx_MPI == s) %>%
+					distinct(idx_MPI, `read count MPI row`) %>%
+					rowid_to_column %>%
+					spread(idx_MPI, `read count MPI row`)
+
+			} %>%
+
+				# Add length array to the first row for indexing in MPI
+				{
+					bind_rows(
+						(.) %>% map(function(x) x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
+						(.)
+					)
+				} %>%
+
+				select(-rowid) %>%
+				replace(is.na(.), 0 %>% as.integer) %>%
+				as_matrix() %>% t,
+			matrix(rep(0,shards))
+		)
+
+	truncation_MPI =
+		switch(
+			truncation_values %>% nrow %>% `>` (0) %>% `!` %>% sum(1),
+
+			# Lower truncation
+			truncation_values %>%
+				left_join(counts_MPI, by = c("S", "G")) %>%
+				distinct(idx_MPI, `.lower`, `read count MPI row`) %>%
+				spread(idx_MPI,  `.lower`) %>%
+				select(-`read count MPI row`)  %>%
+
+				# Add length array to the first row for indexing in MPI
+				{
+					bind_rows(
+						(.) %>% map(function(x) x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
+						(.)
+					)
+				} %>%
+
+				# Add overall dimension at the start
+				{
+					bind_rows(
+						(.) %>% slice(1) %>% gather(idx_MPI, `n`) %>% mutate(`n` = `n` %>% max) %>% spread(idx_MPI, `n`),
+						(.)
+					)
+				} %>%
+
+			# Upper truncation
+			rbind(
+				truncation_values %>%
+					left_join(counts_MPI, by = c("S", "G")) %>%
+					distinct(idx_MPI, `.upper`, `read count MPI row`) %>%
+					spread(idx_MPI,  `.upper`) %>%
+					select(-`read count MPI row`)
+			) %>%
+
+			# Format for Stan
+			replace(is.na(.), 0 %>% as.integer) %>%
+			as_matrix() %>% t,
+
+			# If no truncation
+			matrix(rep(0,shards*2), ncol=2)
+		)
+
+
+	# Package data #################################
+
 	counts_package =
 		# Dimensions data sets
 		rep(c(M, N, S), shards) %>%
@@ -287,12 +338,13 @@ do_inference = function(
 		cbind(symbol_end) %>%
 		cbind(sample_idx) %>%
 		cbind(counts) %>%
+		cbind(truncation_MPI) %>%
 		cbind(to_exclude_MPI)
 
 	CP = ncol(counts_package)
 
-	######################################
-	# Run model
+
+	# Run model ####################################
 
 	Sys.setenv("STAN_NUM_THREADS" = my_cores)
 
@@ -300,7 +352,7 @@ do_inference = function(
 	# fileConn<-file("~/.R/Makevars")
 	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
 	# close(fileConn)
-	# pcc_seq_model = stan_model("inst/stan/negBinomial_MPI.stan")
+	# pcc_seq_model = rstan::stan_model("inst/stan/negBinomial_MPI.stan")
 	# fit = vb(
 	# 	pcc_seq_model, #
 	# 	output_samples=1000,
@@ -315,20 +367,24 @@ do_inference = function(
 			sampling(
 				stanmodels$negBinomial_MPI, #pcc_seq_model, #
 				chains=chains, cores=chains,
-				iter=(how_many_posterior_draws/chains) %>% ceiling %>% sum(150), warmup=150,   save_warmup = FALSE, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+				iter=(how_many_posterior_draws/chains) %>% ceiling %>% sum(150),
+				warmup=150,
+				save_warmup = FALSE,
+				init = inits_fx
+				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			),
 			vb(
 				stanmodels$negBinomial_MPI, #pcc_seq_model, #
 				output_samples=how_many_posterior_draws,
 				iter = 50000,
-				tol_rel_obj=0.005, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+				tol_rel_obj=0.005
+				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			)
 		)
 	Sys.time() %>% print
 
-	########################################
-	# Parse results
-	# Return
+	# Parse and return ###############################
+
 
 	# Parse fit
 	fit %>%
@@ -387,7 +443,34 @@ do_inference = function(
 		mutate(`deleterious outliers` = (!ppc) & (`is higher than mean` == `is group high`)) %>%
 
 		# Add position in MPI package for next inference
-		left_join(	counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`)	)
+		left_join(	counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`), by = c("S", "G")	) %>%
+
+		# Add initialisation values
+		bind_rows(
+			fit %>%
+				summary(c("lambda_mu_raw", "lambda_sigma", "sigma_slope", "sigma_intercept", "sigma_sigma")) %$%
+				summary %>%
+				as_tibble(rownames = ".variable") %>%
+				select(`.variable`, mean, sd)
+		) %>%
+		bind_rows(
+			fit %>%
+				summary("exposure_rate_raw") %$%
+				summary %>%
+				as_tibble(rownames = ".variable") %>%
+				separate(.variable, c(".variable", "S"), sep="[\\[,\\]]", extra="drop") %>%
+				mutate( S = S %>% as.integer) %>%
+				select(S, `.variable`, mean, sd)
+		) %>%
+		bind_rows(
+			fit %>%
+				summary(c("intercept", "alpha_sub_1", "alpha_2", "sigma_raw_param")) %$%
+				summary %>%
+				as_tibble(rownames = ".variable") %>%
+				separate(.variable, c(".variable", "G"), sep="[\\[,\\]]", extra="drop") %>%
+				mutate(G = G %>% as.integer) %>%
+				select(G, `.variable`, mean, sd)
+		)
 }
 
 other_code = function(){
@@ -493,13 +576,13 @@ ppc_seq = function(
 			axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
 		)
 
-	#########################################
+	########################################
 	# For  reference MPI inference
 
 	if(input.df %>% filter(!!gene_column %>% is.na) %>% nrow > 0) stop("There are NAs in the gene_column. Please filter those records")
 
 	if(input.df %>% select(!!value_column) %>% sapply(class) != "integer")
-		stop(sprintf("The column %s must be of class integer. You can do as mutate(`%s` = `%s` %>% as.integer)", quo_name(value_column), quo_name(value_column), quo_name(value_column)))
+		stop(sprintf("The column %s must be of class integer. You can do as mutate(`%s` = `%s` %%>%% as.integer)", quo_name(value_column), quo_name(value_column), quo_name(value_column)))
 
 	# distinct_at is not released yet for dplyr, thus we have to use this trick
 	my_df <- input.df %>%
@@ -604,10 +687,39 @@ ppc_seq = function(
 	# Columns of counts to be ignored from the inference
 	to_exclude =
 		res_discovery %>%
+		filter(`.variable` == "counts_rng") %>%
 		filter(`deleterious outliers`) %>%
-		distinct(S, G)
+		distinct(S, G, .lower, .upper)
 
 	how_namy_to_exclude = to_exclude %>% nrow
+
+	truncation_values =
+		res_discovery %>%
+		filter(`.variable` == "counts_rng") %>%
+		distinct(S, G, .lower, .upper) %>%
+		mutate(
+			`.lower` = `.lower` %>% as.integer,
+			`.upper` = `.upper` %>% as.integer
+		)
+
+	inits_fx =
+		function () {
+
+			pars =
+				res_discovery %>%
+				filter(`.variable` != "counts_rng") %>%
+				distinct(`.variable`) %>%
+				pull(1)
+
+			foreach(par = pars,	.final = function(x) setNames(x, pars)) %do% {
+
+				res_discovery %>%
+					filter(`.variable` == par) %>%
+					mutate(init = rnorm(n(),mean, sd)) %>%
+					select(`.variable`, S, G, init) %>%
+					pull(init)
+			}
+		}
 
 	res_test =
 		my_df %>%
@@ -628,18 +740,20 @@ ppc_seq = function(
 			additional_parameters_to_save,
 			adj_prob_theshold = error_rate / how_namy_to_exclude * 2, # * 2 because we just test one side of the distribution
 			to_exclude = to_exclude,
-			save_generated_quantities = save_generated_quantities
+			truncation_values = truncation_values,
+			save_generated_quantities = save_generated_quantities,
+			inits_fx = inits_fx
 		)
 
 		# Merge results
-		res_discovery %>%
+		res_discovery %>% 		filter(`.variable` == "counts_rng") %>%
 			select(
 				S, G, !!gene_column, !!value_column, !!sample_column,
 				`.lower`, `.upper`, `exposure rate`, !!as.symbol(parse_formula(formula)[1])
 			) %>%
 			left_join(
-				res_test %>%
-					select(S, G, `.lower`, `.upper`, `deleterious outliers`) %>%
+				res_test %>% 		filter(`.variable` == "counts_rng") %>%
+					select(S, G, `.lower`, `.upper`, `deleterious outliers`, one_of("generated quantities")) %>%
 					rename(`.lower_2` = `.lower`, `.upper_2` = `.upper`),
 				by = c("S", "G")
 			) %>%
