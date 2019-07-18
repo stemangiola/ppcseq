@@ -68,9 +68,15 @@ functions{
 	 	int sample_idx[N] = int_data[(4+1+M+1):(4+1+M+1+N-1)];
 	 	int counts[N] = int_data[(4+1+M+1+N-1+1):(4+1+M+1+N-1+N)];
 
+		// Truncation // Only DE genes: T < N
+	 	int T =    int_data[(4+1+M+1+N-1+N+1)]; // Size all truncations
+	 	int my_T = int_data[(4+1+M+1+N-1+N+1+1)]; // Size truncations in this shard
+		int lower_truncation[T] = int_data[(4+1+M+1+N-1+N+1+1+1):(4+1+M+1+N-1+N+1+1+T)];
+		int upper_truncation[T] = int_data[(4+1+M+1+N-1+N+1+1+T+1):(4+1+M+1+N-1+N+1+1+T+T)];
+
 	 	// Data to exclude for outliers
-	 	int size_exclude = int_data[(4+1+M+1+N-1+N+1)];
-		int to_exclude[size_exclude] = int_data[(4+1+M+1+N-1+N+1+1):(4+1+M+1+N-1+N+1+size_exclude)]; // we are lucky for packaging it is the last variabe
+	 	int size_exclude = int_data[(4+1+M+1+N-1+N+1+1+T+T+1)];
+		int to_exclude[size_exclude] = int_data[(4+1+M+1+N-1+N+1+1+T+T+1+1):(4+1+M+1+N-1+N+1+1+T+T+1+size_exclude)]; // we are lucky for packaging it is the last variabe
 
 		// Parameters unpack
 	 	vector[G_per_shard*S] lambda_MPI = local_parameters[1:(G_per_shard*S)];
@@ -82,7 +88,6 @@ functions{
 		vector[symbol_end[G_per_shard+1]] sigma_MPI_c;
 		for(g in 1:G_per_shard){
 			int how_many = symbol_end[g+1] - (symbol_end[g]);
-			//lambda_MPI_c[(symbol_end[g]+1):symbol_end[g+1]] = rep_vector(lambda_MPI[g], how_many);
 			sigma_MPI_c [(symbol_end[g]+1):symbol_end[g+1]] = rep_vector(sigma_MPI[g],  how_many);
 		}
 
@@ -93,7 +98,21 @@ functions{
     		lambda_MPI,
 	    	sigma_MPI_c
     	) -
-
+    	(
+    		// Truncation, if needed
+    		my_T > 0 ?
+    		neg_binomial_2_lccdf(
+	    		lower_truncation[1:my_T] |
+	    		exp(exposure_rate[sample_idx[1:my_T]] +	lambda_MPI[1:my_T]),
+	    		sigma_MPI_c[1:my_T]
+	    	) +
+	    	neg_binomial_2_lcdf(
+	    		upper_truncation[1:my_T] |
+	    		exp(exposure_rate[sample_idx[1:my_T]] +	lambda_MPI[1:my_T]),
+	    		sigma_MPI_c[1:my_T]
+	    	):
+	    	0
+    	) -
     	(
     		// Exclude outliers by subtracting probability, if needed
     		size_exclude > 0 ?
@@ -105,6 +124,28 @@ functions{
 	    	) :
 	    	0
     	);
+
+// if(T>0) print(neg_binomial_2_lccdf(
+// 	    		lower_truncation[1:my_T] |
+// 	    		exp(exposure_rate[sample_idx[1:my_T]] +	lambda_MPI[1:my_T]),
+// 	    		sigma_MPI_c[1:my_T]
+// 	    	));
+//
+// if(T>0) print(lower_truncation[1:my_T] ,
+// 	    		exp(exposure_rate[sample_idx[1:my_T]] +	lambda_MPI[1:my_T]),
+// 	    		sigma_MPI_c[1:my_T]);
+//
+// if(T>0) print(neg_binomial_2_lcdf(
+// 	    		upper_truncation[1:my_T] |
+// 	    		exp(exposure_rate[sample_idx[1:my_T]] +	lambda_MPI[1:my_T]),
+// 	    		sigma_MPI_c[1:my_T]
+// 	    	));
+//
+// if(T>0) print(upper_truncation[1:my_T] ,
+// 	    		exp(exposure_rate[sample_idx[1:my_T]] +	lambda_MPI[1:my_T]),
+// 	    		sigma_MPI_c[1:my_T]);
+
+
 
 		// Return
 		return [lp]';
@@ -181,7 +222,7 @@ parameters {
   matrix[max(0, C-2),how_many_to_check] alpha_2; // Linear model for calculating lambda_log
   vector[G] sigma_raw_param;
 
-  // Signa linear model
+  // Sigma linear model
 
   real<upper=0> sigma_slope;
   real sigma_intercept;
@@ -223,7 +264,7 @@ model {
   exposure_rate_raw ~ normal(0,1);
   sum(exposure_rate_raw) ~ normal(0, 0.001 * S);
 
-	//Gene-wise properties of the data
+	// Gene-wise properties of the data
 	target += sum(map_rect(
 		lp_reduce ,
 		global_parameters ,
