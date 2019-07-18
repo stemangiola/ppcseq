@@ -133,9 +133,7 @@ as_matrix <- function(tbl, rownames = NULL) {
 #' @description This function calls the stan model.
 #'
 #' @importFrom tibble tibble
-#' @importFrom rstan sampling
-#' @importFrom rstan vb
-#' @importFrom rstan summary
+#' @import rstan
 #' @import dplyr
 #' @importFrom tidyr spread
 #' @import tidybayes
