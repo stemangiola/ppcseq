@@ -178,7 +178,8 @@ do_inference = function(
 	to_exclude = tibble(S = integer(), G = integer()),
 	truncation_values = tibble(S = integer(), G = integer(), `.lower`=integer(), `.upper` = integer()),
 	save_generated_quantities = F,
-	inits_fx = "random"
+	inits_fx = "random",
+	prior_from_discovery = tibble(`.variable` = character(), mean = numeric(), sd = numeric())
 ){
 
 	sample_column = enquo(sample_column)
@@ -327,6 +328,27 @@ do_inference = function(
 			matrix(rep(0,shards*2), ncol=2)
 		)
 
+	# Prior information if exists
+
+	# prior_lambda_mu = prior_from_discovery %>% filter(`.variable` == "lambda_mu_raw") %>%	select(mean, sd) %>%	as_matrix %>% t
+	# prior_lambda_sigma = prior_from_discovery %>% filter(`.variable` == "lambda_sigma") %>%	select(mean, sd) %>%	as_matrix %>% t
+	# prior_sigma_intercept = prior_from_discovery %>% filter(`.variable` == "sigma_intercept") %>%	select(mean, sd) %>%	as_matrix %>% t
+	# prior_sigma_slope = prior_from_discovery %>% filter(`.variable` == "sigma_slope") %>%	select(mean, sd) %>%	as_matrix %>% t
+	# prior_sigma_sigma = prior_from_discovery %>% filter(`.variable` == "sigma_sigma") %>%	select(mean, sd) %>%	as_matrix %>% t
+
+	has_prior = prior_from_discovery %>% nrow %>% `>` (0)
+
+	if(has_prior){
+	prior_exposure_rate =	prior_from_discovery %>% filter(`.variable` == "exposure_rate") %>%	select(mean, sd) %>%	as_matrix %>% t
+	prior_intercept = prior_from_discovery %>% filter(`.variable` == "intercept") %>%	select(mean, sd) %>%	as_matrix %>% t
+	prior_alpha_sub_1 = prior_from_discovery %>% filter(`.variable` == "alpha_sub_1") %>%	select(mean, sd) %>%	as_matrix %>% t
+	prior_alpha_2 = prior_from_discovery %>% filter(`.variable` == "alpha_2") %>%	select(mean, sd) %>%	as_matrix %>% t
+	prior_sigma = prior_from_discovery %>% filter(`.variable` == "sigma_raw") %>%	select(mean, sd) %>%	as_matrix %>% t
+	}
+	else {
+		# For Stan requirement
+		prior_exposure_rate	= prior_intercept = 	prior_alpha_sub_1 = prior_alpha_2 =	prior_sigma = array(0, dim=c(2,0))
+	}
 
 	# Package data #################################
 
@@ -347,7 +369,6 @@ do_inference = function(
 	# Run model ####################################
 
 	Sys.setenv("STAN_NUM_THREADS" = my_cores)
-
 
 	# fileConn<-file("~/.R/Makevars")
 	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
@@ -385,8 +406,6 @@ do_inference = function(
 
 	# Parse and return ###############################
 
-
-	# Parse fit
 	fit %>%
 		summary("counts_rng", prob=c(adj_prob_theshold, 1-adj_prob_theshold)) %$%
 		summary %>%
@@ -446,16 +465,16 @@ do_inference = function(
 		left_join(	counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`), by = c("S", "G")	) %>%
 
 		# Add initialisation values
+		# bind_rows(
+		# 	fit %>%
+		# 		summary(c("lambda_mu_raw", "lambda_sigma", "sigma_slope", "sigma_intercept", "sigma_sigma")) %$%
+		# 		summary %>%
+		# 		as_tibble(rownames = ".variable") %>%
+		# 		select(`.variable`, mean, sd)
+		# ) %>%
 		bind_rows(
 			fit %>%
-				summary(c("lambda_mu_raw", "lambda_sigma", "sigma_slope", "sigma_intercept", "sigma_sigma")) %$%
-				summary %>%
-				as_tibble(rownames = ".variable") %>%
-				select(`.variable`, mean, sd)
-		) %>%
-		bind_rows(
-			fit %>%
-				summary("exposure_rate_raw") %$%
+				summary("exposure_rate") %$%
 				summary %>%
 				as_tibble(rownames = ".variable") %>%
 				separate(.variable, c(".variable", "S"), sep="[\\[,\\]]", extra="drop") %>%
@@ -464,7 +483,7 @@ do_inference = function(
 		) %>%
 		bind_rows(
 			fit %>%
-				summary(c("intercept", "alpha_sub_1", "alpha_2", "sigma_raw_param")) %$%
+				summary(c("intercept", "alpha_sub_1", "alpha_2", "sigma_raw")) %$%
 				summary %>%
 				as_tibble(rownames = ".variable") %>%
 				separate(.variable, c(".variable", "G"), sep="[\\[,\\]]", extra="drop") %>%
@@ -702,24 +721,10 @@ ppc_seq = function(
 			`.upper` = `.upper` %>% as.integer
 		)
 
-	inits_fx =
-		function () {
-
-			pars =
-				res_discovery %>%
-				filter(`.variable` != "counts_rng") %>%
-				distinct(`.variable`) %>%
-				pull(1)
-
-			foreach(par = pars,	.final = function(x) setNames(x, pars)) %do% {
-
-				res_discovery %>%
-					filter(`.variable` == par) %>%
-					mutate(init = rnorm(n(),mean, sd)) %>%
-					select(`.variable`, S, G, init) %>%
-					pull(init)
-			}
-		}
+	prior_from_discovery =
+		res_discovery %>%
+			filter(`.variable` != "counts_rng") %>%
+			select(`.variable`, S, G, mean, sd)
 
 	res_test =
 		my_df %>%
@@ -742,7 +747,7 @@ ppc_seq = function(
 			to_exclude = to_exclude,
 			truncation_values = truncation_values,
 			save_generated_quantities = save_generated_quantities,
-			inits_fx = inits_fx
+			prior_from_discovery = prior_from_discovery
 		)
 
 		# Merge results
