@@ -248,10 +248,11 @@ transformed parameters {
 	real lambda_mu = lambda_mu_raw + lambda_mu_mu;
 
 	// For truncation
-	vector[S] exposure_rate =
-		has_prior == 0 ?
-		exposure_rate_raw * exposure_rate_multiplier :
-		prior_exposure_rate[1] + exposure_rate_raw .* prior_exposure_rate[2];
+	vector[S] exposure_rate = exposure_rate_raw * exposure_rate_multiplier;
+	// vector[S] exposure_rate =
+	// 	has_prior == 0 ?
+	// 	exposure_rate_raw * exposure_rate_multiplier :
+	// 	prior_exposure_rate[1] + exposure_rate_raw .* prior_exposure_rate[2];
 
   row_vector[G] intercept =
   has_prior == 0 ?
