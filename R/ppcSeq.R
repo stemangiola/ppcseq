@@ -726,6 +726,26 @@ ppc_seq = function(
 			filter(`.variable` != "counts_rng") %>%
 			select(`.variable`, S, G, mean, sd)
 
+	inits_fx =
+		function () {
+
+			pars =
+				res_discovery %>%
+				filter(`.variable` != "counts_rng") %>%
+				distinct(`.variable`) %>%
+				pull(1)
+
+			foreach(par = pars,	.final = function(x) setNames(x, pars)) %do% {
+
+				res_discovery %>%
+					filter(`.variable` == par) %>%
+					mutate(init = rnorm(n(),mean, sd)) %>%
+					mutate(init = 0) %>%
+					select(`.variable`, S, G, init) %>%
+					pull(init)
+			}
+		}
+
 	res_test =
 		my_df %>%
 		do_inference(
