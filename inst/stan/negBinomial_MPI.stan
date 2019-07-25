@@ -29,26 +29,29 @@ functions{
 	  return log(gamma_rng(a, b));
 	}
 
-	vector[] get_reference_parameters_MPI(int n_shards, int M, int[] G_per_shard, int[,] G_ind, matrix lambda_log, vector sigma, vector exposure_rate){
+	vector[] get_reference_parameters_MPI(int n_shards, int M, int[] G_per_shard, int[,] G_ind, matrix lambda_log, vector sigma, vector exposure_rate, vector intercept){
 
 		int S = rows(exposure_rate);
 		vector[(M*S) + M + S] lambda_sigma_exposure_MPI[n_shards];
 
 		for( i in 1:n_shards ) {
 
-			int size_buffer = ((M*S) + M) - ((G_per_shard[i]*S) + G_per_shard[i]) ;
+			int size_buffer = ((M*S) + M ) - ((G_per_shard[i]*S) + G_per_shard[i]) ;
 		  vector[ size_buffer] buffer = rep_vector(0.0,size_buffer);
 
 			lambda_sigma_exposure_MPI[i] =
+			append_row(
 	  		append_row(
 	  		  append_row(
 		  		    append_row(
-		  		    	to_vector(lambda_log[,G_ind[i, 1:G_per_shard[i]]]),
+		  		    	to_vector(lambda_log[,G_ind[i, 1:G_per_shard[i]]]), // grub sor every sample, a list of genes
 		      		  sigma[G_ind[i, 1:G_per_shard[i]]]
 		      		),
 	      		buffer
 	      	),
 	      	exposure_rate
+	      ),
+	      append_row(intercept[G_ind[i, 1:G_per_shard[i]]], rep_vector(0.0,M - G_per_shard[i])) // Add missing values
 	      );
 		}
 
@@ -81,7 +84,8 @@ functions{
 		// Parameters unpack
 	 	vector[G_per_shard*S] lambda_MPI = local_parameters[1:(G_per_shard*S)];
 	 	vector[G_per_shard] sigma_MPI = local_parameters[((G_per_shard*S)+1):((G_per_shard*S) + G_per_shard)];
-	 	vector[S] exposure_rate = local_parameters[(((M*S) + M)+1):rows(local_parameters)];
+	 	vector[S] exposure_rate = local_parameters[(((M*S) + M)+1):(((M*S) + M)+S)];
+	 	vector[G_per_shard] intercept = local_parameters[(((M*S) + M)+S+1):(((M*S) + M)+S + G_per_shard)];
 
 		// Vectorise lpmf
 		//vector[symbol_end[G_per_shard+1]] lambda_MPI_c;
@@ -91,6 +95,34 @@ functions{
 			sigma_MPI_c [(symbol_end[g]+1):symbol_end[g+1]] = rep_vector(sigma_MPI[g],  how_many);
 		}
 
+// for(i in 1:10) {
+// 	print(
+// 		counts[i], "||",
+// 		lower_truncation[i], " ", exposure_rate[sample_idx[i]], " ", lambda_MPI[i], " > ",   exp(exposure_rate[sample_idx[i]] +	lambda_MPI[i]), ", ",
+// 		sigma_MPI_c[i], " ",
+//
+// 		neg_binomial_2_lccdf(
+// 	    		lower_truncation[i] |
+// 	    		exp(exposure_rate[sample_idx[i]] +	lambda_MPI[i]),
+// 	    		sigma_MPI_c[i]
+// 	    	),	"||",
+//
+// 	    	upper_truncation[i], " ", exp(exposure_rate[sample_idx[i]] +	lambda_MPI[i]), " ", sigma_MPI_c[i], " ",
+// 	    	neg_binomial_2_lcdf(
+// 	    		upper_truncation[i] |
+// 	    		exp(exposure_rate[sample_idx[i]] +	lambda_MPI[i]),
+// 	    		sigma_MPI_c[i]
+// 	    	),
+// 	    	"---> " ,
+// 	    	neg_binomial_2_log_lpmf(
+//     		counts[1:symbol_end[G_per_shard+1]][i] |
+//     		exposure_rate[sample_idx[1:symbol_end[G_per_shard+1]]][i] +
+//     		lambda_MPI[i],
+// 	    	sigma_MPI_c[i]
+//     	)
+// 	);
+// }
+
 		lp =
 			neg_binomial_2_log_lpmf(
     		counts[1:symbol_end[G_per_shard+1]] |
@@ -98,21 +130,23 @@ functions{
     		lambda_MPI,
 	    	sigma_MPI_c
     	)	-
-//     	(
-//     		// Truncation, if needed
-//     		my_T > 0 ?
+    	(
+    		// Truncation, if needed
+    		my_T > 0 ?
 //     		neg_binomial_2_lccdf(
 // 	    		lower_truncation[1:my_T] |
 // 	    		exp(exposure_rate[sample_idx[1:my_T]] +	lambda_MPI[1:my_T]),
 // 	    		sigma_MPI_c[1:my_T]
-// 	    	) +
-// 	    	neg_binomial_2_lcdf(
-// 	    		upper_truncation[1:my_T] |
-// 	    		exp(exposure_rate[sample_idx[1:my_T]] +	lambda_MPI[1:my_T]),
-// 	    		sigma_MPI_c[1:my_T]
-// 	    	):
-// 	    	0
-//     	) -
+// 	    	)
+	    	// +
+	    	neg_binomial_2_lcdf(
+	    		upper_truncation[1:my_T] |
+	    		exp(intercept[1:my_T]),
+	    		sigma_MPI[1:my_T]
+	    	) * S
+	    	:
+	    	0
+    	) -
     	(
     		// Exclude outliers by subtracting probability, if needed
     		size_exclude > 0 ?
@@ -203,11 +237,6 @@ data {
 
 	// Prior information needed for truncation
 	int<lower=0, upper=1> has_prior;
-// 	vector[has_prior] prior_lambda_mu[2];
-//   vector<lower=0>[has_prior] prior_lambda_sigma[2];
-//   vector<upper=0>[has_prior] prior_sigma_slope[2];
-//   vector[has_prior] prior_sigma_intercept[2];
-//   vector<lower=0>[has_prior] prior_sigma_sigma[2];
 
   vector[S*has_prior] prior_exposure_rate[2];
   row_vector[G*has_prior] prior_intercept[2];
@@ -229,7 +258,7 @@ parameters {
   // Overall properties of the data
   real lambda_mu_raw; // So is compatible with logGamma prior
   real<lower=0> lambda_sigma;
-  real<upper=0> sigma_slope;
+  real sigma_slope;
   real sigma_intercept;
   real<lower=0> sigma_sigma;
 
@@ -279,22 +308,23 @@ transformed parameters {
   has_prior == 0 ?
   1.0 ./ exp(sigma_raw) :
   1.0 ./ exp(prior_sigma[1] + sigma_raw .* prior_sigma[2]);
-print(has_prior);
+//print(has_prior);
 }
 
 model {
 
-  lambda_mu_raw ~ normal(0,2);
+	lambda_mu_raw ~ normal(0,2);
   lambda_sigma ~ normal(0,2);
+
   sigma_intercept ~ normal(0,2);
   sigma_slope ~ normal(0,2);
   sigma_sigma ~ normal(0,2);
 
   // Gene-wise properties of the data
-  target +=
-  	has_prior == 0 ?
-  	exp_gamma_meanSd_lpdf(to_vector(intercept_raw) | lambda_mu,lambda_sigma) :
-  	std_normal_lpdf(to_vector(intercept_raw));
+ 	target +=
+	has_prior == 0 ?
+	exp_gamma_meanSd_lpdf(to_vector(intercept_raw) | lambda_mu, lambda_sigma) :
+	std_normal_lpdf(to_vector(intercept_raw));
 
   if(C>=2)
   	target +=
@@ -304,7 +334,7 @@ model {
 
 	if(C>=3) to_vector(alpha_2) ~ normal(0,2.5);
 
-	target +=
+  target +=
   	has_prior == 0 ?
   	normal_lpdf(sigma_raw | sigma_slope * intercept + sigma_intercept, sigma_sigma) :
   	std_normal_lpdf(sigma_raw);
@@ -313,7 +343,7 @@ model {
   exposure_rate_raw ~ normal(0,1);
   sum(exposure_rate_raw) ~ normal(0, 0.001 * S);
 
-	//Gene-wise properties of the data
+	// Gene-wise properties of the data
 	target += sum(map_rect(
 		lp_reduce ,
 		global_parameters ,
@@ -324,33 +354,39 @@ model {
 			G_ind,
 			lambda_log_param,
 			sigma,
-			exposure_rate
+			exposure_rate,
+			to_vector(intercept)
 		),
 		real_data,
 		counts_package
 	));
 
-
-	// target += sum(lp_reduce(
-	// 	global_parameters,
-	// 	get_reference_parameters_MPI(
-	// 		n_shards,
-	// 		M,
-	// 		G_per_shard,
-	// 		G_ind,
-	// 		lambda_log_param,
-	// 		sigma,
-	// 		exposure_rate
-	// 	)[1],
-	// 	real_data[1],
-	// 	counts_package[1]
-	// ));
-
+// print("--", intercept_raw[1], " ", alpha_sub_1_raw[1], " ", lambda_log_param[1,1], " ", exposure_rate_raw[1]);
+// target += sum(lp_reduce(
+// 	global_parameters,
+// 	get_reference_parameters_MPI(
+// 		n_shards,
+// 		M,
+// 		G_per_shard,
+// 		G_ind,
+// 		lambda_log_param,
+// 		sigma,
+// 		exposure_rate
+// 	)[1],
+// 	real_data[1],
+// 	counts_package[1]
+// ));
 }
 generated quantities{
 	vector[G] counts_rng[S];
+	vector[G] counts_baseline_rng;
 
 	for(g in 1:G) for(s in 1:S)
 		counts_rng[s,g] =	neg_binomial_2_log_rng(exposure_rate[s] + lambda_log_param[s,g],	sigma[g]);
+
+	for(g in 1:G)
+		counts_baseline_rng[g] =	neg_binomial_2_log_rng(intercept[g],	sigma[g]);
+
+
 
 }

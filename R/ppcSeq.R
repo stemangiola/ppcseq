@@ -289,11 +289,12 @@ do_inference = function(
 			truncation_values %>% nrow %>% `>` (0) %>% `!` %>% sum(1),
 
 			# Lower truncation
-			truncation_values %>%
-				left_join(counts_MPI, by = c("S", "G")) %>%
-				distinct(idx_MPI, `.lower`, `read count MPI row`) %>%
-				spread(idx_MPI,  `.lower`) %>%
-				select(-`read count MPI row`)  %>%
+			counts_MPI %>%
+				left_join(truncation_values, by = c("G")) %>%
+				filter((`.lower_baseline` %>% is.na %>% `!`) & (`.upper_baseline` %>% is.na %>% `!`)) %>%
+				distinct(idx_MPI, `.lower_baseline`, `symbol MPI row`) %>%
+				spread(idx_MPI,  `.lower_baseline`) %>%
+				select(-`symbol MPI row`) %>%
 
 				# Add length array to the first row for indexing in MPI
 				{
@@ -313,11 +314,12 @@ do_inference = function(
 
 			# Upper truncation
 			rbind(
-				truncation_values %>%
-					left_join(counts_MPI, by = c("S", "G")) %>%
-					distinct(idx_MPI, `.upper`, `read count MPI row`) %>%
-					spread(idx_MPI,  `.upper`) %>%
-					select(-`read count MPI row`)
+				counts_MPI %>%
+					left_join(truncation_values, by = c("G")) %>%
+					filter((`.lower_baseline` %>% is.na %>% `!`) & (`.upper_baseline` %>% is.na %>% `!`)) %>%
+					distinct(idx_MPI, `.upper_baseline`, `symbol MPI row`) %>%
+					spread(idx_MPI,  `.upper_baseline`) %>%
+					select(-`symbol MPI row`)
 			) %>%
 
 			# Format for Stan
@@ -370,10 +372,10 @@ do_inference = function(
 
 	Sys.setenv("STAN_NUM_THREADS" = my_cores)
 
-	# fileConn<-file("~/.R/Makevars")
-	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
-	# close(fileConn)
-	# pcc_seq_model = rstan::stan_model("inst/stan/negBinomial_MPI.stan")
+	fileConn<-file("~/.R/Makevars")
+	writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
+	close(fileConn)
+	pcc_seq_model = rstan::stan_model("inst/stan/negBinomial_MPI.stan")
 	# fit = vb(
 	# 	pcc_seq_model, #
 	# 	output_samples=1000,
@@ -386,7 +388,7 @@ do_inference = function(
 		switch(
 			full_bayes %>% `!` %>% as.integer %>% sum(1),
 			sampling(
-				stanmodels$negBinomial_MPI, #pcc_seq_model, #
+				pcc_seq_model, # stanmodels$negBinomial_MPI, #
 				chains=chains, cores=chains,
 				iter=(how_many_posterior_draws/chains) %>% ceiling %>% sum(150),
 				warmup=150,
@@ -413,6 +415,10 @@ do_inference = function(
 		separate(.variable, c(".variable", "S", "G"), sep="[\\[,\\]]", extra="drop") %>%
 		mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
 		rename(`.lower` = 7, `.upper` = 8) %>%
+		mutate(
+			`.lower` = `.lower` %>% as.integer,
+			`.upper` = `.upper` %>% as.integer
+		) %>%
 
 		{
 			if(save_generated_quantities)
@@ -446,6 +452,18 @@ do_inference = function(
 		mutate(`ppc` = !!value_column %>% between(`.lower`, `.upper`)) %>%
 		mutate(`is higher than mean` = (!`ppc`) & (!!value_column > mean)) %>%
 		ungroup %>%
+
+		# Add baseline credible interval
+		left_join(
+			fit %>%
+			summary("counts_baseline_rng", prob=c(adj_prob_theshold, 1-adj_prob_theshold)) %$%
+				summary %>%
+				as_tibble(rownames = ".variable") %>%
+				separate(.variable, c(".variable",  "G"), sep="[\\[,\\]]", extra="drop") %>%
+				mutate(G = G %>% as.integer) %>%
+				rename(`.lower_baseline` = 7 %>% as.integer, `.upper_baseline` = 8 %>% as.integer) %>%
+				distinct(G, `.lower_baseline`, `.upper_baseline`)
+		) %>%
 
 		# Add annotation if sample belongs to high or low group
 		left_join(
@@ -707,7 +725,8 @@ ppc_seq = function(
 	to_exclude =
 		res_discovery %>%
 		filter(`.variable` == "counts_rng") %>%
-		filter(`deleterious outliers`) %>%
+		filter(!ppc) %>%
+		#filter(`deleterious outliers`) %>%
 		distinct(S, G, .lower, .upper)
 
 	how_namy_to_exclude = to_exclude %>% nrow
@@ -715,11 +734,8 @@ ppc_seq = function(
 	truncation_values =
 		res_discovery %>%
 		filter(`.variable` == "counts_rng") %>%
-		distinct(S, G, .lower, .upper) %>%
-		mutate(
-			`.lower` = `.lower` %>% as.integer,
-			`.upper` = `.upper` %>% as.integer
-		)
+		distinct(G, `.lower_baseline`, `.upper_baseline`) %>%
+		mutate_if(is.numeric, as.integer)
 
 	prior_from_discovery =
 		res_discovery %>%
@@ -767,7 +783,8 @@ ppc_seq = function(
 			to_exclude = to_exclude,
 			truncation_values = truncation_values,
 			save_generated_quantities = save_generated_quantities,
-			prior_from_discovery = prior_from_discovery
+			prior_from_discovery = prior_from_discovery,
+			inits_fx = inits_fx
 		)
 
 		# Merge results
