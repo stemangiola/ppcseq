@@ -6,10 +6,28 @@ output: github_document
 
 The input data set is a tidy representation of a differential gene transcript abundance analysis
 
-```{r}
+```{r echo=FALSE, include=FALSE}
 library(tidyverse)
 library(ppcSeq)
 ```
+
+To install:
+
+For linux systems, in order to exploit multi-threading, from R write:
+
+```{r}
+fileConn<-file("~/.R/Makevars")
+writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
+close(fileConn)
+```
+
+Then, install with
+
+```{r  eval=FALSE}
+devtools::install_github("stemangiola/ppcSeq")
+```
+
+You can get the test dataset with
 
 ```{r eval=FALSE}
 ppcSeq::counts 
@@ -20,12 +38,13 @@ You can convert a list of BAM/SAM files into a tidy data frame of annotated coun
 ```{r cache=TRUE, warning=FALSE, message=FALSE}
 counts.ppc = 
 	ppcSeq::counts %>%
-	mutate(is_significant = FDR < 0.05) %>%
+	mutate(is_significant = FDR < 0.01) %>%
 	ppc_seq(
 		formula = ~ Label,
 		significance_column = PValue,
 		do_check_column = is_significant,
-		value_column = value
+		value_column = value,
+		percent_false_positive_genes = "5%"
 	)
 ```
 
