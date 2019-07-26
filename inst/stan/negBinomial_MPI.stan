@@ -160,6 +160,9 @@ data {
 	real exposure_rate_multiplier;
 	real intercept_shift_scale[2];
 
+	# Truncation
+	real<lower=0> truncation_compensation;
+
 }
 transformed data {
 
@@ -261,6 +264,6 @@ generated quantities{
 	vector[G] counts_rng[S];
 
 	for(g in 1:G) for(s in 1:S)
-		counts_rng[s,g] =	neg_binomial_2_log_rng(exposure_rate[s] + lambda_log_param[s,g],	sigma[g]);
+		counts_rng[s,g] =	neg_binomial_2_log_rng(exposure_rate[s] + lambda_log_param[s,g],	sigma[g] * truncation_compensation);
 
 }
