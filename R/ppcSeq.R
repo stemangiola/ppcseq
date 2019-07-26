@@ -176,7 +176,7 @@ do_inference = function(
 	additional_parameters_to_save,
 	adj_prob_theshold,
 	to_exclude = tibble(S = integer(), G = integer()),
-	truncation_values = tibble(S = integer(), G = integer(), `.lower`=integer(), `.upper` = integer()),
+	truncation_compensation = 1,
 	save_generated_quantities = F,
 	inits_fx = "random",
 	prior_from_discovery = tibble(`.variable` = character(), mean = numeric(), sd = numeric())
@@ -698,7 +698,8 @@ ppc_seq = function(
 			additional_parameters_to_save,
 			adj_prob_theshold = error_rate / how_namy_to_exclude * 2, # * 2 because we just test one side of the distribution
 			to_exclude = to_exclude,
-			save_generated_quantities = save_generated_quantities
+			save_generated_quantities = save_generated_quantities,
+			truncation_compensation = 0.7352941
 		)
 
 		# Merge results
