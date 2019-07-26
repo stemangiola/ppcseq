@@ -284,72 +284,6 @@ do_inference = function(
 			matrix(rep(0,shards))
 		)
 
-	truncation_MPI =
-		switch(
-			truncation_values %>% nrow %>% `>` (0) %>% `!` %>% sum(1),
-
-			# Lower truncation
-			truncation_values %>%
-				left_join(counts_MPI, by = c("S", "G")) %>%
-				distinct(idx_MPI, `.lower`, `read count MPI row`) %>%
-				spread(idx_MPI,  `.lower`) %>%
-				select(-`read count MPI row`)  %>%
-
-				# Add length array to the first row for indexing in MPI
-				{
-					bind_rows(
-						(.) %>% map(function(x) x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
-						(.)
-					)
-				} %>%
-
-				# Add overall dimension at the start
-				{
-					bind_rows(
-						(.) %>% slice(1) %>% gather(idx_MPI, `n`) %>% mutate(`n` = `n` %>% max) %>% spread(idx_MPI, `n`),
-						(.)
-					)
-				} %>%
-
-			# Upper truncation
-			rbind(
-				truncation_values %>%
-					left_join(counts_MPI, by = c("S", "G")) %>%
-					distinct(idx_MPI, `.upper`, `read count MPI row`) %>%
-					spread(idx_MPI,  `.upper`) %>%
-					select(-`read count MPI row`)
-			) %>%
-
-			# Format for Stan
-			replace(is.na(.), 0 %>% as.integer) %>%
-			as_matrix() %>% t,
-
-			# If no truncation
-			matrix(rep(0,shards*2), ncol=2)
-		)
-
-	# Prior information if exists
-
-	# prior_lambda_mu = prior_from_discovery %>% filter(`.variable` == "lambda_mu_raw") %>%	select(mean, sd) %>%	as_matrix %>% t
-	# prior_lambda_sigma = prior_from_discovery %>% filter(`.variable` == "lambda_sigma") %>%	select(mean, sd) %>%	as_matrix %>% t
-	# prior_sigma_intercept = prior_from_discovery %>% filter(`.variable` == "sigma_intercept") %>%	select(mean, sd) %>%	as_matrix %>% t
-	# prior_sigma_slope = prior_from_discovery %>% filter(`.variable` == "sigma_slope") %>%	select(mean, sd) %>%	as_matrix %>% t
-	# prior_sigma_sigma = prior_from_discovery %>% filter(`.variable` == "sigma_sigma") %>%	select(mean, sd) %>%	as_matrix %>% t
-
-	has_prior = prior_from_discovery %>% nrow %>% `>` (0)
-
-	if(has_prior){
-	prior_exposure_rate =	prior_from_discovery %>% filter(`.variable` == "exposure_rate") %>%	select(mean, sd) %>%	as_matrix %>% t
-	prior_intercept = prior_from_discovery %>% filter(`.variable` == "intercept") %>%	select(mean, sd) %>%	as_matrix %>% t
-	prior_alpha_sub_1 = prior_from_discovery %>% filter(`.variable` == "alpha_sub_1") %>%	select(mean, sd) %>%	as_matrix %>% t
-	prior_alpha_2 = prior_from_discovery %>% filter(`.variable` == "alpha_2") %>%	select(mean, sd) %>%	as_matrix %>% t
-	prior_sigma = prior_from_discovery %>% filter(`.variable` == "sigma_raw") %>%	select(mean, sd) %>%	as_matrix %>% t
-	}
-	else {
-		# For Stan requirement
-		prior_exposure_rate	= prior_intercept = 	prior_alpha_sub_1 = prior_alpha_2 =	prior_sigma = array(0, dim=c(2,0))
-	}
-
 	# Package data #################################
 
 	counts_package =
@@ -360,7 +294,6 @@ do_inference = function(
 		cbind(symbol_end) %>%
 		cbind(sample_idx) %>%
 		cbind(counts) %>%
-		cbind(truncation_MPI) %>%
 		cbind(to_exclude_MPI)
 
 	CP = ncol(counts_package)
@@ -765,13 +698,12 @@ ppc_seq = function(
 			additional_parameters_to_save,
 			adj_prob_theshold = error_rate / how_namy_to_exclude * 2, # * 2 because we just test one side of the distribution
 			to_exclude = to_exclude,
-			truncation_values = truncation_values,
-			save_generated_quantities = save_generated_quantities,
-			prior_from_discovery = prior_from_discovery
+			save_generated_quantities = save_generated_quantities
 		)
 
 		# Merge results
-		res_discovery %>% 		filter(`.variable` == "counts_rng") %>%
+		res_discovery %>%
+			filter(`.variable` == "counts_rng") %>%
 			select(
 				S, G, !!gene_column, !!value_column, !!sample_column,
 				`.lower`, `.upper`, `exposure rate`, !!as.symbol(parse_formula(formula)[1])
@@ -785,8 +717,8 @@ ppc_seq = function(
 
 		# Rpoduce summary results
 			# Add plots
-			group_by(!!gene_column) %>%
-			nest(.key = "sample wise data") %>%
+			#group_by(!!gene_column) %>%
+			nest(`sample wise data` = c(-!!gene_column)) %>%
 			mutate(plot = map2(`sample wise data`, !!gene_column, ~
 												 	{
 												 		ggplot(data = .x, aes(y=!!value_column, x=!!sample_column)) +
@@ -815,10 +747,6 @@ ppc_seq = function(
 				# `ppc samples failed` = map_int(data, ~ .x %>% pull(ppc) %>% `!` %>% sum),
 				`tot deleterious outliers` = map_int(`sample wise data`, ~ .x %>% pull(`deleterious outliers`) %>% sum)
 			)
-			#%>%
-			#rename(!!gene_column := !!gene_column) %>%
-			#select(-data)
-
 
 }
 
