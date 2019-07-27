@@ -266,9 +266,17 @@ do_inference = function(
 					filter(idx_MPI == s) %>%
 					distinct(idx_MPI, `read count MPI row`) %>%
 					rowid_to_column %>%
-					spread(idx_MPI, `read count MPI row`)
+					spread(idx_MPI, `read count MPI row`) %>%
+
+					# Add shards missing from outliers
+					{
+						if((.) %>% nrow == 0) tibble(rowid = 1, !!as.symbol(s) := NA)
+						else (.)
+					}
 
 			} %>%
+
+
 
 				# Add length array to the first row for indexing in MPI
 				{
@@ -500,7 +508,7 @@ ppc_seq = function(
 	save_generated_quantities = F,       # For development purpose
 	additional_parameters_to_save = c(), # For development purpose,
 	cores = system("nproc", intern = TRUE) %>% as.integer %>% sum(-1),
-	error_rate = 0.05
+	percent_false_positive_genes = "1%"
 ){
 
 	sample_column = enquo(sample_column)
@@ -509,9 +517,11 @@ ppc_seq = function(
 	significance_column = enquo(significance_column)
 	do_check_column = enquo(do_check_column)
 
-	#input = c(as.list(environment()))
+	# Check percent FP input
+	pfpg = percent_false_positive_genes %>% gsub("%$", "", .) %>% as.numeric
+	if(pfpg %>% is.na | !(pfpg %>% between(0, 100))) stop("percent_false_positive_genes must be a string from > 0% to < 100%")
 
-
+	# Plot theme
 	my_theme =
 		theme_bw() +
 		theme(
@@ -633,7 +643,7 @@ ppc_seq = function(
 			exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
-			adj_prob_theshold  = error_rate
+			adj_prob_theshold  = 0.05
 		)
 
 	# Columns of counts to be ignored from the inference
@@ -696,7 +706,7 @@ ppc_seq = function(
 			exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
-			adj_prob_theshold = error_rate / how_namy_to_exclude * 2, # * 2 because we just test one side of the distribution
+			adj_prob_theshold = pfpg / 100 / (my_df %>% distinct(!!sample_column) %>% nrow), # * 2 because we just test one side of the distribution
 			to_exclude = to_exclude,
 			save_generated_quantities = save_generated_quantities,
 			truncation_compensation = 0.7352941
