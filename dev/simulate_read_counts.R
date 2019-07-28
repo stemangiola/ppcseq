@@ -2,7 +2,7 @@ library(tidyverse)
 library(magrittr)
 library(ppcSeq)
 
-FDR_threshold = 0.1
+FDR_threshold = 0.01
 
 res_1 =
 	ppcSeq::counts %>%
@@ -12,7 +12,8 @@ res_1 =
 		significance_column = PValue,
 		do_check_column = is_significant,
 		value_column = value,
-		save_generated_quantities = T
+		save_generated_quantities = T,
+		percent_false_positive_genes = "5%"
 	)
 
 res_2 =
@@ -47,3 +48,4 @@ res_2 =
 
 
 
+res_2 %>% unnest(`sample wise data`)
