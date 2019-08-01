@@ -9,7 +9,8 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
   significance_column = `p-value`, do_check_column, full_bayes = T,
   how_many_negative_controls = 500, save_generated_quantities = F,
   additional_parameters_to_save = c(), cores = system("nproc", intern =
-  TRUE) \%>\% as.integer \%>\% sum(-1), error_rate = 0.05)
+  TRUE) \%>\% as.integer \%>\% sum(-1),
+  percent_false_positive_genes = "1\%")
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}

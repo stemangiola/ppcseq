@@ -335,12 +335,14 @@ do_inference = function(
 				init = inits_fx
 				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			),
-			vb(
-				stanmodels$negBinomial_MPI, #pcc_seq_model, #
-				output_samples=how_many_posterior_draws,
-				iter = 50000,
-				tol_rel_obj=0.005
-				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+
+			# Repeat strategy for failures of vb
+			vb_iterative(
+				 stanmodels$negBinomial_MPI, #pcc_seq_model, #
+				 output_samples=how_many_posterior_draws,
+				 iter = 50000,
+				 tol_rel_obj=0.005
+				 #, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			)
 		)
 	Sys.time() %>% print
@@ -348,12 +350,13 @@ do_inference = function(
 	# Parse and return ###############################
 
 	fit %>%
-		summary("counts_rng", prob=c(adj_prob_theshold, 1-adj_prob_theshold)) %$%
+		rstan::summary("counts_rng", prob=c(adj_prob_theshold, 1-adj_prob_theshold)) %$%
 		summary %>%
 		as_tibble(rownames = ".variable") %>%
 		separate(.variable, c(".variable", "S", "G"), sep="[\\[,\\]]", extra="drop") %>%
 		mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
-		rename(`.lower` = 7, `.upper` = 8) %>%
+		select(-one_of(c("n_eff","Rhat", "khat"))) %>%
+		rename(`.lower` = (.) %>% ncol - 1, `.upper` = (.) %>% ncol) %>%
 
 		{
 			if(save_generated_quantities)
@@ -361,7 +364,7 @@ do_inference = function(
 				left_join(
 					fit %>% tidybayes::gather_draws(counts_rng[S,G])
 				) %>%
-				group_by(`.variable`, S ,G, mean,se_mean , sd, `.lower`, `.upper`, n_eff,  Rhat) %>%
+				group_by(`.variable`, S ,G, mean,se_mean , sd, `.lower`, `.upper`) %>%
 				nest(.key = "generated quantities")
 			else
 				(.)
@@ -431,6 +434,42 @@ do_inference = function(
 				mutate(G = G %>% as.integer) %>%
 				select(G, `.variable`, mean, sd)
 		)
+}
+
+#' vb_iterative
+#'
+#' @description Runs iteratively variational bayes until it suceeds
+#'
+#' @importFrom rstan vb
+#'
+#' @param model A Stan model
+#' @param output_samples An integer of how many samples from posteriors
+#' @param iter An integer of how many max iterations
+#' @param tol_rel_obj A real
+#'
+#' @return A Stan fit object
+#'
+vb_iterative = function(model, output_samples, iter, tol_rel_obj){
+	boolFalse<-F
+	while(boolFalse==F) {
+
+		res = tryCatch({
+			res = vb(
+				model,
+				output_samples=output_samples,
+				iter = iter,
+				tol_rel_obj=tol_rel_obj
+				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+			)
+			boolFalse<-T
+			res
+		},
+		error=function(e){},
+		finally={})
+
+		return(res)
+
+	}
 }
 
 other_code = function(){
@@ -516,6 +555,9 @@ ppc_seq = function(
 	value_column = enquo(value_column)
 	significance_column = enquo(significance_column)
 	do_check_column = enquo(do_check_column)
+
+	# Check is testing environment is supported
+	if((!full_bayes) & save_generated_quantities) stop("Variational Bayes does not support tidybayes needed for save_generated_quantities, use sampling")
 
 	# Check percent FP input
 	pfpg = percent_false_positive_genes %>% gsub("%$", "", .) %>% as.numeric
@@ -706,7 +748,7 @@ ppc_seq = function(
 			exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
-			adj_prob_theshold = pfpg / 100 / (my_df %>% distinct(!!sample_column) %>% nrow), # * 2 because we just test one side of the distribution
+			adj_prob_theshold = pfpg / 100 / (my_df %>% distinct(!!sample_column) %>% nrow) * 2, # * 2 because we just test one side of the distribution
 			to_exclude = to_exclude,
 			save_generated_quantities = save_generated_quantities,
 			truncation_compensation = 0.7352941
