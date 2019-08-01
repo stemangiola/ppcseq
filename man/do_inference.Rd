@@ -8,7 +8,10 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
   significance_column, do_check_column, full_bayes = T, C, X,
   lambda_mu_mu, cores, exposure_rate_multiplier, intercept_shift_scale,
   additional_parameters_to_save, adj_prob_theshold, to_exclude = tibble(S
-  = integer(), G = integer()), save_generated_quantities = F)
+  = integer(), G = integer()), truncation_compensation = 1,
+  save_generated_quantities = F, inits_fx = "random",
+  prior_from_discovery = tibble(.variable = character(), mean =
+  numeric(), sd = numeric()))
 }
 \arguments{
 \item{formula}{A formula}
