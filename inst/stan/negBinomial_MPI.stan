@@ -160,7 +160,7 @@ data {
 	real exposure_rate_multiplier;
 	real intercept_shift_scale[2];
 
-	# Truncation
+	// Truncation
 	real<lower=0> truncation_compensation;
 
 }
@@ -176,6 +176,8 @@ parameters {
   // Overall properties of the data
   real lambda_mu_raw; // So is compatible with logGamma prior
   real<lower=0> lambda_sigma;
+  real lambda_skew;
+
   vector[S] exposure_rate_raw;
 
   // Gene-wise properties of the data
@@ -210,13 +212,14 @@ model {
 
   lambda_mu_raw ~ normal(0,2);
   lambda_sigma ~ normal(0,2);
+	lambda_skew ~ normal(0,1);
 
   sigma_intercept ~ normal(0,2);
   sigma_slope ~ normal(0,2);
   sigma_sigma ~ normal(0,2);
 
   // Gene-wise properties of the data
-  to_vector(intercept) ~ exp_gamma_meanSd(lambda_mu,lambda_sigma);
+  to_vector(intercept) ~ skew_normal(lambda_mu,lambda_sigma, lambda_skew);
   if(C>=2) alpha_sub_1 ~ double_exponential(0,1);
 	if(C>=3) to_vector(alpha_2) ~ normal(0,2.5);
 
