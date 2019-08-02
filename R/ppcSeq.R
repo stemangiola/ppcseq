@@ -128,6 +128,45 @@ as_matrix <- function(tbl, rownames = NULL) {
 		as.matrix()
 }
 
+#' vb_iterative
+#'
+#' @description Runs iteratively variational bayes until it suceeds
+#'
+#' @importFrom rstan vb
+#'
+#' @param model A Stan model
+#' @param output_samples An integer of how many samples from posteriors
+#' @param iter An integer of how many max iterations
+#' @param tol_rel_obj A real
+#'
+#' @return A Stan fit object
+#'
+vb_iterative = function(model, output_samples, iter, tol_rel_obj){
+	res = NULL
+	i = 0
+	while(res %>% is.null | i > 5) {
+
+		res = tryCatch(
+			{
+				my_res = vb(
+					model,
+					output_samples=output_samples,
+					iter = iter,
+					tol_rel_obj=tol_rel_obj
+					#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+				)
+				boolFalse<-T
+				return(my_res)
+			},
+			error=function(e){ i = i + 1; writeLines("Further attempt with Variational Bayes"); return(NULL) },
+			finally={}
+		)
+	}
+
+	return(res)
+}
+
+
 #' do_inference
 #'
 #' @description This function calls the stan model.
@@ -155,7 +194,6 @@ as_matrix <- function(tbl, rownames = NULL) {
 #' @param full_bayes A boolean
 #' @param how_many_negative_controls An integer
 #' @param how_many_posterior_draws An integer
-
 #'
 #' @return A tibble with additional columns
 #'
@@ -321,11 +359,13 @@ do_inference = function(
 	# 	iter = 50000,
 	# 	tol_rel_obj=0.001
 	# )
-
+browser()
 	Sys.time() %>% print
 	fit =
 		switch(
 			full_bayes %>% `!` %>% as.integer %>% sum(1),
+
+			# MCMC
 			sampling(
 				stanmodels$negBinomial_MPI, #pcc_seq_model, #
 				chains=chains, cores=chains,
@@ -336,7 +376,7 @@ do_inference = function(
 				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			),
 
-			# Repeat strategy for failures of vb
+			# VB Repeat strategy for failures of vb
 			vb_iterative(
 				 stanmodels$negBinomial_MPI, #pcc_seq_model, #
 				 output_samples=how_many_posterior_draws,
@@ -436,41 +476,6 @@ do_inference = function(
 		)
 }
 
-#' vb_iterative
-#'
-#' @description Runs iteratively variational bayes until it suceeds
-#'
-#' @importFrom rstan vb
-#'
-#' @param model A Stan model
-#' @param output_samples An integer of how many samples from posteriors
-#' @param iter An integer of how many max iterations
-#' @param tol_rel_obj A real
-#'
-#' @return A Stan fit object
-#'
-vb_iterative = function(model, output_samples, iter, tol_rel_obj){
-	boolFalse<-F
-	while(boolFalse==F) {
-
-		res = tryCatch({
-			res = vb(
-				model,
-				output_samples=output_samples,
-				iter = iter,
-				tol_rel_obj=tol_rel_obj
-				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
-			)
-			boolFalse<-T
-			res
-		},
-		error=function(e){},
-		finally={})
-
-		return(res)
-
-	}
-}
 
 other_code = function(){
 
