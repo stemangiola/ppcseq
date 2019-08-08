@@ -42,10 +42,10 @@ counts.ppc =
     )
 ```
 
-    ## [1] "2019-07-27 09:37:35 AEST"
-    ## [1] "2019-07-27 09:39:18 AEST"
-    ## [1] "2019-07-27 09:39:40 AEST"
-    ## [1] "2019-07-27 09:42:43 AEST"
+    ## [1] "2019-08-08 21:29:49 AEST"
+    ## [1] "2019-08-08 21:32:44 AEST"
+    ## [1] "2019-08-08 21:33:06 AEST"
+    ## [1] "2019-08-08 21:36:35 AEST"
 
 The new posterior predictive check has been added to the original data
 frame
@@ -59,7 +59,7 @@ counts.ppc
     ##    <chr>       <list<df[,11]>> <list>                      <int>
     ##  1 SLC16A12          [21 × 11] <gg>                            0
     ##  2 CYP1A1            [21 × 11] <gg>                            1
-    ##  3 ART3              [21 × 11] <gg>                            0
+    ##  3 ART3              [21 × 11] <gg>                            1
     ##  4 DIO2              [21 × 11] <gg>                            0
     ##  5 OR51E2            [21 × 11] <gg>                            0
     ##  6 MUC16             [21 × 11] <gg>                            0
@@ -71,7 +71,7 @@ counts.ppc
     ## 12 EPB42             [21 × 11] <gg>                            0
     ## 13 LRRC38            [21 × 11] <gg>                            0
     ## 14 SUSD4             [21 × 11] <gg>                            0
-    ## 15 MMP8              [21 × 11] <gg>                            0
+    ## 15 MMP8              [21 × 11] <gg>                            1
 
 The new data frame contains plots for each gene
 

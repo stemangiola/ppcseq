@@ -35,7 +35,7 @@ ppcSeq::counts
 
 You can convert a list of BAM/SAM files into a tidy data frame of annotated counts
 
-```{r cache=TRUE, warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE}
 counts.ppc = 
 	ppcSeq::counts %>%
 	mutate(is_significant = FDR < 0.01) %>%
@@ -50,7 +50,7 @@ counts.ppc =
 
 The new posterior predictive check has been added to the original data frame
 
-```{r, cache=TRUE}
+```{r }
 counts.ppc 
 ```
 
@@ -58,7 +58,7 @@ The new data frame contains plots for each gene
 
 We can visualise the top five differentially transcribed genes
 
-```{r, cache=TRUE}
+```{r }
 counts.ppc %>% 
 	slice(1:2) %>% 
 	pull(plot) %>% 
