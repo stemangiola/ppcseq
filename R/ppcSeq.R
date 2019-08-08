@@ -547,7 +547,7 @@ ppc_seq = function(
 	value_column = `read count`,
 	significance_column = `p-value`,
 	do_check_column,
-	full_bayes = T,
+	full_bayes = F,
 	how_many_negative_controls = 500,
 	save_generated_quantities = F,       # For development purpose
 	additional_parameters_to_save = c(), # For development purpose,
