@@ -205,7 +205,7 @@ do_inference = function(
 	value_column,
 	significance_column ,
 	do_check_column,
-	full_bayes = T,
+	full_bayes = F,
 	C,
 	X,
 	lambda_mu_mu,
