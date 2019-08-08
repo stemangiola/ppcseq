@@ -4,10 +4,3 @@
 *.h
 .Rhistory
 .RData
-
-# filter chache
-*cache*
-.Rproj.user
-.Rhistory
-*.o
-src/stanExports_negBinomial_MPI.o
