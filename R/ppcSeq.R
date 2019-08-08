@@ -359,7 +359,7 @@ do_inference = function(
 	# 	iter = 50000,
 	# 	tol_rel_obj=0.001
 	# )
-browser()
+
 	Sys.time() %>% print
 	fit =
 		switch(
