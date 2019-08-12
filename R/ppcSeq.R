@@ -141,7 +141,7 @@ as_matrix <- function(tbl, rownames = NULL) {
 #'
 #' @return A Stan fit object
 #'
-vb_iterative = function(model, output_samples, iter, tol_rel_obj){
+vb_iterative = function(model, output_samples, iter, tol_rel_obj, ...){
 	res = NULL
 	i = 0
 	while(res %>% is.null | i > 5) {
@@ -152,13 +152,14 @@ vb_iterative = function(model, output_samples, iter, tol_rel_obj){
 					model,
 					output_samples=output_samples,
 					iter = iter,
-					tol_rel_obj=tol_rel_obj
+					tol_rel_obj=tol_rel_obj,
+					...
 					#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 				)
 				boolFalse<-T
 				return(my_res)
 			},
-			error=function(e){ i = i + 1; writeLines("Further attempt with Variational Bayes"); return(NULL) },
+			error=function(e){ i = i + 1; writeLines(sprintf("Further attempt with Variational Bayes: %s", e)); return(NULL) },
 			finally={}
 		)
 	}
@@ -372,8 +373,8 @@ do_inference = function(
 				iter=(how_many_posterior_draws/chains) %>% ceiling %>% sum(150),
 				warmup=150,
 				save_warmup = FALSE,
-				init = inits_fx
-				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+				init = inits_fx,
+				pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			),
 
 			# VB Repeat strategy for failures of vb
@@ -381,8 +382,8 @@ do_inference = function(
 				 stanmodels$negBinomial_MPI, #pcc_seq_model, #
 				 output_samples=how_many_posterior_draws,
 				 iter = 50000,
-				 tol_rel_obj=0.005
-				 #, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+				 tol_rel_obj=0.005,
+				 pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			)
 		)
 	Sys.time() %>% print
@@ -464,16 +465,17 @@ do_inference = function(
 				separate(.variable, c(".variable", "S"), sep="[\\[,\\]]", extra="drop") %>%
 				mutate( S = S %>% as.integer) %>%
 				select(S, `.variable`, mean, sd)
-		) %>%
-		bind_rows(
-			fit %>%
-				summary(c("intercept", "alpha_sub_1", "alpha_2", "sigma_raw")) %$%
-				summary %>%
-				as_tibble(rownames = ".variable") %>%
-				separate(.variable, c(".variable", "G"), sep="[\\[,\\]]", extra="drop") %>%
-				mutate(G = G %>% as.integer) %>%
-				select(G, `.variable`, mean, sd)
 		)
+	# %>%
+	# 	bind_rows(
+	# 		fit %>%
+	# 			summary(c("intercept", "alpha_sub_1", "alpha_2", "sigma_raw")) %$%
+	# 			summary %>%
+	# 			as_tibble(rownames = ".variable") %>%
+	# 			separate(.variable, c(".variable", "G"), sep="[\\[,\\]]", extra="drop") %>%
+	# 			mutate(G = G %>% as.integer) %>%
+	# 			select(G, `.variable`, mean, sd)
+	# 	)
 }
 
 
