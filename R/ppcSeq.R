@@ -1,3 +1,21 @@
+#' This is a generalisation of ifelse that acceots an object and return an objects
+#'
+#' @import dplyr
+#' @import tidyr
+#'
+#' @param input.df A tibble
+#' @param condition A boolean
+#' @return A tibble
+ifelse_pipe = function(.x, .p, .f1, .f2 = NULL) {
+	switch(.p %>% `!` %>% sum(1),
+				 as_mapper(.f1)(.x),
+				 if (.f2 %>% is.null %>% `!`)
+				 	as_mapper(.f2)(.x)
+				 else
+				 	.x)
+
+}
+
 #' format_for_MPI
 #'
 #' @description Format reference data frame for MPI
@@ -777,8 +795,16 @@ ppc_seq = function(
 
 		# Rpoduce summary results
 			# Add plots
-			#group_by(!!gene_column) %>%
-			nest(`sample wise data` = c(-!!gene_column)) %>%
+
+			# Check if new package is installed with different sintax
+			ifelse_pipe(
+				packageVersion("tidyr") == "0.8.3.9000",
+				~ .x %>% nest(`sample wise data` = c(-!!gene_column)),
+				~ .x %>%
+					group_by(!!gene_column) %>%
+					nest(-!!gene_column, .key = `sample wise data` )
+			) %>%
+
 			mutate(plot = map2(`sample wise data`, !!gene_column, ~
 												 	{
 												 		ggplot(data = .x, aes(y=!!value_column, x=!!sample_column)) +
