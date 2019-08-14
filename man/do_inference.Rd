@@ -5,7 +5,7 @@
 \title{do_inference}
 \usage{
 do_inference(my_df, formula, sample_column, gene_column, value_column,
-  significance_column, do_check_column, full_bayes = T, C, X,
+  significance_column, do_check_column, full_bayes = F, C, X,
   lambda_mu_mu, cores, exposure_rate_multiplier, intercept_shift_scale,
   additional_parameters_to_save, adj_prob_theshold, to_exclude = tibble(S
   = integer(), G = integer()), truncation_compensation = 1,

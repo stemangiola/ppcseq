@@ -6,7 +6,7 @@
 \usage{
 ppc_seq(input.df, formula = ~1, sample_column = sample,
   gene_column = symbol, value_column = `read count`,
-  significance_column = `p-value`, do_check_column, full_bayes = T,
+  significance_column = `p-value`, do_check_column, full_bayes = F,
   how_many_negative_controls = 500, save_generated_quantities = F,
   additional_parameters_to_save = c(), cores = system("nproc", intern =
   TRUE) \%>\% as.integer \%>\% sum(-1),
