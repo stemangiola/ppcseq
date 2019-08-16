@@ -174,6 +174,23 @@ vb_iterative = function(model, output_samples, iter, tol_rel_obj, ...){
 	return(res)
 }
 
+#' Choose the number of chains baed on how many draws we need from the posterior distribution
+#' Because there is a fix cost (warmup) to starting a new chain,
+#' we need to use the minimum amount that we can parallelise
+#' @param how_many_posterior_draws A real number of posterior draws needed
+#' @param max_number_to_check A sane upper plateau
+#'
+#' @return A Stan fit object
+find_optimal_number_of_chains = function(how_many_posterior_draws,
+																				 max_number_to_check = 100) {
+	foreach(cc = 2:max_number_to_check, .combine = bind_rows) %do%
+		{
+			tibble(chains = cc, tot = how_many_posterior_draws / cc + 150 * cc)
+		} %>%
+		filter(tot == tot %>% min) %>%
+		pull(chains)
+
+}
 
 #' do_inference
 #'
@@ -244,13 +261,13 @@ do_inference = function(
 	# Calculate the needed posterior draws
 	how_many_posterior_draws =  5 %>% divide_by(adj_prob_theshold) %>% max(500)
 
-	chains =
-		foreach(cc = 2:min(cores, 6), .combine = bind_rows) %do%
-		{ tibble(chains = cc, tot = how_many_posterior_draws / cc + 150 * cc )  } %>%
-		filter(tot == tot %>% min) %>%
-		pull(chains)
+	# Identify the optimal number of chain
+	# based on how many draws we need from the posterior
+	chains = find_optimal_number_of_chains(how_many_posterior_draws)
 
-	my_cores = cores %>% divide_by(chains) %>% floor
+	# Find how many cores per chain, minimum 1 of course
+	my_cores = cores %>% divide_by(chains) %>% floor %>% max(1)
+
 	shards = my_cores
 
 	counts_MPI =
