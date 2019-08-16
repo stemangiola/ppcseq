@@ -19,19 +19,18 @@ ifelse_pipe = function(.x, .p, .f1, .f2 = NULL) {
 #' format_for_MPI
 #'
 #' @description Format reference data frame for MPI
-format_for_MPI = function(df, shards, sample_column){
-
+format_for_MPI = function(df, shards, sample_column) {
 	sample_column = enquo(sample_column)
 
 	df %>%
 
-		left_join(
-			(.) %>%
-				distinct(G) %>%
-				arrange(G) %>%
-				mutate( idx_MPI = head( rep(1:shards, (.) %>% nrow %>% `/` (shards) %>% ceiling ), n=(.) %>% nrow) ),
-			by = "G"
-		) %>%
+		left_join((.) %>%
+								distinct(G) %>%
+								arrange(G) %>%
+								mutate(idx_MPI = head(
+									rep(1:shards, (.) %>% nrow %>% `/` (shards) %>% ceiling), n = (.) %>% nrow
+								)),
+							by = "G") %>%
 		arrange(idx_MPI, G) %>%
 
 		# Decide start - end location
@@ -44,7 +43,9 @@ format_for_MPI = function(df, shards, sample_column){
 						arrange(G) %>%
 						count(G) %>%
 						mutate(end = cumsum(n)) %>%
-						mutate(start = c(1, .$end %>% rev() %>% `[` (-1) %>% rev %>% `+` (1))),
+						mutate(start = c(
+							1, .$end %>% rev() %>% `[` (-1) %>% rev %>% `+` (1)
+						)),
 					by = "G"
 				)
 		) %>%
@@ -72,7 +73,7 @@ format_for_MPI = function(df, shards, sample_column){
 #' add_partition
 #'
 #' @description Add partition column dto data frame
-add_partition = function(df.input, partition_by, n_partitions){
+add_partition = function(df.input, partition_by, n_partitions) {
 	df.input %>%
 		left_join(
 			(.) %>%
@@ -95,8 +96,10 @@ add_partition = function(df.input, partition_by, n_partitions){
 #'
 #'
 parse_formula <- function(fm) {
-	if(attr(terms(fm), "response") == 1) stop("The formula must be of the kind \"~ covariates\" ")
-	else as.character(attr(terms(fm), "variables"))[-1]
+	if (attr(terms(fm), "response") == 1)
+		stop("The formula must be of the kind \"~ covariates\" ")
+	else
+		as.character(attr(terms(fm), "variables"))[-1]
 }
 
 #' Get matrix from tibble
@@ -113,23 +116,24 @@ as_matrix <- function(tbl, rownames = NULL) {
 
 		ifelse_pipe(
 			tbl %>%
-				ifelse_pipe(	!is.null(rownames),		~ .x %>% dplyr::select(-contains(rownames))	) %>%
+				ifelse_pipe(!is.null(rownames),		~ .x %>% dplyr::select(-contains(rownames))) %>%
 				summarise_all(class) %>%
 				gather(variable, class) %>%
 				pull(class) %>%
 				unique() %>%
 				`%in%`(c("numeric", "integer")) %>% `!`() %>% any(),
-			~ { warning("to_matrix says: there are NON-numerical columns, the matrix will NOT be numerical"); .x}
+			~ {
+				warning("to_matrix says: there are NON-numerical columns, the matrix will NOT be numerical")
+				.x
+			}
 		) %>%
 		as.data.frame() %>%
 
 		# Deal with rownames column if present
-		ifelse_pipe(
-			!is.null(rownames),
-			~ .x  %>%
-				set_rownames(tbl %>% pull(!!rownames)) %>%
-				select(-!!rownames)
-		) %>%
+		ifelse_pipe(!is.null(rownames),
+								~ .x  %>%
+									set_rownames(tbl %>% pull(!!rownames)) %>%
+									select(-!!rownames)) %>%
 
 		# Convert to matrix
 		as.matrix()
@@ -148,27 +152,33 @@ as_matrix <- function(tbl, rownames = NULL) {
 #'
 #' @return A Stan fit object
 #'
-vb_iterative = function(model, output_samples, iter, tol_rel_obj, ...){
+vb_iterative = function(model,
+												output_samples,
+												iter,
+												tol_rel_obj,
+												...) {
 	res = NULL
 	i = 0
-	while(res %>% is.null | i > 5) {
-
-		res = tryCatch(
-			{
-				my_res = vb(
-					model,
-					output_samples=output_samples,
-					iter = iter,
-					tol_rel_obj=tol_rel_obj,
-					...
-					#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
-				)
-				boolFalse<-T
-				return(my_res)
-			},
-			error=function(e){ i = i + 1; writeLines(sprintf("Further attempt with Variational Bayes: %s", e)); return(NULL) },
-			finally={}
-		)
+	while (res %>% is.null | i > 5) {
+		res = tryCatch({
+			my_res = vb(
+				model,
+				output_samples = output_samples,
+				iter = iter,
+				tol_rel_obj = tol_rel_obj,
+				...
+				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+			)
+			boolFalse <- T
+			return(my_res)
+		},
+		error = function(e) {
+			i = i + 1
+			writeLines(sprintf("Further attempt with Variational Bayes: %s", e))
+			return(NULL)
+		},
+		finally = {
+		})
 	}
 
 	return(res)
@@ -190,6 +200,149 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 		filter(tot == tot %>% min) %>%
 		pull(chains)
 
+}
+
+#' Identify the optimal number of chain
+#' based on how many draws we need from the posterior
+#' @param counts_MPI A matrix of read count information
+#' @param to_exclude A vector of oulier data points to exclude
+#'
+#' @return A matrix
+get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
+	# If there are genes to exclude
+	switch(
+		to_exclude %>% nrow %>% `>` (0) %>% `!` %>% sum(1),
+		foreach(s = 1:shards, .combine = full_join) %do% {
+			counts_MPI %>%
+				inner_join(to_exclude, by = c("S", "G")) %>%
+				filter(idx_MPI == s) %>%
+				distinct(idx_MPI, `read count MPI row`) %>%
+				rowid_to_column %>%
+				spread(idx_MPI, `read count MPI row`) %>%
+
+				# If a shard is empty create a dummy data set to avoid error
+				ifelse_pipe((.) %>% nrow == 0, ~ tibble(rowid = 1,!!as.symbol(s) := NA))
+
+		} %>%
+
+			# Anonymous function - Add length array to the first row for indexing in MPI
+			# Input: tibble
+			# Output: tibble
+			{
+				bind_rows((.) %>% map(function(x)
+					x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
+					(.))
+			} %>%
+
+			select(-rowid) %>%
+			replace(is.na(.), 0 %>% as.integer) %>%
+			as_matrix() %>% t,
+
+		# Otherwise
+		matrix(rep(0, shards))
+	)
+}
+
+#' function to pass initialisation values
+#'
+#' @return A list
+inits_fx =
+	function () {
+		pars =
+			res_discovery %>%
+			filter(`.variable` != "counts_rng") %>%
+			distinct(`.variable`) %>%
+			pull(1)
+
+		foreach(
+			par = pars,
+			.final = function(x)
+				setNames(x, pars)
+		) %do% {
+			res_discovery %>%
+				filter(`.variable` == par) %>%
+				mutate(init = rnorm(n(), mean, sd)) %>%
+				mutate(init = 0) %>%
+				select(`.variable`, S, G, init) %>%
+				pull(init)
+		}
+	}
+
+#' Produce generated quantities plots with marked uotliers
+#'
+#' @param .x A tibble
+#' @param value_column A symbol object
+#' @param sample_column A symbol object
+#' @param covariate A character string
+#'
+#' @return A ggplot
+produce_plots = function(.x,
+												 value_column,
+												 sample_column,
+												 covariate) {
+	# Set plot theme
+	my_theme =
+		theme_bw() +
+		theme(
+			panel.border = element_blank(),
+			axis.line = element_line(),
+			panel.grid.major = element_line(size = 0.2),
+			panel.grid.minor = element_line(size = 0.1),
+			text = element_text(size = 12),
+			aspect.ratio = 1,
+			axis.text.x = element_text(
+				angle = 90,
+				hjust = 1,
+				vjust = 0.5
+			),
+			strip.background = element_blank(),
+			axis.title.x  = element_text(margin = margin(
+				t = 10,
+				r = 10,
+				b = 10,
+				l = 10
+			)),
+			axis.title.y  = element_text(margin = margin(
+				t = 10,
+				r = 10,
+				b = 10,
+				l = 10
+			))
+		)
+
+	{
+		ggplot(data = .x, aes(
+			y = !!as.symbol(value_column),
+			x = !!as.symbol(sample_column)
+		)) +
+			geom_errorbar(
+				aes(ymin = `.lower`,
+						ymax = `.upper`),
+				width = 0,
+				linetype = "dashed",
+				color = "#D3D3D3"
+			) +
+			geom_errorbar(aes(
+				ymin = `.lower_2`,
+				ymax = `.upper_2`,
+				color = `deleterious outliers`
+			),
+			width = 0) +
+			scale_colour_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+			my_theme
+		} %>%
+
+		ifelse_pipe(
+			covariate %>% is.null %>% `!`,
+			~ .x + geom_point(aes(
+				size = `exposure rate`, fill = !!as.symbol(covariate)
+			), shape = 21),
+			~ .x + geom_point(
+				aes(size = `exposure rate`),
+				shape = 21,
+				fill = "black"
+			)
+		)
 }
 
 #' do_inference
@@ -222,36 +375,37 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 #'
 #' @return A tibble with additional columns
 #'
-do_inference = function(
-	my_df,
-	formula,
-	sample_column ,
-	gene_column ,
-	value_column,
-	significance_column ,
-	do_check_column,
-	full_bayes = F,
-	C,
-	X,
-	lambda_mu_mu,
-	cores,
-	exposure_rate_multiplier, intercept_shift_scale,
-	additional_parameters_to_save,
-	adj_prob_theshold,
-	to_exclude = tibble(S = integer(), G = integer()),
-	truncation_compensation = 1,
-	save_generated_quantities = F,
-	inits_fx = "random",
-	prior_from_discovery = tibble(`.variable` = character(), mean = numeric(), sd = numeric())
-){
-
+do_inference = function(my_df,
+												formula,
+												sample_column ,
+												gene_column ,
+												value_column,
+												significance_column ,
+												do_check_column,
+												full_bayes = F,
+												C,
+												X,
+												lambda_mu_mu,
+												cores,
+												exposure_rate_multiplier,
+												intercept_shift_scale,
+												additional_parameters_to_save,
+												adj_prob_theshold,
+												to_exclude = tibble(S = integer(), G = integer()),
+												truncation_compensation = 1,
+												save_generated_quantities = F,
+												inits_fx = "random",
+												prior_from_discovery = tibble(`.variable` = character(),
+																											mean = numeric(),
+																											sd = numeric())) {
+	# Prepare column names
 	sample_column = enquo(sample_column)
 	gene_column = enquo(gene_column)
 	value_column = enquo(value_column)
 	significance_column = enquo(significance_column)
 	do_check_column = enquo(do_check_column)
 
-
+	# Get the number of transcripts to check
 	how_many_to_check =
 		my_df %>%
 		filter(!!do_check_column) %>%
@@ -268,29 +422,37 @@ do_inference = function(
 	# Find how many cores per chain, minimum 1 of course
 	my_cores = cores %>% divide_by(chains) %>% floor %>% max(1)
 
+	# Set the number of data partition = to the number of cores per chain
 	shards = my_cores
 
+	# Setup the data shards
 	counts_MPI =
 		my_df %>%
-		select(!!gene_column, !!sample_column, !!value_column, S, G) %>%
-		format_for_MPI(shards, !!sample_column)
+		select(!!gene_column,!!sample_column,!!value_column, S, G) %>%
+		format_for_MPI(shards,!!sample_column)
 
+	# Setup dimensions of variables for the model
 	G = counts_MPI %>% distinct(G) %>% nrow()
 	S = counts_MPI %>% distinct(!!sample_column) %>% nrow()
-	N = counts_MPI %>% distinct(idx_MPI, !!value_column, `read count MPI row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
+	N = counts_MPI %>% distinct(idx_MPI,!!value_column, `read count MPI row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
 	M = counts_MPI %>% distinct(start, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% max
 	G_per_shard = counts_MPI %>% distinct(!!gene_column, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% as.array
 	n_shards = min(shards, counts_MPI %>% distinct(idx_MPI) %>% nrow)
-	G_per_shard_idx = c(0, counts_MPI %>% distinct(!!gene_column, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% cumsum)
+	G_per_shard_idx = c(
+		0,
+		counts_MPI %>% distinct(!!gene_column, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% cumsum
+	)
 
+	# Read count object
 	counts =
 		counts_MPI %>%
-		distinct(idx_MPI, !!value_column, `read count MPI row`)  %>%
-		spread(idx_MPI,  !!value_column) %>%
+		distinct(idx_MPI,!!value_column, `read count MPI row`)  %>%
+		spread(idx_MPI,!!value_column) %>%
 		select(-`read count MPI row`) %>%
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
 
+	# Indexes of the samples
 	sample_idx =
 		counts_MPI %>%
 		distinct(idx_MPI, S, `read count MPI row`)  %>%
@@ -299,16 +461,20 @@ do_inference = function(
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
 
+	# In the data structure when data for a transcript starts and ends
 	symbol_end =
 		counts_MPI %>%
 		distinct(idx_MPI, end, `symbol MPI row`)  %>%
 		spread(idx_MPI, end) %>%
-		bind_rows( (.) %>% head(n=1) %>%  mutate_all(function(x) {0}) ) %>%
+		bind_rows((.) %>% head(n = 1) %>%  mutate_all(function(x) {
+			0
+		})) %>%
 		arrange(`symbol MPI row`) %>%
 		select(-`symbol MPI row`) %>%
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
 
+	# Indexes of the transcripts
 	G_ind =
 		counts_MPI %>%
 		distinct(idx_MPI, G, `symbol MPI row`)  %>%
@@ -318,45 +484,11 @@ do_inference = function(
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
 
-	# Additional info for second pass ###############
-	to_exclude_MPI =
+	# Get the matrix of the idexes of the outlier data points
+	# to explude from the model if it is the second passage
+	to_exclude_MPI = get_outlier_data_to_exlude(counts_MPI, to_exclude, shards)
 
-		# If there are genes to exclude
-		switch(
-			to_exclude %>% nrow %>% `>` (0) %>% `!` %>% sum(1),
-			foreach(s = 1:shards, .combine=full_join) %do% {
-				counts_MPI %>%
-					inner_join(to_exclude, by=c("S", "G")) %>%
-					filter(idx_MPI == s) %>%
-					distinct(idx_MPI, `read count MPI row`) %>%
-					rowid_to_column %>%
-					spread(idx_MPI, `read count MPI row`) %>%
-
-					# If a shard is empty create a dummy data set to avoid error
-					ifelse_pipe(	(.) %>% nrow == 0, ~ tibble(rowid = 1, !!as.symbol(s) := NA) )
-
-			} %>%
-
-			# Anonymous function - Add length array to the first row for indexing in MPI
-			# Input: tibble
-			# Output: tibble
-			{
-				bind_rows(
-					(.) %>% map(function(x) x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
-					(.)
-				)
-			} %>%
-
-			select(-rowid) %>%
-			replace(is.na(.), 0 %>% as.integer) %>%
-			as_matrix() %>% t,
-
-			# Otherwise
-			matrix(rep(0,shards))
-		)
-
-	# Package data #################################
-
+	# Package data
 	counts_package =
 
 		# Dimensions data sets
@@ -368,10 +500,12 @@ do_inference = function(
 		cbind(counts) %>%
 		cbind(to_exclude_MPI)
 
+	# Dimension od the data package to pass to Stan
 	CP = ncol(counts_package)
 
-	# Run model ####################################
+	# Run model
 
+	# Set up environmental variable for threading
 	Sys.setenv("STAN_NUM_THREADS" = my_cores)
 
 	# For debug purpose
@@ -386,6 +520,7 @@ do_inference = function(
 	# 	tol_rel_obj=0.001
 	# )
 
+	# Run Stan
 	Sys.time() %>% print
 	fit =
 		switch(
@@ -393,36 +528,51 @@ do_inference = function(
 
 			# MCMC
 			sampling(
-				stanmodels$negBinomial_MPI, #pcc_seq_model, #
-				chains=chains, cores=chains,
-				iter=(how_many_posterior_draws/chains) %>% ceiling %>% sum(150),
-				warmup=150,
+				stanmodels$negBinomial_MPI,
+				#pcc_seq_model, #
+				chains = chains,
+				cores = chains,
+				iter = (how_many_posterior_draws / chains) %>% ceiling %>% sum(150),
+				warmup = 150,
 				save_warmup = FALSE,
 				init = inits_fx,
-				pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+				pars = c(
+					"counts_rng",
+					"exposure_rate",
+					additional_parameters_to_save
+				)
 			),
 
 			# VB Repeat strategy for failures of vb
 			vb_iterative(
-				 stanmodels$negBinomial_MPI, #pcc_seq_model, #
-				 output_samples=how_many_posterior_draws,
-				 iter = 50000,
-				 tol_rel_obj=0.005,
-				 pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
+				stanmodels$negBinomial_MPI,
+				#pcc_seq_model, #
+				output_samples = how_many_posterior_draws,
+				iter = 50000,
+				tol_rel_obj = 0.005,
+				pars = c(
+					"counts_rng",
+					"exposure_rate",
+					additional_parameters_to_save
+				)
 			)
 		)
 	Sys.time() %>% print
 
-	# Parse and return ###############################
-
+	# Parse and return
 	fit %>%
-		rstan::summary("counts_rng", prob=c(adj_prob_theshold, 1-adj_prob_theshold)) %$%
+		rstan::summary("counts_rng",
+									 prob = c(adj_prob_theshold, 1 - adj_prob_theshold)) %$%
 		summary %>%
 		as_tibble(rownames = ".variable") %>%
-		separate(.variable, c(".variable", "S", "G"), sep="[\\[,\\]]", extra="drop") %>%
+		separate(.variable,
+						 c(".variable", "S", "G"),
+						 sep = "[\\[,\\]]",
+						 extra = "drop") %>%
 		mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
-		select(-one_of(c("n_eff","Rhat", "khat"))) %>%
-		rename(`.lower` = (.) %>% ncol - 1, `.upper` = (.) %>% ncol) %>%
+		select(-one_of(c("n_eff", "Rhat", "khat"))) %>%
+		rename(`.lower` = (.) %>% ncol - 1,
+					 `.upper` = (.) %>% ncol) %>%
 
 		# If generated quantities are saved
 		ifelse_pipe(
@@ -430,10 +580,10 @@ do_inference = function(
 			~ .x %>%
 
 				# Add generated quantities
-				left_join(fit %>% tidybayes::gather_draws(counts_rng[S,G])) %>%
+				left_join(fit %>% tidybayes::gather_draws(counts_rng[S, G])) %>%
 
 				# Nest them in the data frame
-				group_by(`.variable`, S ,G, mean,se_mean , sd, `.lower`, `.upper`) %>%
+				group_by(`.variable`, S , G, mean, se_mean , sd, `.lower`, `.upper`) %>%
 				nest(.key = "generated quantities")
 		) %>%
 
@@ -443,11 +593,16 @@ do_inference = function(
 				summary("exposure_rate") %$%
 				summary %>%
 				as_tibble(rownames = ".variable") %>%
-				separate(.variable, c(".variable", "S"), sep="[\\[,\\]]", extra="drop") %>%
+				separate(
+					.variable,
+					c(".variable", "S"),
+					sep = "[\\[,\\]]",
+					extra = "drop"
+				) %>%
 				mutate(S = S %>% as.integer) %>%
 				rename(`exposure rate` = mean) %>%
 				select(S, `exposure rate`),
-			by="S"
+			by = "S"
 		) %>%
 
 		# Check if data is within posterior
@@ -455,7 +610,8 @@ do_inference = function(
 		filter((!!do_check_column)) %>% # Filter only DE genes
 		rowwise() %>%
 		mutate(`ppc` = !!value_column %>% between(`.lower`, `.upper`)) %>%
-		mutate(`is higher than mean` = (!`ppc`) & (!!value_column > mean)) %>%
+		mutate(`is higher than mean` = (!`ppc`) &
+					 	(!!value_column > mean)) %>%
 		ungroup %>%
 
 		# Add annotation if sample belongs to high or low group
@@ -464,16 +620,18 @@ do_inference = function(
 				as_tibble %>%
 				select(2) %>%
 				setNames("factor or interest") %>%
-				mutate(S=1:n()) %>%
+				mutate(S = 1:n()) %>%
 				mutate(`is group high` = `factor or interest` > mean(`factor or interest`)),
 			by = "S"
 		) %>%
 
 		# Check if outlier might be deleterious for the statistics
-		mutate(`deleterious outliers` = (!ppc) & (`is higher than mean` == `is group high`)) %>%
+		mutate(`deleterious outliers` = (!ppc) &
+					 	(`is higher than mean` == `is group high`)) %>%
 
 		# Add position in MPI package for next inference
-		left_join(	counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`), by = c("S", "G")	) %>%
+		left_join(counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`),
+							by = c("S", "G")) %>%
 
 		# Add initialisation values
 		# bind_rows(
@@ -488,8 +646,13 @@ do_inference = function(
 				summary("exposure_rate") %$%
 				summary %>%
 				as_tibble(rownames = ".variable") %>%
-				separate(.variable, c(".variable", "S"), sep="[\\[,\\]]", extra="drop") %>%
-				mutate( S = S %>% as.integer) %>%
+				separate(
+					.variable,
+					c(".variable", "S"),
+					sep = "[\\[,\\]]",
+					extra = "drop"
+				) %>%
+				mutate(S = S %>% as.integer) %>%
 				select(S, `.variable`, mean, sd)
 		)
 	# %>%
@@ -503,99 +666,6 @@ do_inference = function(
 	# 			select(G, `.variable`, mean, sd)
 	# 	)
 }
-
-inits_fx =
-	function () {
-
-		pars =
-			res_discovery %>%
-			filter(`.variable` != "counts_rng") %>%
-			distinct(`.variable`) %>%
-			pull(1)
-
-		foreach(par = pars,	.final = function(x) setNames(x, pars)) %do% {
-
-			res_discovery %>%
-				filter(`.variable` == par) %>%
-				mutate(init = rnorm(n(),mean, sd)) %>%
-				mutate(init = 0) %>%
-				select(`.variable`, S, G, init) %>%
-				pull(init)
-		}
-	}
-
-produce_plots = function(.x, value_column, sample_column, covariate){
-
-	# Set plot theme
-	my_theme =
-		theme_bw() +
-		theme(
-			panel.border = element_blank(),
-			axis.line = element_line(),
-			panel.grid.major = element_line(size = 0.2),
-			panel.grid.minor = element_line(size = 0.1),
-			text = element_text(size=12),
-			aspect.ratio=1,
-			axis.text.x = element_text(angle = 90, hjust = 1, vjust=0.5),
-			strip.background = element_blank(),
-			axis.title.x  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
-			axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
-		)
-
-	{
-		ggplot(data = .x, aes(y=!!as.symbol(value_column), x=!!as.symbol(sample_column))) +
-			geom_errorbar(aes(
-				ymin=`.lower`,
-				ymax=`.upper`
-			), width=0, linetype="dashed", color="#D3D3D3") +
-			geom_errorbar(aes(
-				ymin=`.lower_2`,
-				ymax=`.upper_2`,
-				color =`deleterious outliers`
-			), width=0) +
-			scale_colour_manual(values = c( "TRUE"= "red", "FALSE"= "black")) +
-			my_theme
-	} %>%
-
-		ifelse_pipe(
-			covariate %>% is.null %>% `!`,
-			~ .x + geom_point(aes(size=`exposure rate`, fill = !!as.symbol(covariate)), shape = 21),
-			~ .x + geom_point(aes(size=`exposure rate`), shape=21, fill="black")
-		)
-}
-
-other_non_used_code = function(){
-
-	# Relation expected value, variance
-	# fit_draws = fit@sim$samples[[1]] %>% bind_rows() %>% mutate(.draw = 1:n()) %>% gather(.variable, .value, -.draw)
-	#
-	# # Plot relation lambda sigma
-	# fit_draws %>% filter(grepl("^alpha", .variable)) %>% separate(.variable, c(".variable", "C", "G"), sep="\\.") %>%
-	# 	mutate(C = C %>% as.integer, G = G %>% as.integer) %>%
-	# 	filter(C == 1) %>%
-	# 	select(-C) %>%
-	# 	bind_rows(
-	# 		fit_draws %>% filter(grepl("^sigma_raw_param", .variable)) %>% separate(.variable, c(".variable", "G"), sep="\\.") %>%
-	# 			mutate( G = G %>% as.integer)
-	# 	) %>%
-	# 	spread(.variable, .value) %>%
-	# 	ggplot(aes(x=alpha, y=sigma_raw_param, group=G)) +
-	# 	stat_ellipse( alpha=0.2) +
-	# 	my_theme
-
-	# fit %>%
-	# 	tidybayes::spread_draws(counts_rng[S,G]) %>%
-	# 	filter(G==1) %>%
-	# 	ggplot(aes(x=counts_rng+1, group=S)) +
-	# 	geom_density(fill="grey") +
-	# 	geom_vline(data = my_df %>% filter(G==1), aes(xintercept = !!value_column, color=ct),
-	# 		linetype="dotted",
-	# 		size=1.5
-	# 	) +
-	# 	facet_wrap(~ S) +
-	# 	my_theme
-}
-
 
 #' pcc_seq main
 #'
@@ -627,22 +697,22 @@ other_non_used_code = function(){
 #'
 #' @export
 #'
-ppc_seq = function(
-	input.df,
-	formula = ~ 1,
-	sample_column = `sample`,
-	gene_column = `symbol`,
-	value_column = `read count`,
-	significance_column = `p-value`,
-	do_check_column,
-	full_bayes = F,
-	how_many_negative_controls = 500,
-	save_generated_quantities = F,       # For development purpose
-	additional_parameters_to_save = c(), # For development purpose,
-	cores = system("nproc", intern = TRUE) %>% as.integer %>% sum(-1),
-	percent_false_positive_genes = "1%"
-){
-
+ppc_seq = function(input.df,
+									 formula = ~ 1,
+									 sample_column = `sample`,
+									 gene_column = `symbol`,
+									 value_column = `read count`,
+									 significance_column = `p-value`,
+									 do_check_column,
+									 full_bayes = F,
+									 how_many_negative_controls = 500,
+									 save_generated_quantities = F,
+									 # For development purpose
+									 additional_parameters_to_save = c(),
+									 # For development purpose,
+									 cores = system("nproc", intern = TRUE) %>% as.integer %>% sum(-1),
+									 percent_false_positive_genes = "1%") {
+	# Prepare column same enquo
 	sample_column = enquo(sample_column)
 	gene_column = enquo(gene_column)
 	value_column = enquo(value_column)
@@ -650,37 +720,25 @@ ppc_seq = function(
 	do_check_column = enquo(do_check_column)
 
 	# Check is testing environment is supported
-	if((!full_bayes) & save_generated_quantities) stop("Variational Bayes does not support tidybayes needed for save_generated_quantities, use sampling")
+	if ((!full_bayes) &
+			save_generated_quantities)
+		stop(
+			"Variational Bayes does not support tidybayes needed for save_generated_quantities, use sampling"
+		)
 
 	# Check percent FP input
 	pfpg = percent_false_positive_genes %>% gsub("%$", "", .) %>% as.numeric
-	if(pfpg %>% is.na | !(pfpg %>% between(0, 100))) stop("percent_false_positive_genes must be a string from > 0% to < 100%")
+	if (pfpg %>% is.na |
+			!(pfpg %>% between(0, 100)))
+		stop("percent_false_positive_genes must be a string from > 0% to < 100%")
 
-	# Plot theme
-	my_theme =
-		theme_bw() +
-		theme(
-			panel.border = element_blank(),
-			axis.line = element_line(),
-			panel.grid.major = element_line(size = 0.2),
-			panel.grid.minor = element_line(size = 0.1),
-			text = element_text(size=12),
-			legend.position="bottom",
-			#aspect.ratio=1,
-			axis.text.x = element_text(angle = 90, hjust = 0.5, vjust=1),
-			strip.background = element_blank(),
-			axis.title.x  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
-			axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
-		)
-
-	########################################
-	# For  reference MPI inference
-
+	# For reference MPI inference
 	# Check if all trannscripts are non NA
-	if(input.df %>% filter(!!gene_column %>% is.na) %>% nrow > 0) stop("There are NAs in the gene_column. Please filter those records")
+	if (input.df %>% filter(!!gene_column %>% is.na) %>% nrow > 0)
+		stop("There are NAs in the gene_column. Please filter those records")
 
 	# Check if the counts column is an integer
-	if(input.df %>% select(!!value_column) %>% sapply(class) != "integer")
+	if (input.df %>% select(!!value_column) %>% sapply(class) != "integer")
 		stop(
 			sprintf(
 				"The column %s must be of class integer. You can do as mutate(`%s` = `%s` %%>%% as.integer)",
@@ -698,7 +756,6 @@ ppc_seq = function(
 		# Ouyput: tibble
 		{
 			bind_rows(
-
 				# Genes to check
 				(.) %>%
 					filter((!!do_check_column)),
@@ -713,24 +770,31 @@ ppc_seq = function(
 							distinct() %>%
 							tail(how_many_negative_controls),
 						by = quo_name(gene_column)
-						)
+					)
 			)
 		} %>%
 
 		# Prepare the data frame
-		select(!!gene_column, !!sample_column, !!value_column, one_of(parse_formula(formula)), !!do_check_column) %>%
+		select(
+			!!gene_column,
+			!!sample_column,
+			!!value_column,
+			one_of(parse_formula(formula)),
+			!!do_check_column
+		) %>%
 		distinct() %>%
 
 		# Add symbol idx
-		left_join(
-			(.) %>%
-				distinct(!!gene_column) %>%
-				mutate(G = 1:n()),
-			by = quo_name(gene_column)
-		) %>%
+		left_join((.) %>%
+								distinct(!!gene_column) %>%
+								mutate(G = 1:n()),
+							by = quo_name(gene_column)) %>%
 
 		# Add sample indeces
-		mutate(S = factor(!!sample_column, levels = (.) %>% pull(!!sample_column) %>% unique) %>% as.integer)
+		mutate(S = factor(
+			!!sample_column,
+			levels = (.) %>% pull(!!sample_column) %>% unique
+		) %>% as.integer)
 
 	# Create design matrix
 	X =
@@ -740,49 +804,39 @@ ppc_seq = function(
 				my_df %>%
 				select(!!sample_column, one_of(parse_formula(formula))) %>%
 				distinct %>% arrange(!!sample_column)
+
 		)
 	C = X %>% ncol
 
-	########################################
 	# Prior info
-
 	lambda_mu_mu = 5.612671
 
-	########################################
-	# Build better scales
-
+	# Build better scales for the inference
 	exposure_rate_multiplier =
 		my_df %>%
-		add_normalised_counts(!!sample_column, !!gene_column, !!value_column) %>%
+		add_normalised_counts(!!sample_column,!!gene_column,!!value_column) %>%
 		distinct(!!sample_column, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
 		summarise(l %>% sd) %>%
 		pull(`l %>% sd`)
 
+	# Build better scales for the inference
 	intercept_shift_scale =
 		my_df %>%
-		add_normalised_counts(!!sample_column, !!gene_column, !!value_column) %>%
-		mutate(
-			cc =
-				!!as.symbol(sprintf("%s normalised",  quo_name(value_column))) %>%
-				`+` (1) %>% log
-					 ) %>%
+		add_normalised_counts(!!sample_column,!!gene_column,!!value_column) %>%
+		mutate(cc =
+					 	!!as.symbol(sprintf(
+					 		"%s normalised",  quo_name(value_column)
+					 	)) %>%
+					 	`+` (1) %>% log) %>%
 		summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
 		as.numeric
-
-	########################################
-	# MODEL
 
 	# Run the first discovery phase with permissive false discovery rate
 	res_discovery =
 		my_df %>%
 		do_inference(
-			formula,
-			!!sample_column ,
-			!!gene_column ,
-			!!value_column ,
-			!!significance_column ,
-			!!do_check_column,
+			formula,!!sample_column ,!!gene_column ,!!value_column ,!!significance_column ,!!do_check_column,
 			full_bayes,
 			C,
 			X,
@@ -809,27 +863,20 @@ ppc_seq = function(
 		res_discovery %>%
 		filter(`.variable` == "counts_rng") %>%
 		distinct(S, G, .lower, .upper) %>%
-		mutate(
-			`.lower` = `.lower` %>% as.integer,
-			`.upper` = `.upper` %>% as.integer
-		)
+		mutate(`.lower` = `.lower` %>% as.integer,
+					 `.upper` = `.upper` %>% as.integer)
 
 	# Get the inferred values from first model to possibly use them in the second model as priors
 	prior_from_discovery =
 		res_discovery %>%
-			filter(`.variable` != "counts_rng") %>%
-			select(`.variable`, S, G, mean, sd)
+		filter(`.variable` != "counts_rng") %>%
+		select(`.variable`, S, G, mean, sd)
 
 	# Run the second test phase with the user selected false discovery rate
 	res_test =
 		my_df %>%
 		do_inference(
-			formula,
-			!!sample_column ,
-			!!gene_column ,
-			!!value_column ,
-			!!significance_column ,
-			!!do_check_column,
+			formula,!!sample_column ,!!gene_column ,!!value_column ,!!significance_column ,!!do_check_column,
 			full_bayes,
 			C,
 			X,
@@ -838,24 +885,39 @@ ppc_seq = function(
 			exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
-			adj_prob_theshold = pfpg / 100 / (my_df %>% distinct(!!sample_column) %>% nrow) * 2, # * 2 because we just test one side of the distribution
+			adj_prob_theshold = pfpg / 100 / (my_df %>% distinct(!!sample_column) %>% nrow) * 2,
+			# * 2 because we just test one side of the distribution
 			to_exclude = to_exclude,
 			save_generated_quantities = save_generated_quantities,
 			truncation_compensation = 0.7352941 # Taken by approximation study
 		)
 
-	# Merge results
+	# Merge results and return
 	res_discovery %>%
 		filter(`.variable` == "counts_rng") %>%
 		select(
-			S, G, !!gene_column, !!value_column, !!sample_column,
-			`.lower`, `.upper`, `exposure rate`, !!as.symbol(parse_formula(formula)[1])
+			S,
+			G,
+			!!gene_column,
+			!!value_column,
+			!!sample_column,
+			`.lower`,
+			`.upper`,
+			`exposure rate`,
+			!!as.symbol(parse_formula(formula)[1])
 		) %>%
 
 		# Attach results of tests
 		left_join(
 			res_test %>% 		filter(`.variable` == "counts_rng") %>%
-				select(S, G, `.lower`, `.upper`, `deleterious outliers`, one_of("generated quantities")) %>%
+				select(
+					S,
+					G,
+					`.lower`,
+					`.upper`,
+					`deleterious outliers`,
+					one_of("generated quantities")
+				) %>%
 				rename(`.lower_2` = `.lower`, `.upper_2` = `.upper`),
 			by = c("S", "G")
 		) %>%
@@ -866,28 +928,26 @@ ppc_seq = function(
 			~ .x %>% nest(`sample wise data` = c(-!!gene_column)),
 			~ .x %>%
 				group_by(!!gene_column) %>%
-				nest(-!!gene_column, .key = `sample wise data` )
+				nest(-!!gene_column, .key = `sample wise data`)
 		) %>%
 
 		# Create plots for every tested transcript
-		mutate(
-			plot =
-				pmap(
-					list(
-						`sample wise data`,       # nested data for plot
-						quo_name(value_column),   # name of value column
-						quo_name(sample_column),  # name of sample column
-						parse_formula(formula)[1] # main covariate
-					),
-					~ produce_plots(..1, ..2, ..3, ..4)
-				)
-		) %>%
+		mutate(plot =
+					 	pmap(
+					 		list(
+					 			`sample wise data`,
+					 			# nested data for plot
+					 			quo_name(value_column),
+					 			# name of value column
+					 			quo_name(sample_column),
+					 			# name of sample column
+					 			parse_formula(formula)[1] # main covariate
+					 		),
+					 		~ produce_plots(..1, ..2, ..3, ..4)
+					 	)) %>%
 
 		# Add summary statistics
-		mutate(
-			# `ppc samples failed` = map_int(data, ~ .x %>% pull(ppc) %>% `!` %>% sum),
-			`tot deleterious outliers` = map_int(`sample wise data`, ~ .x %>% pull(`deleterious outliers`) %>% sum)
-		)
+		mutate(# `ppc samples failed` = map_int(data, ~ .x %>% pull(ppc) %>% `!` %>% sum),
+			`tot deleterious outliers` = map_int(`sample wise data`, ~ .x %>% pull(`deleterious outliers`) %>% sum))
 
 }
-
