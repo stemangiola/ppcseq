@@ -4,3 +4,9 @@
 *.h
 .Rhistory
 .RData
+*.so
+*.o
+*.cc
+.Rhistory
+dev/false_positive_study.RData
+dev/false_positive_study.pdf
