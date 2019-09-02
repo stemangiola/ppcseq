@@ -5,7 +5,7 @@
 \title{Identify the optimal number of chain
 based on how many draws we need from the posterior}
 \usage{
-get_outlier_data_to_exlude(counts_MPI, to_exclude)
+get_outlier_data_to_exlude(counts_MPI, to_exclude, shards)
 }
 \arguments{
 \item{counts_MPI}{A matrix of read count information}

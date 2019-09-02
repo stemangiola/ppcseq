@@ -1,3 +1,8 @@
+add_attr = function(var, attribute, name){
+	attr(var, name) <- attribute
+	var
+}
+
 #' This is a generalisation of ifelse that acceots an object and return an objects
 #'
 #' @import dplyr
@@ -345,6 +350,283 @@ produce_plots = function(.x,
 		)
 }
 
+# Add annotation if sample belongs to high or low group
+add_deleterious_if_covariate_exists = function(input.df, X){
+	input.df %>%
+		ifelse_pipe(
+			X %>% ncol %>% `>` (1),
+			~ .x %>%
+				left_join(
+					X %>%
+						as_tibble %>%
+						select(2) %>%
+						setNames("factor or interest") %>%
+						mutate(S = 1:n()) %>%
+						mutate(`is group high` = `factor or interest` > mean(`factor or interest`)),
+					by = "S"
+				) %>%
+
+				# Check if outlier might be deleterious for the statistics
+				mutate(`deleterious outliers` = (!ppc) &
+							 	(`is higher than mean` == `is group high`))
+		)
+}
+
+
+merge_results = function(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental){
+
+	res_discovery %>%
+		filter(`.variable` == "counts_rng") %>%
+		select(
+			S,
+			G,
+			!!gene_column,
+			!!value_column,
+			!!sample_column,
+			`.lower`,
+			`.upper`,
+			`exposure rate`,
+			one_of(parse_formula(formula))
+		) %>%
+
+		# Attach results of tests
+		left_join(
+			res_test %>% 		filter(`.variable` == "counts_rng") %>%
+				select(
+					S,
+					G,
+					`.lower`,
+					`.upper`,
+					ppc,
+					one_of(c("generated quantities", "deleterious outliers"))
+				) %>%
+				rename(`.lower_2` = `.lower`, `.upper_2` = `.upper`),
+			by = c("S", "G")
+		) %>%
+
+		# Check if new package is installed with different sintax
+		ifelse_pipe(
+			packageVersion("tidyr") == "0.8.3.9000",
+			~ .x %>% nest(`sample wise data` = c(-!!gene_column)),
+			~ .x %>%
+				group_by(!!gene_column) %>%
+				nest(-!!gene_column, .key = `sample wise data`)
+		) %>%
+
+		# Create plots for every tested transcript
+		mutate(plot =
+					 	pmap(
+					 		list(
+					 			`sample wise data`,
+					 			# nested data for plot
+					 			quo_name(value_column),
+					 			# name of value column
+					 			quo_name(sample_column),
+					 			# name of sample column
+					 			parse_formula(formula)[1] # main covariate
+					 		),
+					 		~ produce_plots(..1, ..2, ..3, ..4)
+					 	)) %>%
+
+		# Add summary statistics
+		mutate(`ppc samples failed` = map_int(`sample wise data`, ~ .x %>% pull(ppc) %>% `!` %>% sum)) %>%
+
+		# If deleterious detection add summary as well
+		ifelse_pipe(
+			do_check_only_on_detrimental,
+			~ .x %>%
+				mutate(
+					`tot deleterious outliers` =
+						map_int(`sample wise data`, ~ .x %>% pull(`deleterious outliers`) %>% sum)
+				)
+		)
+}
+
+
+# Select only significant genes plus background for efficient normalisation
+# Input: tibble
+# Ouyput: tibble
+select_to_check_and_house_keeping = function(input.df, do_check_column, significance_column, gene_column, how_many_negative_controls){
+	input.df %>%
+		bind_rows(
+			# Genes to check
+			(.) %>%
+				filter((!!do_check_column)),
+
+			# Least changing genes, negative controls
+			(.) %>%
+				filter((!!do_check_column) %>% `!`) %>%
+				inner_join(
+					(.) %>%
+						arrange(!!significance_column) %>%
+						select(!!gene_column) %>%
+						distinct() %>%
+						tail(how_many_negative_controls),
+					by = quo_name(gene_column)
+				)
+		)
+}
+
+run_model = function(model, full_bayes, chains, how_many_posterior_draws, inits_fx, tol_rel_obj, additional_parameters_to_save){
+
+	writeLines(sprintf("executing %s", "run_model"))
+
+	switch(
+		full_bayes %>% `!` %>% as.integer %>% sum(1),
+
+		# MCMC
+		sampling(
+			model,
+			#pcc_seq_model, #
+			chains = chains,
+			cores = chains,
+			iter = (how_many_posterior_draws / chains) %>% ceiling %>% sum(150),
+			warmup = 150,
+			save_warmup = FALSE,
+			init = inits_fx,
+			pars = c(
+				"counts_rng",
+				"exposure_rate",
+				additional_parameters_to_save
+			)
+		),
+
+		# VB Repeat strategy for failures of vb
+		vb_iterative(
+			model,
+			#pcc_seq_model, #
+			output_samples = how_many_posterior_draws,
+			iter = 50000,
+			tol_rel_obj = tol_rel_obj,
+			pars = c(
+				"counts_rng",
+				"exposure_rate",
+				additional_parameters_to_save
+			)
+		)
+	)
+}
+
+add_exposure_rate = function(input.df, fit){
+
+	writeLines(sprintf("executing %s", "add_exposure_rate"))
+
+
+	input.df %>%
+		left_join(
+			fit %>%
+				summary("exposure_rate") %$%
+				summary %>%
+				as_tibble(rownames = ".variable") %>%
+				separate(
+					.variable,
+					c(".variable", "S"),
+					sep = "[\\[,\\]]",
+					extra = "drop"
+				) %>%
+				mutate(S = S %>% as.integer) %>%
+				rename(`exposure rate` = mean) %>%
+				select(S, `exposure rate`),
+			by = "S"
+		)
+}
+
+check_if_within_posterior = function(input.df, my_df, do_check_column, value_column){
+
+	writeLines(sprintf("executing %s", "check_if_within_posterior"))
+
+	input.df %>%
+		left_join(my_df, by = c("S", "G")) %>%
+		filter((!!do_check_column)) %>% # Filter only DE genes
+		rowwise() %>%
+		mutate(`ppc` = !!value_column %>% between(`.lower`, `.upper`)) %>%
+		mutate(`is higher than mean` = (!`ppc`) &
+					 	(!!value_column > mean)) %>%
+		ungroup
+}
+
+parse_fit = function(fit, adj_prob_theshold){
+
+	writeLines(sprintf("executing %s", "parse_fit"))
+
+	fit %>%
+		rstan::summary("counts_rng",
+									 prob = c(adj_prob_theshold, 1 - adj_prob_theshold)) %$%
+		summary %>%
+		{
+			print("check2")
+			(.)
+		} %>%
+		as_tibble(rownames = ".variable") %>%
+		separate(.variable,
+						 c(".variable", "S", "G"),
+						 sep = "[\\[,\\]]",
+						 extra = "drop") %>%
+		mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
+		select(-one_of(c("n_eff", "Rhat", "khat"))) %>%
+		rename(`.lower` = (.) %>% ncol - 1,
+					 `.upper` = (.) %>% ncol)
+}
+
+save_generated_quantities_in_case = function(input.df, fit, save_generated_quantities){
+
+	writeLines(sprintf("executing %s", "save_generated_quantities_in_case"))
+
+	input.df %>%
+		ifelse_pipe(
+			save_generated_quantities,
+			~ .x %>%
+
+				# Add generated quantities
+				left_join(fit %>% tidybayes::gather_draws(counts_rng[S, G])) %>%
+
+				# Nest them in the data frame
+				group_by(`.variable`, S , G, mean, se_mean , sd, `.lower`, `.upper`) %>%
+				nest(.key = "generated quantities")
+		)
+}
+
+check_columns_exist = function(input.df, sample_column, gene_column, value_column, significance_column, do_check_column){
+
+	# Prepare column same enquo
+	sample_column = enquo(sample_column)
+	gene_column = enquo(gene_column)
+	value_column = enquo(value_column)
+	significance_column = enquo(significance_column)
+	do_check_column = enquo(do_check_column)
+
+	columns = c(quo_name(sample_column), quo_name(gene_column), quo_name(value_column), quo_name(significance_column), quo_name(do_check_column))
+	if((!columns %in% (input.df %>% colnames)) %>% any)
+		stop(
+			sprintf(
+				"The columns %s are not present in your tibble",
+				paste(columns[(!columns %in% (input.df %>% colnames))], collapse=" ")
+			)
+		)
+}
+
+check_if_any_NA = function(input.df, sample_column, gene_column, value_column, significance_column, do_check_column, formula_columns){
+
+	# Prepare column same enquo
+	sample_column = enquo(sample_column)
+	gene_column = enquo(gene_column)
+	value_column = enquo(value_column)
+	significance_column = enquo(significance_column)
+	do_check_column = enquo(do_check_column)
+
+	columns = c(quo_name(sample_column), quo_name(gene_column), quo_name(value_column), quo_name(significance_column), quo_name(do_check_column), formula_columns)
+
+	if(
+		input.df %>%
+		drop_na(columns) %>%
+		nrow %>% `<`
+		(
+			input.df %>% nrow
+		)
+	)
+		stop(sprintf("There are NA values in you tibble for any of the column %s", paste(columns, collapse=", ")))
+}
+
 #' do_inference
 #'
 #' @description This function calls the stan model.
@@ -361,7 +643,7 @@ produce_plots = function(.x,
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidyTranscriptomics add_normalised_counts
+#' @importFrom tidyTranscriptomics add_normalised_counts_bulk
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -397,7 +679,10 @@ do_inference = function(my_df,
 												inits_fx = "random",
 												prior_from_discovery = tibble(`.variable` = character(),
 																											mean = numeric(),
-																											sd = numeric())) {
+																											sd = numeric()), pass_fit = F, tol_rel_obj = 0.01) {
+
+	writeLines(sprintf("executing %s", "do_inference"))
+
 	# Prepare column names
 	sample_column = enquo(sample_column)
 	gene_column = enquo(gene_column)
@@ -508,163 +793,44 @@ do_inference = function(my_df,
 	# Set up environmental variable for threading
 	Sys.setenv("STAN_NUM_THREADS" = my_cores)
 
-	# For debug purpose
-	# fileConn<-file("~/.R/Makevars")
-	# writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
-	# close(fileConn)
-	# pcc_seq_model = rstan::stan_model("inst/stan/negBinomial_MPI.stan")
-	# fit = vb(
-	# 	pcc_seq_model, #
-	# 	output_samples=1000,
-	# 	iter = 50000,
-	# 	tol_rel_obj=0.001
-	# )
-
 	# Run Stan
-	Sys.time() %>% print
-	fit =
-		switch(
-			full_bayes %>% `!` %>% as.integer %>% sum(1),
+	fit = run_model(
+		stanmodels$negBinomial_MPI,
+		full_bayes,
+		chains,
+		how_many_posterior_draws,
+		inits_fx,
+		tol_rel_obj,
+		additional_parameters_to_save
+	)
 
-			# MCMC
-			sampling(
-				stanmodels$negBinomial_MPI,
-				#pcc_seq_model, #
-				chains = chains,
-				cores = chains,
-				iter = (how_many_posterior_draws / chains) %>% ceiling %>% sum(150),
-				warmup = 150,
-				save_warmup = FALSE,
-				init = inits_fx,
-				pars = c(
-					"counts_rng",
-					"exposure_rate",
-					additional_parameters_to_save
-				)
-			),
-
-			# VB Repeat strategy for failures of vb
-			vb_iterative(
-				stanmodels$negBinomial_MPI,
-				#pcc_seq_model, #
-				output_samples = how_many_posterior_draws,
-				iter = 50000,
-				tol_rel_obj = 0.005,
-				pars = c(
-					"counts_rng",
-					"exposure_rate",
-					additional_parameters_to_save
-				)
-			)
-		)
-	Sys.time() %>% print
+	print("check1")
 
 	# Parse and return
 	fit %>%
-		rstan::summary("counts_rng",
-									 prob = c(adj_prob_theshold, 1 - adj_prob_theshold)) %$%
-		summary %>%
-		as_tibble(rownames = ".variable") %>%
-		separate(.variable,
-						 c(".variable", "S", "G"),
-						 sep = "[\\[,\\]]",
-						 extra = "drop") %>%
-		mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
-		select(-one_of(c("n_eff", "Rhat", "khat"))) %>%
-		rename(`.lower` = (.) %>% ncol - 1,
-					 `.upper` = (.) %>% ncol) %>%
+		parse_fit(adj_prob_theshold) %>%
 
 		# If generated quantities are saved
-		ifelse_pipe(
-			save_generated_quantities,
-			~ .x %>%
-
-				# Add generated quantities
-				left_join(fit %>% tidybayes::gather_draws(counts_rng[S, G])) %>%
-
-				# Nest them in the data frame
-				group_by(`.variable`, S , G, mean, se_mean , sd, `.lower`, `.upper`) %>%
-				nest(.key = "generated quantities")
-		) %>%
+		save_generated_quantities_in_case(fit, save_generated_quantities) %>%
 
 		# Add exposure rate
-		left_join(
-			fit %>%
-				summary("exposure_rate") %$%
-				summary %>%
-				as_tibble(rownames = ".variable") %>%
-				separate(
-					.variable,
-					c(".variable", "S"),
-					sep = "[\\[,\\]]",
-					extra = "drop"
-				) %>%
-				mutate(S = S %>% as.integer) %>%
-				rename(`exposure rate` = mean) %>%
-				select(S, `exposure rate`),
-			by = "S"
-		) %>%
+		#add_exposure_rate(fit) %>%
 
 		# Check if data is within posterior
-		left_join(my_df, by = c("S", "G")) %>%
-		filter((!!do_check_column)) %>% # Filter only DE genes
-		rowwise() %>%
-		mutate(`ppc` = !!value_column %>% between(`.lower`, `.upper`)) %>%
-		mutate(`is higher than mean` = (!`ppc`) &
-					 	(!!value_column > mean)) %>%
-		ungroup %>%
+		check_if_within_posterior(my_df, do_check_column, value_column) %>%
 
 		# Add annotation if sample belongs to high or low group
-		left_join(
-			X %>%
-				as_tibble %>%
-				select(2) %>%
-				setNames("factor or interest") %>%
-				mutate(S = 1:n()) %>%
-				mutate(`is group high` = `factor or interest` > mean(`factor or interest`)),
-			by = "S"
-		) %>%
-
-		# Check if outlier might be deleterious for the statistics
-		mutate(`deleterious outliers` = (!ppc) &
-					 	(`is higher than mean` == `is group high`)) %>%
+		add_deleterious_if_covariate_exists(X) %>%
 
 		# Add position in MPI package for next inference
 		left_join(counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`),
 							by = c("S", "G")) %>%
 
-		# Add initialisation values
-		# bind_rows(
-		# 	fit %>%
-		# 		summary(c("lambda_mu_raw", "lambda_sigma", "sigma_slope", "sigma_intercept", "sigma_sigma")) %$%
-		# 		summary %>%
-		# 		as_tibble(rownames = ".variable") %>%
-		# 		select(`.variable`, mean, sd)
-		# ) %>%
-		bind_rows(
-			fit %>%
-				summary("exposure_rate") %$%
-				summary %>%
-				as_tibble(rownames = ".variable") %>%
-				separate(
-					.variable,
-					c(".variable", "S"),
-					sep = "[\\[,\\]]",
-					extra = "drop"
-				) %>%
-				mutate(S = S %>% as.integer) %>%
-				select(S, `.variable`, mean, sd)
-		)
-	# %>%
-	# 	bind_rows(
-	# 		fit %>%
-	# 			summary(c("intercept", "alpha_sub_1", "alpha_2", "sigma_raw")) %$%
-	# 			summary %>%
-	# 			as_tibble(rownames = ".variable") %>%
-	# 			separate(.variable, c(".variable", "G"), sep="[\\[,\\]]", extra="drop") %>%
-	# 			mutate(G = G %>% as.integer) %>%
-	# 			select(G, `.variable`, mean, sd)
-	# 	)
+		# Add exposure rate
+		add_exposure_rate(fit) %>%
+
+		# needed for the figure article
+		ifelse_pipe(pass_fit,	~ .x %>% add_attr(fit, "fit")	)
 }
 
 #' pcc_seq main
@@ -680,7 +846,7 @@ do_inference = function(my_df,
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidyTranscriptomics add_normalised_counts
+#' @importFrom tidyTranscriptomics add_normalised_counts_bulk
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -711,7 +877,11 @@ ppc_seq = function(input.df,
 									 additional_parameters_to_save = c(),
 									 # For development purpose,
 									 cores = system("nproc", intern = TRUE) %>% as.integer %>% sum(-1),
-									 percent_false_positive_genes = "1%") {
+									 percent_false_positive_genes = "1%", pass_fit = F,
+									 do_check_only_on_detrimental = parse_formula(formula) %>% length %>% `>` (0),
+									 tol_rel_obj = 0.01,
+									 just_discovery = F
+									) {
 	# Prepare column same enquo
 	sample_column = enquo(sample_column)
 	gene_column = enquo(gene_column)
@@ -719,12 +889,19 @@ ppc_seq = function(input.df,
 	significance_column = enquo(significance_column)
 	do_check_column = enquo(do_check_column)
 
+	# Get factor of interest
+	#factor_of_interest = ifelse(parse_formula(formula) %>% length %>% `>` (0), parse_formula(formula)[1], "")
+
+	# Check if columns exist
+	check_columns_exist(input.df, !!sample_column, !!gene_column, !!value_column, !!significance_column, !!do_check_column)
+
+	# Check if any column is NA or null
+	check_if_any_NA(input.df, !!sample_column, !!gene_column, !!value_column, !!significance_column, !!do_check_column, parse_formula(formula))
+
 	# Check is testing environment is supported
 	if ((!full_bayes) &
 			save_generated_quantities)
-		stop(
-			"Variational Bayes does not support tidybayes needed for save_generated_quantities, use sampling"
-		)
+		stop("Variational Bayes does not support tidybayes needed for save_generated_quantities, use sampling")
 
 	# Check percent FP input
 	pfpg = percent_false_positive_genes %>% gsub("%$", "", .) %>% as.numeric
@@ -748,31 +925,13 @@ ppc_seq = function(input.df,
 			)
 		)
 
+
+
 	# distinct_at is not released yet for dplyr, thus we have to use this trick
 	my_df <- input.df %>%
 
-		# Anonymous function - Select only significant genes plus background for efficient normalisation
-		# Input: tibble
-		# Ouyput: tibble
-		{
-			bind_rows(
-				# Genes to check
-				(.) %>%
-					filter((!!do_check_column)),
-
-				# Least changing genes, negative controls
-				(.) %>%
-					filter((!!do_check_column) %>% `!`) %>%
-					inner_join(
-						(.) %>%
-							arrange(!!significance_column) %>%
-							select(!!gene_column) %>%
-							distinct() %>%
-							tail(how_many_negative_controls),
-						by = quo_name(gene_column)
-					)
-			)
-		} %>%
+		# Select only significant genes plus background for efficient normalisation
+		select_to_check_and_house_keeping(do_check_column, significance_column, gene_column, how_many_negative_controls) %>%
 
 		# Prepare the data frame
 		select(
@@ -814,7 +973,7 @@ ppc_seq = function(input.df,
 	# Build better scales for the inference
 	exposure_rate_multiplier =
 		my_df %>%
-		add_normalised_counts(!!sample_column,!!gene_column,!!value_column) %>%
+		add_normalised_counts_bulk(!!sample_column,!!gene_column,!!value_column) %>%
 		distinct(!!sample_column, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
 		summarise(l %>% sd) %>%
@@ -823,7 +982,7 @@ ppc_seq = function(input.df,
 	# Build better scales for the inference
 	intercept_shift_scale =
 		my_df %>%
-		add_normalised_counts(!!sample_column,!!gene_column,!!value_column) %>%
+		add_normalised_counts_bulk(!!sample_column,!!gene_column,!!value_column) %>%
 		mutate(cc =
 					 	!!as.symbol(sprintf(
 					 		"%s normalised",  quo_name(value_column)
@@ -845,14 +1004,22 @@ ppc_seq = function(input.df,
 			exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
-			adj_prob_theshold  = 0.05
+			adj_prob_theshold  = 0.05,
+			pass_fit = pass_fit, tol_rel_obj = tol_rel_obj
 		)
+
+	# For building some figure I just need the discovery run, return prematurely
+	if(just_discovery) return(res_discovery %>% filter(.variable == "counts_rng"))
 
 	# Columns of counts to be ignored from the inference
 	to_exclude =
 		res_discovery %>%
 		filter(`.variable` == "counts_rng") %>%
-		filter(`deleterious outliers`) %>%
+		ifelse_pipe(
+			do_check_only_on_detrimental,
+			~ .x %>% filter(`deleterious outliers`),
+			~ .x %>% filter(ppc)
+		) %>%
 		distinct(S, G, .lower, .upper)
 
 	# Claculate how many popential non NB transcript I should check
@@ -885,69 +1052,21 @@ ppc_seq = function(input.df,
 			exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
-			adj_prob_theshold = pfpg / 100 / (my_df %>% distinct(!!sample_column) %>% nrow) * 2,
+			adj_prob_theshold =
+				pfpg / 100 /
+				(my_df %>% distinct(!!sample_column) %>% nrow) *
+				ifelse(do_check_only_on_detrimental, 2, 1), # If check only deleterious is one side test
 			# * 2 because we just test one side of the distribution
 			to_exclude = to_exclude,
 			save_generated_quantities = save_generated_quantities,
+			tol_rel_obj = tol_rel_obj,
 			truncation_compensation = 0.7352941 # Taken by approximation study
 		)
 
 	# Merge results and return
-	res_discovery %>%
-		filter(`.variable` == "counts_rng") %>%
-		select(
-			S,
-			G,
-			!!gene_column,
-			!!value_column,
-			!!sample_column,
-			`.lower`,
-			`.upper`,
-			`exposure rate`,
-			!!as.symbol(parse_formula(formula)[1])
-		) %>%
+	merge_results(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental) %>%
 
-		# Attach results of tests
-		left_join(
-			res_test %>% 		filter(`.variable` == "counts_rng") %>%
-				select(
-					S,
-					G,
-					`.lower`,
-					`.upper`,
-					`deleterious outliers`,
-					one_of("generated quantities")
-				) %>%
-				rename(`.lower_2` = `.lower`, `.upper_2` = `.upper`),
-			by = c("S", "G")
-		) %>%
-
-		# Check if new package is installed with different sintax
-		ifelse_pipe(
-			packageVersion("tidyr") == "0.8.3.9000",
-			~ .x %>% nest(`sample wise data` = c(-!!gene_column)),
-			~ .x %>%
-				group_by(!!gene_column) %>%
-				nest(-!!gene_column, .key = `sample wise data`)
-		) %>%
-
-		# Create plots for every tested transcript
-		mutate(plot =
-					 	pmap(
-					 		list(
-					 			`sample wise data`,
-					 			# nested data for plot
-					 			quo_name(value_column),
-					 			# name of value column
-					 			quo_name(sample_column),
-					 			# name of sample column
-					 			parse_formula(formula)[1] # main covariate
-					 		),
-					 		~ produce_plots(..1, ..2, ..3, ..4)
-					 	)) %>%
-
-		# Add summary statistics
-		mutate(# `ppc samples failed` = map_int(data, ~ .x %>% pull(ppc) %>% `!` %>% sum),
-			`tot deleterious outliers` = map_int(`sample wise data`, ~ .x %>% pull(`deleterious outliers`) %>% sum))
+	# Add fit attribute if any
+	add_attr(res_discovery %>% attr("fit"), "fit")
 
 }
