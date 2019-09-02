@@ -10,7 +10,9 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
   how_many_negative_controls = 500, save_generated_quantities = F,
   additional_parameters_to_save = c(), cores = system("nproc", intern =
   TRUE) \%>\% as.integer \%>\% sum(-1),
-  percent_false_positive_genes = "1\%")
+  percent_false_positive_genes = "1\%", pass_fit = F,
+  do_check_only_on_detrimental = parse_formula(formula) \%>\% length
+  \%>\% >0, tol_rel_obj = 0.005, just_discovery = F)
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
