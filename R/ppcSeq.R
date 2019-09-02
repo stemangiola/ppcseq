@@ -833,6 +833,16 @@ do_inference = function(my_df,
 		ifelse_pipe(pass_fit,	~ .x %>% add_attr(fit, "fit")	)
 }
 
+detect_cores = function(){
+
+	if(.Platform$OS.type == "unix")
+		system("nproc", intern = TRUE) %>% as.integer %>% sum(-1)
+	else if(.Platform$OS.type == "windows")
+		parallel::detectCores()  %>% as.integer %>% sum(-1)
+	else stop("Your platform type is not recognised")
+
+}
+
 #' pcc_seq main
 #'
 #' @description This function calls the stan model.
@@ -876,7 +886,7 @@ ppc_seq = function(input.df,
 									 # For development purpose
 									 additional_parameters_to_save = c(),
 									 # For development purpose,
-									 cores = system("nproc", intern = TRUE) %>% as.integer %>% sum(-1),
+									 cores = detect_cores(),
 									 percent_false_positive_genes = "1%", pass_fit = F,
 									 do_check_only_on_detrimental = parse_formula(formula) %>% length %>% `>` (0),
 									 tol_rel_obj = 0.01,
