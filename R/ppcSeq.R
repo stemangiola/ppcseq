@@ -448,6 +448,7 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 # Ouyput: tibble
 select_to_check_and_house_keeping = function(input.df, do_check_column, significance_column, gene_column, how_many_negative_controls){
 	input.df %>%
+		{
 		bind_rows(
 			# Genes to check
 			(.) %>%
@@ -465,6 +466,7 @@ select_to_check_and_house_keeping = function(input.df, do_check_column, signific
 					by = quo_name(gene_column)
 				)
 		)
+	}
 }
 
 run_model = function(model, full_bayes, chains, how_many_posterior_draws, inits_fx, tol_rel_obj, additional_parameters_to_save){
