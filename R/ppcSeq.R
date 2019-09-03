@@ -361,7 +361,7 @@ produce_plots = function(.x,
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidyTranscriptomics add_normalised_counts
+#' @importFrom tidyTranscriptomics add_normalised_counts_bulk
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -680,7 +680,7 @@ do_inference = function(my_df,
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidyTranscriptomics add_normalised_counts
+#' @importFrom tidyTranscriptomics add_normalised_counts_bulk
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -814,7 +814,7 @@ ppc_seq = function(input.df,
 	# Build better scales for the inference
 	exposure_rate_multiplier =
 		my_df %>%
-		add_normalised_counts(!!sample_column,!!gene_column,!!value_column) %>%
+		add_normalised_counts_bulk(!!sample_column, !!gene_column, !!value_column) %>%
 		distinct(!!sample_column, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
 		summarise(l %>% sd) %>%
@@ -823,12 +823,12 @@ ppc_seq = function(input.df,
 	# Build better scales for the inference
 	intercept_shift_scale =
 		my_df %>%
-		add_normalised_counts(!!sample_column,!!gene_column,!!value_column) %>%
-		mutate(cc =
-					 	!!as.symbol(sprintf(
-					 		"%s normalised",  quo_name(value_column)
-					 	)) %>%
-					 	`+` (1) %>% log) %>%
+		add_normalised_counts_bulk(!!sample_column, !!gene_column, !!value_column) %>%
+		mutate(
+			cc =
+				!!as.symbol(sprintf("%s normalised",  quo_name(value_column))) %>%
+				`+` (1) %>% log
+					 ) %>%
 		summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
 		as.numeric
 
