@@ -191,7 +191,7 @@ vb_iterative = function(model, output_samples, iter, tol_rel_obj, ...){
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidyTranscriptomics add_normalised_counts
+#' @importFrom tidyTranscriptomics add_normalised_counts_bulk
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -593,7 +593,7 @@ other_non_used_code = function(){
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidyTranscriptomics add_normalised_counts
+#' @importFrom tidyTranscriptomics add_normalised_counts_bulk
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -736,7 +736,7 @@ ppc_seq = function(
 
 	exposure_rate_multiplier =
 		my_df %>%
-		add_normalised_counts(!!sample_column, !!gene_column, !!value_column) %>%
+		add_normalised_counts_bulk(!!sample_column, !!gene_column, !!value_column) %>%
 		distinct(!!sample_column, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
 		summarise(l %>% sd) %>%
@@ -744,7 +744,7 @@ ppc_seq = function(
 
 	intercept_shift_scale =
 		my_df %>%
-		add_normalised_counts(!!sample_column, !!gene_column, !!value_column) %>%
+		add_normalised_counts_bulk(!!sample_column, !!gene_column, !!value_column) %>%
 		mutate(
 			cc =
 				!!as.symbol(sprintf("%s normalised",  quo_name(value_column))) %>%
