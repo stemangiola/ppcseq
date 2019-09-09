@@ -1,0 +1,4 @@
+#' #' Example data set
+#' #'
+#' #'
+#' "counts"

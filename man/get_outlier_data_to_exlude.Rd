@@ -11,6 +11,8 @@ get_outlier_data_to_exlude(counts_MPI, to_exclude, shards)
 \item{counts_MPI}{A matrix of read count information}
 
 \item{to_exclude}{A vector of oulier data points to exclude}
+
+\item{shards}{An integer}
 }
 \value{
 A matrix
