@@ -11,7 +11,7 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
   = integer(), G = integer()), truncation_compensation = 1,
   save_generated_quantities = F, inits_fx = "random",
   prior_from_discovery = tibble(.variable = character(), mean =
-  numeric(), sd = numeric()), pass_fit = F, tol_rel_obj = 0.005)
+  numeric(), sd = numeric()), pass_fit = F, tol_rel_obj = 0.01)
 }
 \arguments{
 \item{formula}{A formula}

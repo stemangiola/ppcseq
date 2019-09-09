@@ -555,10 +555,6 @@ parse_fit = function(fit, adj_prob_theshold){
 		rstan::summary("counts_rng",
 									 prob = c(adj_prob_theshold, 1 - adj_prob_theshold)) %$%
 		summary %>%
-		{
-			print("check2")
-			(.)
-		} %>%
 		as_tibble(rownames = ".variable") %>%
 		separate(.variable,
 						 c(".variable", "S", "G"),
@@ -806,8 +802,6 @@ do_inference = function(my_df,
 		additional_parameters_to_save
 	)
 
-	print("check1")
-
 	# Parse and return
 	fit %>%
 		parse_fit(adj_prob_theshold) %>%
@@ -843,6 +837,60 @@ detect_cores = function(){
 		parallel::detectCores()  %>% as.integer %>% sum(-1)
 	else stop("Your platform type is not recognised")
 
+}
+
+#' @export
+create_design_matrix = function(input.df, formula, sample_column){
+
+	sample_column = enquo(sample_column)
+
+	model.matrix(
+		object = formula,
+		data =
+			input.df %>%
+			select(!!sample_column, one_of(parse_formula(formula))) %>%
+			distinct %>% arrange(!!sample_column)
+
+	)
+
+}
+
+#' @export
+format_input = function(input.df, formula, sample_column, gene_column, value_column, do_check_column, significance_column, how_many_negative_controls){
+
+	# Prepare column same enquo
+	sample_column =       enquo(sample_column)
+	gene_column =         enquo(gene_column)
+	value_column =        enquo(value_column)
+	do_check_column =     enquo(do_check_column)
+	significance_column = enquo(significance_column)
+
+	input.df %>%
+
+		# Select only significant genes plus background for efficient normalisation
+		select_to_check_and_house_keeping(do_check_column, significance_column, gene_column, how_many_negative_controls) %>%
+
+		# Prepare the data frame
+		select(
+			!!gene_column,
+			!!sample_column,
+			!!value_column,
+			one_of(parse_formula(formula)),
+			!!do_check_column
+		) %>%
+		distinct() %>%
+
+		# Add symbol idx
+		left_join((.) %>%
+								distinct(!!gene_column) %>%
+								mutate(G = 1:n()),
+							by = quo_name(gene_column)) %>%
+
+		# Add sample indeces
+		mutate(S = factor(
+			!!sample_column,
+			levels = (.) %>% pull(!!sample_column) %>% unique
+		) %>% as.integer)
 }
 
 #' pcc_seq main
@@ -937,46 +985,21 @@ ppc_seq = function(input.df,
 			)
 		)
 
-
-
 	# distinct_at is not released yet for dplyr, thus we have to use this trick
-	my_df <- input.df %>%
-
-		# Select only significant genes plus background for efficient normalisation
-		select_to_check_and_house_keeping(do_check_column, significance_column, gene_column, how_many_negative_controls) %>%
-
-		# Prepare the data frame
-		select(
-			!!gene_column,
-			!!sample_column,
-			!!value_column,
-			one_of(parse_formula(formula)),
-			!!do_check_column
-		) %>%
-		distinct() %>%
-
-		# Add symbol idx
-		left_join((.) %>%
-								distinct(!!gene_column) %>%
-								mutate(G = 1:n()),
-							by = quo_name(gene_column)) %>%
-
-		# Add sample indeces
-		mutate(S = factor(
-			!!sample_column,
-			levels = (.) %>% pull(!!sample_column) %>% unique
-		) %>% as.integer)
+	my_df <- format_input(
+		input.df,
+		formula,
+		!!sample_column,
+		!!gene_column,
+		!!value_column,
+		!!do_check_column,
+		!!significance_column,
+		how_many_negative_controls
+	)
 
 	# Create design matrix
-	X =
-		model.matrix(
-			object = formula,
-			data =
-				my_df %>%
-				select(!!sample_column, one_of(parse_formula(formula))) %>%
-				distinct %>% arrange(!!sample_column)
+	X = create_design_matrix(my_df, formula, !!sample_column)
 
-		)
 	C = X %>% ncol
 
 	# Prior info

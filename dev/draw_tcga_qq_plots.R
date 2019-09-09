@@ -16,6 +16,10 @@ capra_s = function(psa,
 									 extracap_ext,
 									 lymph_inv,
 									 sample) {
+
+	if(c(psa, sur_mar, semin_ves_invas, gleason, extracap_ext, lymph_inv) %>% is.na %>% any) return(NA)
+
+	# PSA
 	psa_score = function(psa) {
 		psa = as.numeric(psa)
 		if (psa <= 6)
@@ -28,6 +32,7 @@ capra_s = function(psa,
 			3
 	}
 
+	# GS
 	gleason_score = function(gleason) {
 		gleason = as.numeric(gleason)
 		if (gleason %>% gsub("\\+", "", .) <= 33)
@@ -40,6 +45,7 @@ capra_s = function(psa,
 			3
 	}
 
+	# Invasive
 	sum(psa_score(psa) ,
 			switch(sur_mar %>% as.character, "0" = 0, "1" = 2) ,
 			switch(
@@ -100,8 +106,7 @@ get_TCGA_prostate_clinical_annotaton = function() {
 			0,
 			LYMPH_NODES_EXAMINED_HE_COUNT
 		)) %>%
-		filter(!is.na(PSA_MOST_RECENT_RESULTS) &
-					 	!is.na(GLEASON_SCORE_FORMATTED)) %>%
+		#filter(!is.na(PSA_MOST_RECENT_RESULTS) &	!is.na(GLEASON_SCORE_FORMATTED)) %>%
 		rowwise() %>%
 		mutate(
 			`CAPRA-S` = capra_s(
