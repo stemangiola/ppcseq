@@ -1,3 +1,9 @@
+#' Add attribute
+#'
+#' @param var A character
+#' @param attribute An object
+#' @param name A character
+#' @export
 add_attr = function(var, attribute, name){
 	attr(var, name) <- attribute
 	var
@@ -6,10 +12,13 @@ add_attr = function(var, attribute, name){
 #' This is a generalisation of ifelse that acceots an object and return an objects
 #'
 #' @import dplyr
-#' @import tidyr
 #'
-#' @param input.df A tibble
-#' @param condition A boolean
+#' @param .x A tibble
+#' @param .p A boolean
+#' @param .f1 A function
+#' @param .f2 A function
+#'
+#'
 #' @return A tibble
 ifelse_pipe = function(.x, .p, .f1, .f2 = NULL) {
 	switch(.p %>% `!` %>% sum(1),
@@ -24,6 +33,11 @@ ifelse_pipe = function(.x, .p, .f1, .f2 = NULL) {
 #' format_for_MPI
 #'
 #' @description Format reference data frame for MPI
+#'
+#' @param df A tibble
+#' @param shards A integer
+#' @param sample_column A symbol
+#'
 format_for_MPI = function(df, shards, sample_column) {
 	sample_column = enquo(sample_column)
 
@@ -78,6 +92,10 @@ format_for_MPI = function(df, shards, sample_column) {
 #' add_partition
 #'
 #' @description Add partition column dto data frame
+#'
+#' @param df.input A tibble
+#' @param partition_by A symbol. Column we want to partition by
+#' @param n_partitions An integer number of partition
 add_partition = function(df.input, partition_by, n_partitions) {
 	df.input %>%
 		left_join(
@@ -154,6 +172,7 @@ as_matrix <- function(tbl, rownames = NULL) {
 #' @param output_samples An integer of how many samples from posteriors
 #' @param iter An integer of how many max iterations
 #' @param tol_rel_obj A real
+#' @param ... List of paramaters for vb function of Stan
 #'
 #' @return A Stan fit object
 #'
@@ -211,6 +230,7 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 #' based on how many draws we need from the posterior
 #' @param counts_MPI A matrix of read count information
 #' @param to_exclude A vector of oulier data points to exclude
+#' @param shards An integer
 #'
 #' @return A matrix
 get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
@@ -641,17 +661,31 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidyTranscriptomics add_normalised_counts_bulk
+#' @importFrom ttBulk add_normalised_counts_bulk
 #'
-#' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
+#' @param my_df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
 #' @param sample_column A column name
 #' @param gene_column A column name
 #' @param value_column A column name
 #' @param significance_column A column name
+#' @param do_check_column A column name
 #' @param full_bayes A boolean
-#' @param how_many_negative_controls An integer
-#' @param how_many_posterior_draws An integer
+#' @param C An integer
+#' @param X A tibble
+#' @param lambda_mu_mu A real
+#' @param cores An integer
+#' @param exposure_rate_multiplier A real
+#' @param intercept_shift_scale A real
+#' @param additional_parameters_to_save A character vector
+#' @param adj_prob_theshold A real
+#' @param to_exclude A boolean
+#' @param truncation_compensation A real
+#' @param save_generated_quantities A boolean
+#' @param inits_fx A function
+#' @param prior_from_discovery A tibble
+#' @param pass_fit A fit
+#' @param tol_rel_obj A real
 #'
 #' @return A tibble with additional columns
 #'
@@ -792,15 +826,41 @@ do_inference = function(my_df,
 	Sys.setenv("STAN_NUM_THREADS" = my_cores)
 
 	# Run Stan
-	fit = run_model(
-		stanmodels$negBinomial_MPI,
-		full_bayes,
-		chains,
-		how_many_posterior_draws,
-		inits_fx,
-		tol_rel_obj,
-		additional_parameters_to_save
-	)
+	fit =
+		switch(
+			full_bayes %>% `!` %>% as.integer %>% sum(1),
+
+			# MCMC
+			sampling(
+				stanmodels$negBinomial_MPI,
+				#pcc_seq_model, #
+				chains = chains,
+				cores = chains,
+				iter = (how_many_posterior_draws / chains) %>% ceiling %>% sum(150),
+				warmup = 150,
+				save_warmup = FALSE,
+				init = inits_fx,
+				pars = c(
+					"counts_rng",
+					"exposure_rate",
+					additional_parameters_to_save
+				)
+			),
+
+			# VB Repeat strategy for failures of vb
+			vb_iterative(
+				stanmodels$negBinomial_MPI,
+				#pcc_seq_model, #
+				output_samples = how_many_posterior_draws,
+				iter = 50000,
+				tol_rel_obj = 0.005,
+				pars = c(
+					"counts_rng",
+					"exposure_rate",
+					additional_parameters_to_save
+				)
+			)
+		)
 
 	# Parse and return
 	fit %>%
@@ -839,6 +899,11 @@ detect_cores = function(){
 
 }
 
+#' Create the design matrix
+#'
+#' @param input.df A tibble
+#' @param formula A formula
+#' @param sample_column A symbol
 #' @export
 create_design_matrix = function(input.df, formula, sample_column){
 
@@ -855,6 +920,17 @@ create_design_matrix = function(input.df, formula, sample_column){
 
 }
 
+#' Format the input
+#'
+#' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
+#' @param formula A formula
+#' @param sample_column A column name
+#' @param gene_column A column name
+#' @param value_column A column name
+#' @param do_check_column A symbol
+#' @param significance_column A column name
+#' @param how_many_negative_controls An integer
+#'
 #' @export
 format_input = function(input.df, formula, sample_column, gene_column, value_column, do_check_column, significance_column, how_many_negative_controls){
 
@@ -906,7 +982,7 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidyTranscriptomics add_normalised_counts_bulk
+#' @importFrom ttBulk add_normalised_counts_bulk
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -915,9 +991,16 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @param value_column A column name
 #' @param significance_column A column name
 #' @param full_bayes A boolean
+#' @param do_check_column A symbol
 #' @param how_many_negative_controls An integer
-#' @param how_many_posterior_draws An integer
-
+#' @param save_generated_quantities A boolean
+#' @param additional_parameters_to_save A character vector
+#' @param cores An integer
+#' @param percent_false_positive_genes A real
+#' @param pass_fit A boolean
+#' @param do_check_only_on_detrimental A boolean
+#' @param tol_rel_obj A real
+#' @param just_discovery A boolean
 #'
 #' @return A tibble with additional columns
 #'
@@ -933,12 +1016,11 @@ ppc_seq = function(input.df,
 									 full_bayes = F,
 									 how_many_negative_controls = 500,
 									 save_generated_quantities = F,
-									 # For development purpose
-									 additional_parameters_to_save = c(),
-									 # For development purpose,
-									 cores = detect_cores(),
-									 percent_false_positive_genes = "1%", pass_fit = F,
-									 do_check_only_on_detrimental = parse_formula(formula) %>% length %>% `>` (0),
+									 additional_parameters_to_save = c(),  # For development purpose
+									 cores = detect_cores(), # For development purpose,
+									 percent_false_positive_genes = "1%",
+									 pass_fit = F,
+									 do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
 									 tol_rel_obj = 0.01,
 									 just_discovery = F
 									) {

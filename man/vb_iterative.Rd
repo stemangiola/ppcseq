@@ -14,6 +14,8 @@ vb_iterative(model, output_samples, iter, tol_rel_obj, ...)
 \item{iter}{An integer of how many max iterations}
 
 \item{tol_rel_obj}{A real}
+
+\item{...}{List of paramaters for vb function of Stan}
 }
 \value{
 A Stan fit object
