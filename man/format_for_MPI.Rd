@@ -6,6 +6,13 @@
 \usage{
 format_for_MPI(df, shards, sample_column)
 }
+\arguments{
+\item{df}{A tibble}
+
+\item{shards}{A integer}
+
+\item{sample_column}{A symbol}
+}
 \description{
 Format reference data frame for MPI
 }

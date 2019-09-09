@@ -10,8 +10,8 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
   how_many_negative_controls = 500, save_generated_quantities = F,
   additional_parameters_to_save = c(), cores = detect_cores(),
   percent_false_positive_genes = "1\%", pass_fit = F,
-  do_check_only_on_detrimental = parse_formula(formula) \%>\% length
-  \%>\% >0, tol_rel_obj = 0.01, just_discovery = F)
+  do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
+  tol_rel_obj = 0.01, just_discovery = F)
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
@@ -26,11 +26,27 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
 
 \item{significance_column}{A column name}
 
+\item{do_check_column}{A symbol}
+
 \item{full_bayes}{A boolean}
 
 \item{how_many_negative_controls}{An integer}
 
-\item{how_many_posterior_draws}{An integer}
+\item{save_generated_quantities}{A boolean}
+
+\item{additional_parameters_to_save}{A character vector}
+
+\item{cores}{An integer}
+
+\item{percent_false_positive_genes}{A real}
+
+\item{pass_fit}{A boolean}
+
+\item{do_check_only_on_detrimental}{A boolean}
+
+\item{tol_rel_obj}{A real}
+
+\item{just_discovery}{A boolean}
 }
 \value{
 A tibble with additional columns

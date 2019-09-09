@@ -6,6 +6,13 @@
 \usage{
 add_partition(df.input, partition_by, n_partitions)
 }
+\arguments{
+\item{df.input}{A tibble}
+
+\item{partition_by}{A symbol. Column we want to partition by}
+
+\item{n_partitions}{An integer number of partition}
+}
 \description{
 Add partition column dto data frame
 }

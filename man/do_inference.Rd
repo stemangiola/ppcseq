@@ -14,6 +14,8 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
   numeric(), sd = numeric()), pass_fit = F, tol_rel_obj = 0.01)
 }
 \arguments{
+\item{my_df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
+
 \item{formula}{A formula}
 
 \item{sample_column}{A column name}
@@ -24,13 +26,39 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
 
 \item{significance_column}{A column name}
 
+\item{do_check_column}{A column name}
+
 \item{full_bayes}{A boolean}
 
-\item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
+\item{C}{An integer}
 
-\item{how_many_negative_controls}{An integer}
+\item{X}{A tibble}
 
-\item{how_many_posterior_draws}{An integer}
+\item{lambda_mu_mu}{A real}
+
+\item{cores}{An integer}
+
+\item{exposure_rate_multiplier}{A real}
+
+\item{intercept_shift_scale}{A real}
+
+\item{additional_parameters_to_save}{A character vector}
+
+\item{adj_prob_theshold}{A real}
+
+\item{to_exclude}{A boolean}
+
+\item{truncation_compensation}{A real}
+
+\item{save_generated_quantities}{A boolean}
+
+\item{inits_fx}{A function}
+
+\item{prior_from_discovery}{A tibble}
+
+\item{pass_fit}{A fit}
+
+\item{tol_rel_obj}{A real}
 }
 \value{
 A tibble with additional columns

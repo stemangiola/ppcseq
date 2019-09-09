@@ -2,18 +2,18 @@ Package: ppcSeq
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Stefano",
+           family = "Mangiola",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: What license it uses
+           email = "mangiolastefano@gmail.com",
+           comment = c(ORCID = "0000-0001-7474-836X"))
+Description: Posterior predictive check for bulk RNA sequencing data.
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Biarch: true
 Depends: 
-    R (>= 3.4.0)
+    R (>= 3.5.0)
 Imports: 
     methods,
     Rcpp (>= 0.12.0),
@@ -25,9 +25,12 @@ Imports:
     purrr,
     tidyr, 
     ggplot2,
-    foreach
+    foreach,
+    tidybayes,
+    ttBulk,
+    testthat
 Remotes: 
-    github::stemangiola/tidyTranscriptomics
+    github::stemangiola/ttBulk
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
