@@ -30,7 +30,7 @@ Imports:
     ttBulk,
     testthat
 Remotes: 
-    github::stemangiola/ttBulk
+    github::stemangiola/ttBulk, github::stan-dev/rstantools
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
