@@ -1,2 +1,4 @@
 ^ppcSeq\.Rproj$
 ^\.Rproj\.user$
+^dev/*
+^README_files*
