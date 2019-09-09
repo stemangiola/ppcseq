@@ -8,11 +8,10 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
   gene_column = symbol, value_column = `read count`,
   significance_column = `p-value`, do_check_column, full_bayes = F,
   how_many_negative_controls = 500, save_generated_quantities = F,
-  additional_parameters_to_save = c(), cores = system("nproc", intern =
-  TRUE) \%>\% as.integer \%>\% sum(-1),
+  additional_parameters_to_save = c(), cores = detect_cores(),
   percent_false_positive_genes = "1\%", pass_fit = F,
   do_check_only_on_detrimental = parse_formula(formula) \%>\% length
-  \%>\% >0, tol_rel_obj = 0.005, just_discovery = F)
+  \%>\% >0, tol_rel_obj = 0.01, just_discovery = F)
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
