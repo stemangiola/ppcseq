@@ -7,6 +7,17 @@
 select_to_check_and_house_keeping(input.df, do_check_column,
   significance_column, gene_column, how_many_negative_controls)
 }
+\arguments{
+\item{input.df}{A tibble}
+
+\item{do_check_column}{A boolean}
+
+\item{significance_column}{A symbol}
+
+\item{gene_column}{A column name}
+
+\item{how_many_negative_controls}{An integer}
+}
 \description{
 Select only significant genes plus background for efficient normalisation
 }
