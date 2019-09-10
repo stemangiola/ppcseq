@@ -172,13 +172,12 @@ transformed data {
 }
 parameters {
 
-
   // Overall properties of the data
-  real lambda_mu_raw; // So is compatible with logGamma prior
+  real<offset=lambda_mu_mu> lambda_mu; // So is compatible with logGamma prior
   real<lower=0> lambda_sigma;
   real lambda_skew;
 
-  vector[S] exposure_rate_raw;
+  vector<multiplier = exposure_rate_multiplier>[S] exposure_rate;
 
   // Gene-wise properties of the data
   row_vector[G] intercept;
@@ -195,22 +194,15 @@ parameters {
 }
 transformed parameters {
 
-	// For better adaptation
-	real lambda_mu = lambda_mu_raw + lambda_mu_mu;
-	//row_vector[G] intercept = (intercept_raw * intercept_shift_scale[2]) + intercept_shift_scale[1];
-	vector[S] exposure_rate = exposure_rate_raw * exposure_rate_multiplier;
-
   // Sigma
   vector[G] sigma = 1.0 ./ exp(sigma_raw) ;
 	matrix[C,G] alpha = merge_coefficients(intercept, alpha_sub_1, alpha_2,  C,  S,  G);
-	matrix[S,G] lambda_log_param = X * alpha;
-
-
+	matrix[S,G] lambda_log_param =	X * alpha;
 }
 
 model {
 
-  lambda_mu_raw ~ normal(0,2);
+  lambda_mu ~ normal(lambda_mu_mu,2);
   lambda_sigma ~ normal(0,2);
 	lambda_skew ~ normal(0,1);
 
@@ -219,15 +211,15 @@ model {
   sigma_sigma ~ normal(0,2);
 
   // Gene-wise properties of the data
-  to_vector(intercept) ~ skew_normal(lambda_mu,lambda_sigma, lambda_skew);
+  to_vector(intercept) ~ skew_normal(lambda_mu + lambda_mu_mu ,lambda_sigma, lambda_skew);
   if(C>=2) alpha_sub_1 ~ double_exponential(0,1);
 	if(C>=3) to_vector(alpha_2) ~ normal(0,2.5);
 
-  sigma_raw ~ normal(sigma_slope * alpha[1,] + sigma_intercept,sigma_sigma);
+  sigma_raw ~ normal(sigma_slope * intercept + sigma_intercept,sigma_sigma);
 
   // Exposure prior
-  exposure_rate_raw ~ normal(0,1);
-  sum(exposure_rate_raw) ~ normal(0, 0.001 * S);
+  exposure_rate ~ normal(0,1);
+  sum(exposure_rate) ~ normal(0, 0.001 * S);
 
 	//Gene-wise properties of the data
 	target += sum(map_rect(
@@ -264,9 +256,9 @@ model {
 
 }
 generated quantities{
-	vector[G] counts_rng[S];
+	vector[how_many_to_check] counts_rng[S];
 
-	for(g in 1:G) for(s in 1:S)
+	for(g in 1:how_many_to_check) for(s in 1:S)
 		counts_rng[s,g] =	neg_binomial_2_log_rng(exposure_rate[s] + lambda_log_param[s,g],	sigma[g] * truncation_compensation);
 
 }
