@@ -12,6 +12,7 @@ add_attr = function(var, attribute, name){
 #' This is a generalisation of ifelse that acceots an object and return an objects
 #'
 #' @import dplyr
+#' @importFrom purrr as_mapper
 #'
 #' @param .x A tibble
 #' @param .p A boolean
@@ -230,6 +231,10 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 
 #' Identify the optimal number of chain
 #' based on how many draws we need from the posterior
+#'
+#' @importFrom tibble rowid_to_column
+#' @importFrom purrr map
+#'
 #' @param counts_MPI A matrix of read count information
 #' @param to_exclude A vector of oulier data points to exclude
 #' @param shards An integer
@@ -296,6 +301,10 @@ inits_fx =
 	}
 
 #' Produce generated quantities plots with marked uotliers
+#'
+#' @importFrom purrr pmap
+#' @importFrom purrr map_int
+#' @import ggplot2
 #'
 #' @param .x A tibble
 #' @param value_column A symbol object
@@ -394,6 +403,9 @@ add_deleterious_if_covariate_exists = function(input.df, X){
 		)
 }
 
+#' merge_results
+#'
+#' @importFrom tidyr nest
 merge_results = function(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental){
 
 	res_discovery %>%
@@ -463,9 +475,10 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 		)
 }
 
-# Select only significant genes plus background for efficient normalisation
-# Input: tibble
-# Ouyput: tibble
+#' Select only significant genes plus background for efficient normalisation
+#'
+#' @importFrom rstan sampling
+#' @importFrom rstan vb
 select_to_check_and_house_keeping = function(input.df, do_check_column, significance_column, gene_column, how_many_negative_controls){
 	input.df %>%
 		{
@@ -530,10 +543,12 @@ run_model = function(model, full_bayes, chains, how_many_posterior_draws, inits_
 	)
 }
 
+#' add_exposure_rate
+#'
+#' @importFrom tidyr separate
 add_exposure_rate = function(input.df, fit){
 
 	writeLines(sprintf("executing %s", "add_exposure_rate"))
-
 
 	input.df %>%
 		left_join(
@@ -568,6 +583,11 @@ check_if_within_posterior = function(input.df, my_df, do_check_column, value_col
 		ungroup
 }
 
+#' parse_fit
+#'
+#' @importFrom tidyr separate
+#' @importFrom tidyr nest
+#'
 parse_fit = function(fit, adj_prob_theshold){
 
 	writeLines(sprintf("executing %s", "parse_fit"))
@@ -624,6 +644,11 @@ check_columns_exist = function(input.df, sample_column, gene_column, value_colum
 		)
 }
 
+
+#' Check if NA
+#'
+#' @importFrom tidyr drop_na
+#' @importFrom dplyr enquo
 check_if_any_NA = function(input.df, sample_column, gene_column, value_column, significance_column, do_check_column, formula_columns){
 
 	# Prepare column same enquo
