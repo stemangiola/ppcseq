@@ -4,7 +4,8 @@
 \alias{vb_iterative}
 \title{vb_iterative}
 \usage{
-vb_iterative(model, output_samples, iter, tol_rel_obj, ...)
+vb_iterative(model, output_samples, iter, tol_rel_obj,
+  additional_parameters_to_save, ...)
 }
 \arguments{
 \item{model}{A Stan model}

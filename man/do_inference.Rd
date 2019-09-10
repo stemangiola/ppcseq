@@ -11,7 +11,8 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
   = integer(), G = integer()), truncation_compensation = 1,
   save_generated_quantities = F, inits_fx = "random",
   prior_from_discovery = tibble(.variable = character(), mean =
-  numeric(), sd = numeric()), pass_fit = F, tol_rel_obj = 0.01)
+  numeric(), sd = numeric()), pass_fit = F, tol_rel_obj = 0.01,
+  write_on_disk = F)
 }
 \arguments{
 \item{my_df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
