@@ -60,6 +60,8 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
 \item{pass_fit}{A fit}
 
 \item{tol_rel_obj}{A real}
+
+\item{write_on_disk}{A boolean}
 }
 \value{
 A tibble with additional columns

@@ -5,7 +5,7 @@ test_that("Quick test",{
   FDR_threshold = 0.01
 
   res =
-    ppc_seq(
+    ppcSeq::ppc_seq(
       dplyr::mutate(ppcSeq::counts, is_significant = FDR < FDR_threshold),
       formula = ~ Label,
       significance_column = PValue,

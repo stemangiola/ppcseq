@@ -6,6 +6,11 @@
 \usage{
 add_exposure_rate(input.df, fit)
 }
+\arguments{
+\item{input.df}{A data frame}
+
+\item{fit}{A fit object}
+}
 \description{
 add_exposure_rate
 }
