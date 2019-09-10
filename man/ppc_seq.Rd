@@ -11,7 +11,7 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
   additional_parameters_to_save = c(), cores = detect_cores(),
   percent_false_positive_genes = "1\%", pass_fit = F,
   do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
-  tol_rel_obj = 0.01, just_discovery = F)
+  tol_rel_obj = 0.01, just_discovery = F, write_on_disk = F)
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}

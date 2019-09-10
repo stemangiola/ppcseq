@@ -180,6 +180,7 @@ vb_iterative = function(model,
 												output_samples,
 												iter,
 												tol_rel_obj,
+												additional_parameters_to_save,
 												...) {
 	res = NULL
 	i = 0
@@ -190,8 +191,9 @@ vb_iterative = function(model,
 				output_samples = output_samples,
 				iter = iter,
 				tol_rel_obj = tol_rel_obj,
+				sample_file = "temp_stan_sampling.txt",
+				pars=c("counts_rng", "exposure_rate", additional_parameters_to_save),
 				...
-				#, pars=c("counts_rng", "exposure_rate", additional_parameters_to_save)
 			)
 			boolFalse <- T
 			return(my_res)
@@ -392,7 +394,6 @@ add_deleterious_if_covariate_exists = function(input.df, X){
 		)
 }
 
-
 merge_results = function(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental){
 
 	res_discovery %>%
@@ -462,7 +463,6 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 		)
 }
 
-
 # Select only significant genes plus background for efficient normalisation
 # Input: tibble
 # Ouyput: tibble
@@ -524,7 +524,8 @@ run_model = function(model, full_bayes, chains, how_many_posterior_draws, inits_
 				"counts_rng",
 				"exposure_rate",
 				additional_parameters_to_save
-			)
+			),
+			sample_file = "temp_stan_sampling.txt"
 		)
 	)
 }
@@ -711,7 +712,10 @@ do_inference = function(my_df,
 												inits_fx = "random",
 												prior_from_discovery = tibble(`.variable` = character(),
 																											mean = numeric(),
-																											sd = numeric()), pass_fit = F, tol_rel_obj = 0.01) {
+																											sd = numeric()),
+												pass_fit = F,
+												tol_rel_obj = 0.01,
+												write_on_disk = F) {
 
 	writeLines(sprintf("executing %s", "do_inference"))
 
@@ -821,6 +825,7 @@ do_inference = function(my_df,
 	CP = ncol(counts_package)
 
 	# Run model
+	writeLines(sprintf("- Roughly the memory allocation for the fit object is %s Gb", object.size(1:(S * how_many_to_check * how_many_posterior_draws))/1e9))
 
 	# Set up environmental variable for threading
 	Sys.setenv("STAN_NUM_THREADS" = my_cores)
@@ -844,7 +849,8 @@ do_inference = function(my_df,
 					"counts_rng",
 					"exposure_rate",
 					additional_parameters_to_save
-				)
+				),
+				sample_file = switch(write_on_disk %>% `!` %>% sum(1), "temp_stan_sampling.txt", NULL)
 			),
 
 			# VB Repeat strategy for failures of vb
@@ -854,13 +860,11 @@ do_inference = function(my_df,
 				output_samples = how_many_posterior_draws,
 				iter = 50000,
 				tol_rel_obj = 0.005,
-				pars = c(
-					"counts_rng",
-					"exposure_rate",
-					additional_parameters_to_save
-				)
+				additional_parameters_to_save = additional_parameters_to_save
 			)
 		)
+
+	writeLines("Fit object successfully loaded in memory. Going forward to parsing fir object")
 
 	# Parse and return
 	fit %>%
@@ -1022,7 +1026,8 @@ ppc_seq = function(input.df,
 									 pass_fit = F,
 									 do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
 									 tol_rel_obj = 0.01,
-									 just_discovery = F
+									 just_discovery = F,
+									 write_on_disk = F
 									) {
 	# Prepare column same enquo
 	sample_column = enquo(sample_column)
@@ -1122,7 +1127,9 @@ ppc_seq = function(input.df,
 			intercept_shift_scale,
 			additional_parameters_to_save,
 			adj_prob_theshold  = 0.05,
-			pass_fit = pass_fit, tol_rel_obj = tol_rel_obj
+			pass_fit = pass_fit,
+			tol_rel_obj = tol_rel_obj,
+			write_on_disk = write_on_disk
 		)
 
 	# For building some figure I just need the discovery run, return prematurely
@@ -1177,7 +1184,8 @@ ppc_seq = function(input.df,
 			to_exclude = to_exclude,
 			save_generated_quantities = save_generated_quantities,
 			tol_rel_obj = tol_rel_obj,
-			truncation_compensation = 0.7352941 # Taken by approximation study
+			truncation_compensation = 0.7352941, # Taken by approximation study
+			write_on_disk = write_on_disk
 		)
 
 	# Merge results and return

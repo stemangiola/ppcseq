@@ -102,6 +102,21 @@ foreach(r = 1:6) %do% {
 
 x = readRDS("dev/draw_qq_TCGA_with_covariates_1.rds")
 
+TCGA_tbl %>%
+
+	# Filter
+	filter(`CAPRA-S` %>% is.na %>% `!`) %>%
+	separate(sample, c("data base", "laboratory", "patient"), sep="-", remove = F) %>%
+	inner_join(
+		(.) %>% distinct(sample, laboratory) %>% count(laboratory) %>% filter(n >= 8) %>% select(-n)
+	) %>%
+	mutate(risk = `CAPRA-S` <= 3) %>%
+
+	# Do check
+	mutate(do_check = (!`house keeping`) & run==1) %>%
+
+format_input(input.df, formula, sample_column, gene_column, value_column, do_check_column, significance_column, how_many_negative_controls)
+
 x %>%
 	attr("fit") %>%
 	rstan::summary() %$% summary %>%
