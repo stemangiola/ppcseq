@@ -16,6 +16,8 @@ vb_iterative(model, output_samples, iter, tol_rel_obj,
 
 \item{tol_rel_obj}{A real}
 
+\item{additional_parameters_to_save}{A character vector}
+
 \item{...}{List of paramaters for vb function of Stan}
 }
 \value{

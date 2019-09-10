@@ -6,6 +6,11 @@
 \usage{
 parse_fit(fit, adj_prob_theshold)
 }
+\arguments{
+\item{fit}{A fit object}
+
+\item{adj_prob_theshold}{fit real}
+}
 \description{
 parse_fit
 }

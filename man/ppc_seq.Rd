@@ -47,6 +47,8 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
 \item{tol_rel_obj}{A real}
 
 \item{just_discovery}{A boolean}
+
+\item{write_on_disk}{A boolean}
 }
 \value{
 A tibble with additional columns

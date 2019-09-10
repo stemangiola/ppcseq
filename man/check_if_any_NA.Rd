@@ -7,6 +7,21 @@
 check_if_any_NA(input.df, sample_column, gene_column, value_column,
   significance_column, do_check_column, formula_columns)
 }
+\arguments{
+\item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
+
+\item{sample_column}{A column name}
+
+\item{gene_column}{A column name}
+
+\item{value_column}{A column name}
+
+\item{significance_column}{A column name}
+
+\item{do_check_column}{A column name}
+
+\item{formula_columns}{A symbol vector}
+}
 \description{
 Check if NA
 }

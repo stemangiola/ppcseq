@@ -116,6 +116,7 @@ add_partition = function(df.input, partition_by, n_partitions) {
 #' Formula parser
 #'
 #' @param fm A formula
+#'
 #' @return A character vector
 #'
 #'
@@ -134,6 +135,7 @@ parse_formula <- function(fm) {
 #'
 #' @param tbl A tibble
 #' @param rownames A character string of the rownames
+#'
 #' @return A matrix
 as_matrix <- function(tbl, rownames = NULL) {
 	tbl %>%
@@ -173,6 +175,7 @@ as_matrix <- function(tbl, rownames = NULL) {
 #' @param output_samples An integer of how many samples from posteriors
 #' @param iter An integer of how many max iterations
 #' @param tol_rel_obj A real
+#' @param additional_parameters_to_save A character vector
 #' @param ... List of paramaters for vb function of Stan
 #'
 #' @return A Stan fit object
@@ -406,6 +409,15 @@ add_deleterious_if_covariate_exists = function(input.df, X){
 #' merge_results
 #'
 #' @importFrom tidyr nest
+#'
+#' @param res_discovery A tibble
+#' @param res_test A tibble
+#' @param formula A formula
+#' @param sample_column A column name
+#' @param gene_column A column name
+#' @param value_column A column name
+#' @param do_check_only_on_detrimental A boolean
+#'
 merge_results = function(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental){
 
 	res_discovery %>%
@@ -479,6 +491,13 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 #'
 #' @importFrom rstan sampling
 #' @importFrom rstan vb
+#'
+#' @param input.df A tibble
+#' @param do_check_column A boolean
+#' @param significance_column A symbol
+#' @param gene_column A column name
+#' @param how_many_negative_controls An integer
+#'
 select_to_check_and_house_keeping = function(input.df, do_check_column, significance_column, gene_column, how_many_negative_controls){
 	input.df %>%
 		{
@@ -546,6 +565,10 @@ run_model = function(model, full_bayes, chains, how_many_posterior_draws, inits_
 #' add_exposure_rate
 #'
 #' @importFrom tidyr separate
+#'
+#' @param input.df A data frame
+#' @param fit A fit object
+#'
 add_exposure_rate = function(input.df, fit){
 
 	writeLines(sprintf("executing %s", "add_exposure_rate"))
@@ -587,6 +610,9 @@ check_if_within_posterior = function(input.df, my_df, do_check_column, value_col
 #'
 #' @importFrom tidyr separate
 #' @importFrom tidyr nest
+#'
+#' @param fit A fit object
+#' @param adj_prob_theshold fit real
 #'
 parse_fit = function(fit, adj_prob_theshold){
 
@@ -649,6 +675,15 @@ check_columns_exist = function(input.df, sample_column, gene_column, value_colum
 #'
 #' @importFrom tidyr drop_na
 #' @importFrom dplyr enquo
+#'
+#' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
+#' @param sample_column A column name
+#' @param gene_column A column name
+#' @param value_column A column name
+#' @param significance_column A column name
+#' @param do_check_column A column name
+#' @param formula_columns A symbol vector
+#'
 check_if_any_NA = function(input.df, sample_column, gene_column, value_column, significance_column, do_check_column, formula_columns){
 
 	# Prepare column same enquo
@@ -712,6 +747,7 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @param prior_from_discovery A tibble
 #' @param pass_fit A fit
 #' @param tol_rel_obj A real
+#' @param write_on_disk A boolean
 #'
 #' @return A tibble with additional columns
 #'
@@ -1030,6 +1066,7 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @param do_check_only_on_detrimental A boolean
 #' @param tol_rel_obj A real
 #' @param just_discovery A boolean
+#' @param write_on_disk A boolean
 #'
 #' @return A tibble with additional columns
 #'
