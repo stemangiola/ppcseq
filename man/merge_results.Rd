@@ -7,6 +7,21 @@
 merge_results(res_discovery, res_test, formula, gene_column, value_column,
   sample_column, do_check_only_on_detrimental)
 }
+\arguments{
+\item{res_discovery}{A tibble}
+
+\item{res_test}{A tibble}
+
+\item{formula}{A formula}
+
+\item{gene_column}{A column name}
+
+\item{value_column}{A column name}
+
+\item{sample_column}{A column name}
+
+\item{do_check_only_on_detrimental}{A boolean}
+}
 \description{
 merge_results
 }
