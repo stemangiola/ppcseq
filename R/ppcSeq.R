@@ -498,7 +498,7 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 #' @param gene_column A column name
 #' @param how_many_negative_controls An integer
 #'
-select_to_check_and_house_keeping = function(input.df, do_check_column, significance_column, gene_column, how_many_negative_controls){
+select_to_check_and_house_keeping = function(input.df, do_check_column, significance_column, gene_column, how_many_negative_controls  = 500){
 	input.df %>%
 		{
 		bind_rows(
@@ -722,7 +722,7 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom ttBulk add_normalised_counts_bulk
+#' @importFrom ttBulk normalise_abundance
 #'
 #' @param my_df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -951,7 +951,10 @@ do_inference = function(my_df,
 		add_exposure_rate(fit) %>%
 
 		# needed for the figure article
-		ifelse_pipe(pass_fit,	~ .x %>% add_attr(fit, "fit")	)
+		ifelse_pipe(pass_fit,	~ .x %>% add_attr(fit, "fit")	) %>%
+
+		# Passing the amout of sampled data
+		add_attr(S * how_many_to_check * how_many_posterior_draws, "total_draws")
 }
 
 detect_cores = function(){
@@ -997,7 +1000,7 @@ create_design_matrix = function(input.df, formula, sample_column){
 #' @param how_many_negative_controls An integer
 #'
 #' @export
-format_input = function(input.df, formula, sample_column, gene_column, value_column, do_check_column, significance_column, how_many_negative_controls){
+format_input = function(input.df, formula, sample_column, gene_column, value_column, do_check_column, significance_column, how_many_negative_controls = 500){
 
 	# Prepare column same enquo
 	sample_column =       enquo(sample_column)
@@ -1047,7 +1050,7 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom ttBulk add_normalised_counts_bulk
+#' @importFrom ttBulk normalise_abundance
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -1157,7 +1160,7 @@ ppc_seq = function(input.df,
 	# Build better scales for the inference
 	exposure_rate_multiplier =
 		my_df %>%
-		add_normalised_counts_bulk(!!sample_column,!!gene_column,!!value_column) %>%
+		normalise_abundance(!!sample_column,!!gene_column,!!value_column) %>%
 		distinct(!!sample_column, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
 		summarise(l %>% sd) %>%
@@ -1166,7 +1169,7 @@ ppc_seq = function(input.df,
 	# Build better scales for the inference
 	intercept_shift_scale =
 		my_df %>%
-		add_normalised_counts_bulk(!!sample_column,!!gene_column,!!value_column) %>%
+		normalise_abundance(!!sample_column,!!gene_column,!!value_column) %>%
 		mutate(cc =
 					 	!!as.symbol(sprintf(
 					 		"%s normalised",  quo_name(value_column)
@@ -1254,6 +1257,11 @@ ppc_seq = function(input.df,
 	merge_results(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental) %>%
 
 	# Add fit attribute if any
-	add_attr(res_discovery %>% attr("fit"), "fit")
+	add_attr(res_discovery %>% attr("fit"), "fit") %>%
+
+	# Add total draws
+	add_attr(res_discovery %>% attr("total_draws"), "total_draws")
+
+
 
 }
