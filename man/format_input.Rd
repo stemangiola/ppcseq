@@ -5,7 +5,7 @@
 \title{Format the input}
 \usage{
 format_input(input.df, formula, sample_column, gene_column, value_column,
-  do_check_column, significance_column, how_many_negative_controls)
+  do_check_column, significance_column, how_many_negative_controls = 500)
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
