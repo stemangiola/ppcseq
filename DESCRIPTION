@@ -23,7 +23,7 @@ Imports:
     dplyr, 
     magrittr, 
     purrr,
-    tidyr, 
+    tidyr (>= 0.8.3.9000), 
     ggplot2,
     foreach,
     tidybayes,
