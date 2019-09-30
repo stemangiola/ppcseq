@@ -195,7 +195,7 @@ vb_iterative = function(model,
 				output_samples = output_samples,
 				iter = iter,
 				tol_rel_obj = tol_rel_obj,
-				sample_file = "temp_stan_sampling.txt",
+				#sample_file = "temp_stan_sampling.txt",
 				pars=c("counts_rng", "exposure_rate", additional_parameters_to_save),
 				...
 			)
@@ -558,8 +558,7 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 				"counts_rng",
 				"exposure_rate",
 				additional_parameters_to_save
-			),
-			sample_file = "temp_stan_sampling.txt"
+			)
 		)
 	)
 }
@@ -999,6 +998,9 @@ do_inference = function(my_df,
 					"counts_rng",
 					"exposure_rate",
 					additional_parameters_to_save
+				)
+				#,
+				#sample_file = switch(write_on_disk %>% `!` %>% sum(1), "temp_stan_sampling.txt", NULL)
 			)
 		)
 
