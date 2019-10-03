@@ -1259,10 +1259,10 @@ ppc_seq = function(input.df,
 	merge_results(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental) %>%
 
 	# Add fit attribute if any
-	add_attr(res_discovery %>% attr("fit"), "fit") %>%
+	add_attr(res_test %>% attr("fit"), "fit") %>%
 
 	# Add total draws
-	add_attr(res_discovery %>% attr("total_draws"), "total_draws")
+	add_attr(res_test %>% attr("total_draws"), "total_draws")
 
 
 
