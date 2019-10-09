@@ -15,17 +15,7 @@ To install:
 
 For linux systems, in order to exploit multi-threading, from R write:
 
-```{r}
-fileConn<-file("~/.R/Makevars")
-writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
-close(fileConn)
-```
-
 Then, install with
-
-```{r  eval=FALSE}
-devtools::install_github("stemangiola/ppcSeq")
-```
 
 You can get the test dataset with
 
