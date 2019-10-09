@@ -33,6 +33,8 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
 
 \item{approximate_posterior_inference}{A boolean}
 
+\item{approximate_posterior_analysis}{A boolean}
+
 \item{C}{An integer}
 
 \item{X}{A tibble}

@@ -500,24 +500,24 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 select_to_check_and_house_keeping = function(input.df, do_check_column, significance_column, gene_column, how_many_negative_controls  = 500){
 	input.df %>%
 		{
-		bind_rows(
-			# Genes to check
-			(.) %>%
-				filter((!!do_check_column)),
+			bind_rows(
+				# Genes to check
+				(.) %>%
+					filter((!!do_check_column)),
 
-			# Least changing genes, negative controls
-			(.) %>%
-				filter((!!do_check_column) %>% `!`) %>%
-				inner_join(
-					(.) %>%
-						arrange(!!significance_column) %>%
-						select(!!gene_column) %>%
-						distinct() %>%
-						tail(how_many_negative_controls),
-					by = quo_name(gene_column)
-				)
-		)
-	}
+				# Least changing genes, negative controls
+				(.) %>%
+					filter((!!do_check_column) %>% `!`) %>%
+					inner_join(
+						(.) %>%
+							arrange(!!significance_column) %>%
+							select(!!gene_column) %>%
+							distinct() %>%
+							tail(how_many_negative_controls),
+						by = quo_name(gene_column)
+					)
+			)
+		}
 }
 
 run_model = function(model, approximate_posterior_inference, chains, how_many_posterior_draws, inits_fx, tol_rel_obj, additional_parameters_to_save){
@@ -640,6 +640,9 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @importFrom tidyr nest
 #' @importFrom tidyr unnest
 #' @importFrom rstan summary
+#' @importFrom furrr future_map
+#' @importFrom future plan
+#' @importFrom future multiprocess
 #'
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
@@ -666,6 +669,8 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		separate(par, c(".variable", "G"), sep="[\\[\\]\\,]", extra = "drop") %>%
 		mutate( G = G %>% as.integer)
 
+	plan(multiprocess)
+
 	# Calculate quantiles
 	fit_mu %>%
 		select(S, G, mu_mean, mu_sd) %>%
@@ -678,24 +683,24 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		# Calculate counts_rng
 		nest(data = -c(S, G)) %>%
 		mutate( counts_rng_quantiles =
-			map(data,
-				~ {
-					x = rnbinom(
-						how_many_posterior_draws,
-						mu = exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)),
-						size = 1/exp(rnorm(how_many_posterior_draws, .x$sigma_mean, .x$sigma_sd))
-					)
+							future_map(data,
+												 ~ {
+												 	x = rnbinom(
+												 		how_many_posterior_draws,
+												 		mu = exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)),
+												 		size = 1/exp(rnorm(how_many_posterior_draws, .x$sigma_mean, .x$sigma_sd))
+												 	)
 
-					x %>%
-					quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
-						as_tibble(rownames="prop") %>%
-						spread(prop, value) %>%
-						setNames(c(".lower", ".upper")) %>%
+												 	x %>%
+												 		quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
+												 		as_tibble(rownames="prop") %>%
+												 		spread(prop, value) %>%
+												 		setNames(c(".lower", ".upper")) %>%
 
-						# Add mean and sd
-						mutate(mean = mean(x), sd = sd(x))
-				}
-			)
+												 		# Add mean and sd
+												 		mutate(mean = mean(x), sd = sd(x))
+												 }
+							)
 		) %>%
 		select(-data) %>%
 		unnest(cols = c(counts_rng_quantiles)) %>%
@@ -803,6 +808,7 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @param significance_column A column name
 #' @param do_check_column A column name
 #' @param approximate_posterior_inference A boolean
+#' @param approximate_posterior_analysis A boolean
 #' @param C An integer
 #' @param X A tibble
 #' @param lambda_mu_mu A real
@@ -1001,8 +1007,6 @@ do_inference = function(my_df,
 			)
 		)
 
-	writeLines("Fit object successfully loaded in memory. Going forward to parsing fir object")
-
 	# Parse and return
 	fit %>%
 
@@ -1140,6 +1144,7 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @param value_column A column name
 #' @param significance_column A column name
 #' @param approximate_posterior_inference A boolean
+#' @param approximate_posterior_analysis A boolean
 #' @param do_check_column A symbol
 #' @param how_many_negative_controls An integer
 #' @param save_generated_quantities A boolean
@@ -1175,7 +1180,7 @@ ppc_seq = function(input.df,
 									 tol_rel_obj = 0.01,
 									 just_discovery = F,
 									 write_on_disk = F
-									) {
+) {
 	# Prepare column same enquo
 	sample_column = enquo(sample_column)
 	gene_column = enquo(gene_column)
@@ -1340,11 +1345,11 @@ ppc_seq = function(input.df,
 	# Merge results and return
 	merge_results(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental) %>%
 
-	# Add fit attribute if any
-	add_attr(res_test %>% attr("fit"), "fit") %>%
+		# Add fit attribute if any
+		add_attr(res_test %>% attr("fit"), "fit") %>%
 
-	# Add total draws
-	add_attr(res_test %>% attr("total_draws"), "total_draws")
+		# Add total draws
+		add_attr(res_test %>% attr("total_draws"), "total_draws")
 
 
 
