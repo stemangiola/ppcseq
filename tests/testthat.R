@@ -1,4 +1,4 @@
 library(testthat)
-library(ttBulk)
+library(ppcSeq)
 
-test_check("ttBulk")
+test_check("ppcSeq")
