@@ -5,8 +5,10 @@
 \title{do_inference}
 \usage{
 do_inference(my_df, formula, sample_column, gene_column, value_column,
-  significance_column, do_check_column, full_bayes = F, C, X,
-  lambda_mu_mu, cores, exposure_rate_multiplier, intercept_shift_scale,
+  significance_column, do_check_column,
+  approximate_posterior_inference = F,
+  approximate_posterior_analysis = F, C, X, lambda_mu_mu, cores,
+  exposure_rate_multiplier, intercept_shift_scale,
   additional_parameters_to_save, adj_prob_theshold, to_exclude = tibble(S
   = integer(), G = integer()), truncation_compensation = 1,
   save_generated_quantities = F, inits_fx = "random",
@@ -29,7 +31,9 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
 
 \item{do_check_column}{A column name}
 
-\item{full_bayes}{A boolean}
+\item{approximate_posterior_inference}{A boolean}
+
+\item{approximate_posterior_analysis}{A boolean}
 
 \item{C}{An integer}
 

@@ -195,7 +195,6 @@ vb_iterative = function(model,
 				output_samples = output_samples,
 				iter = iter,
 				tol_rel_obj = tol_rel_obj,
-				#sample_file = "temp_stan_sampling.txt",
 				pars=c("counts_rng", "exposure_rate", additional_parameters_to_save),
 				...
 			)
@@ -501,32 +500,48 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 select_to_check_and_house_keeping = function(input.df, do_check_column, significance_column, gene_column, how_many_negative_controls  = 500){
 	input.df %>%
 		{
-		bind_rows(
-			# Genes to check
-			(.) %>%
-				filter((!!do_check_column)),
+			bind_rows(
+				# Genes to check
+				(.) %>%
+					filter((!!do_check_column)),
 
-			# Least changing genes, negative controls
-			(.) %>%
-				filter((!!do_check_column) %>% `!`) %>%
-				inner_join(
-					(.) %>%
-						arrange(!!significance_column) %>%
-						select(!!gene_column) %>%
-						distinct() %>%
-						tail(how_many_negative_controls),
-					by = quo_name(gene_column)
-				)
-		)
-	}
+				# Least changing genes, negative controls
+				(.) %>%
+					filter((!!do_check_column) %>% `!`) %>%
+					inner_join(
+						(.) %>%
+							arrange(!!significance_column) %>%
+							select(!!gene_column) %>%
+							distinct() %>%
+							tail(how_many_negative_controls),
+						by = quo_name(gene_column)
+					)
+			)
+		}
 }
 
-run_model = function(model, full_bayes, chains, how_many_posterior_draws, inits_fx, tol_rel_obj, additional_parameters_to_save){
+run_model = function(model, approximate_posterior_inference, chains, how_many_posterior_draws, inits_fx, tol_rel_obj, additional_parameters_to_save){
 
 	writeLines(sprintf("executing %s", "run_model"))
 
 	switch(
-		full_bayes %>% `!` %>% as.integer %>% sum(1),
+		approximate_posterior_inference %>% `!` %>% as.integer %>% sum(1),
+
+		# VB Repeat strategy for failures of vb
+		vb_iterative(
+			model,
+			#pcc_seq_model, #
+			output_samples = how_many_posterior_draws,
+			iter = 50000,
+			tol_rel_obj = tol_rel_obj,
+			pars = c(
+				"counts_rng",
+				"exposure_rate",
+				additional_parameters_to_save
+			)
+			#,
+			#sample_file = "temp_stan_sampling.txt"
+		),
 
 		# MCMC
 		sampling(
@@ -543,22 +558,6 @@ run_model = function(model, full_bayes, chains, how_many_posterior_draws, inits_
 				"exposure_rate",
 				additional_parameters_to_save
 			)
-		),
-
-		# VB Repeat strategy for failures of vb
-		vb_iterative(
-			model,
-			#pcc_seq_model, #
-			output_samples = how_many_posterior_draws,
-			iter = 50000,
-			tol_rel_obj = tol_rel_obj,
-			pars = c(
-				"counts_rng",
-				"exposure_rate",
-				additional_parameters_to_save
-			)
-			#,
-			#sample_file = "temp_stan_sampling.txt"
 		)
 	)
 }
@@ -607,17 +606,18 @@ check_if_within_posterior = function(input.df, my_df, do_check_column, value_col
 		ungroup
 }
 
-#' parse_fit
+#' fit_to_counts_rng
 #'
 #' @importFrom tidyr separate
 #' @importFrom tidyr nest
+#' @importFrom rstan summary
 #'
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
 #'
-parse_fit = function(fit, adj_prob_theshold){
+fit_to_counts_rng = function(fit, adj_prob_theshold){
 
-	writeLines(sprintf("executing %s", "parse_fit"))
+	writeLines(sprintf("executing %s", "fit_to_counts_rng"))
 
 	fit %>%
 		rstan::summary("counts_rng",
@@ -632,6 +632,81 @@ parse_fit = function(fit, adj_prob_theshold){
 		select(-one_of(c("n_eff", "Rhat", "khat"))) %>%
 		rename(`.lower` = (.) %>% ncol - 1,
 					 `.upper` = (.) %>% ncol)
+}
+
+#' fit_to_counts_rng_approximated
+#'
+#' @importFrom tidyr separate
+#' @importFrom tidyr nest
+#' @importFrom tidyr unnest
+#' @importFrom rstan summary
+#' @importFrom furrr future_map
+#' @importFrom future plan
+#' @importFrom future multiprocess
+#'
+#' @param fit A fit object
+#' @param adj_prob_theshold fit real
+#' @param how_many_posterior_draws An integer
+#'
+fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws){
+
+	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
+
+	fit_summary  = fit %>% rstan::summary() %$% summary %>%
+		as_tibble(rownames="par")
+
+	fit_mu =
+		fit_summary %>%
+		filter(grepl("lambda_log_param", par)) %>%
+		rename(mu_mean = mean, mu_sd = sd) %>%
+		separate(par, c(".variable", "S", "G"), sep="[\\[\\]\\,]", extra = "drop") %>%
+		mutate(S = S %>% as.integer, G = G %>% as.integer)
+
+	fit_sigma =
+		fit_summary %>%
+		filter(grepl("sigma_raw", par))	%>%
+		rename(sigma_mean = mean, sigma_sd = sd) %>%
+		separate(par, c(".variable", "G"), sep="[\\[\\]\\,]", extra = "drop") %>%
+		mutate( G = G %>% as.integer)
+
+	plan(multiprocess)
+
+	# Calculate quantiles
+	fit_mu %>%
+		select(S, G, mu_mean, mu_sd) %>%
+		left_join(
+			fit_sigma %>%
+				select(G, sigma_mean, sigma_sd),
+			by="G"
+		) %>%
+
+		# Calculate counts_rng
+		nest(data = -c(S, G)) %>%
+		mutate( counts_rng_quantiles =
+							future_map(data,
+												 ~ {
+												 	x = rnbinom(
+												 		how_many_posterior_draws,
+												 		mu = exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)),
+												 		size = 1/exp(rnorm(how_many_posterior_draws, .x$sigma_mean, .x$sigma_sd))
+												 	)
+
+												 	x %>%
+												 		quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
+												 		as_tibble(rownames="prop") %>%
+												 		spread(prop, value) %>%
+												 		setNames(c(".lower", ".upper")) %>%
+
+												 		# Add mean and sd
+												 		mutate(mean = mean(x), sd = sd(x))
+												 }
+							)
+		) %>%
+		select(-data) %>%
+		unnest(cols = c(counts_rng_quantiles)) %>%
+		mutate(.variable = "counts_rng") %>%
+		select(.variable, S, G, mean, sd, .lower, .upper)
+
 }
 
 save_generated_quantities_in_case = function(input.df, fit, save_generated_quantities){
@@ -732,7 +807,8 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @param value_column A column name
 #' @param significance_column A column name
 #' @param do_check_column A column name
-#' @param full_bayes A boolean
+#' @param approximate_posterior_inference A boolean
+#' @param approximate_posterior_analysis A boolean
 #' @param C An integer
 #' @param X A tibble
 #' @param lambda_mu_mu A real
@@ -759,7 +835,8 @@ do_inference = function(my_df,
 												value_column,
 												significance_column ,
 												do_check_column,
-												full_bayes = F,
+												approximate_posterior_inference = F,
+												approximate_posterior_analysis = F,
 												C,
 												X,
 												lambda_mu_mu,
@@ -796,11 +873,16 @@ do_inference = function(my_df,
 		nrow
 
 	# Calculate the needed posterior draws
-	how_many_posterior_draws =  5 %>% divide_by(adj_prob_theshold) %>% max(500)
+	how_many_posterior_draws =  5 %>% divide_by(adj_prob_theshold) %>% max(1000)
+
+	# if analysis approximated
+	# If posterior analysis is approximated I just need enough
+	how_many_posterior_draws_practical = ifelse(approximate_posterior_analysis, 1000, how_many_posterior_draws)
+	if(approximate_posterior_analysis) additional_parameters_to_save = additional_parameters_to_save %>% c("lambda_log_param", "sigma_raw") %>% unique
 
 	# Identify the optimal number of chain
 	# based on how many draws we need from the posterior
-	chains = find_optimal_number_of_chains(how_many_posterior_draws)
+	chains = find_optimal_number_of_chains(how_many_posterior_draws_practical)
 
 	# Find how many cores per chain, minimum 1 of course
 	my_cores = cores %>% divide_by(chains) %>% floor %>% max(1)
@@ -887,7 +969,7 @@ do_inference = function(my_df,
 	CP = ncol(counts_package)
 
 	# Run model
-	writeLines(sprintf("- Roughly the memory allocation for the fit object is %s Gb", object.size(1:(S * how_many_to_check * how_many_posterior_draws))/1e9))
+	#writeLines(sprintf("- Roughly the memory allocation for the fit object is %s Gb", object.size(1:(S * how_many_to_check * how_many_posterior_draws))/1e9))
 
 	# Set up environmental variable for threading
 	Sys.setenv("STAN_NUM_THREADS" = my_cores)
@@ -895,7 +977,17 @@ do_inference = function(my_df,
 	# Run Stan
 	fit =
 		switch(
-			full_bayes %>% `!` %>% as.integer %>% sum(1),
+			approximate_posterior_inference %>% `!` %>% as.integer %>% sum(1),
+
+			# VB Repeat strategy for failures of vb
+			vb_iterative(
+				stanmodels$negBinomial_MPI,
+				#pcc_seq_model, #
+				output_samples = how_many_posterior_draws_practical,
+				iter = 50000,
+				tol_rel_obj = 0.005,
+				additional_parameters_to_save = additional_parameters_to_save
+			),
 
 			# MCMC
 			sampling(
@@ -903,7 +995,7 @@ do_inference = function(my_df,
 				#pcc_seq_model, #
 				chains = chains,
 				cores = chains,
-				iter = (how_many_posterior_draws / chains) %>% ceiling %>% sum(150),
+				iter = (how_many_posterior_draws_practical / chains) %>% ceiling %>% sum(150),
 				warmup = 150,
 				save_warmup = FALSE,
 				init = inits_fx,
@@ -912,26 +1004,17 @@ do_inference = function(my_df,
 					"exposure_rate",
 					additional_parameters_to_save
 				)
-				#,
-				#sample_file = switch(write_on_disk %>% `!` %>% sum(1), "temp_stan_sampling.txt", NULL)
-			),
-
-			# VB Repeat strategy for failures of vb
-			vb_iterative(
-				stanmodels$negBinomial_MPI,
-				#pcc_seq_model, #
-				output_samples = how_many_posterior_draws,
-				iter = 50000,
-				tol_rel_obj = 0.005,
-				additional_parameters_to_save = additional_parameters_to_save
 			)
 		)
 
-	writeLines("Fit object successfully loaded in memory. Going forward to parsing fir object")
-
 	# Parse and return
 	fit %>%
-		parse_fit(adj_prob_theshold) %>%
+
+		ifelse_pipe(
+			approximate_posterior_analysis,
+			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10),
+			~ .x %>% fit_to_counts_rng(adj_prob_theshold)
+		) %>%
 
 		# If generated quantities are saved
 		save_generated_quantities_in_case(fit, save_generated_quantities) %>%
@@ -1060,7 +1143,8 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @param gene_column A column name
 #' @param value_column A column name
 #' @param significance_column A column name
-#' @param full_bayes A boolean
+#' @param approximate_posterior_inference A boolean
+#' @param approximate_posterior_analysis A boolean
 #' @param do_check_column A symbol
 #' @param how_many_negative_controls An integer
 #' @param save_generated_quantities A boolean
@@ -1084,7 +1168,8 @@ ppc_seq = function(input.df,
 									 value_column = `read count`,
 									 significance_column = `p-value`,
 									 do_check_column,
-									 full_bayes = F,
+									 approximate_posterior_inference = T,
+									 approximate_posterior_analysis = F,
 									 how_many_negative_controls = 500,
 									 save_generated_quantities = F,
 									 additional_parameters_to_save = c(),  # For development purpose
@@ -1095,7 +1180,7 @@ ppc_seq = function(input.df,
 									 tol_rel_obj = 0.01,
 									 just_discovery = F,
 									 write_on_disk = F
-									) {
+) {
 	# Prepare column same enquo
 	sample_column = enquo(sample_column)
 	gene_column = enquo(gene_column)
@@ -1113,7 +1198,7 @@ ppc_seq = function(input.df,
 	check_if_any_NA(input.df, !!sample_column, !!gene_column, !!value_column, !!significance_column, !!do_check_column, parse_formula(formula))
 
 	# Check is testing environment is supported
-	if ((!full_bayes) &
+	if ((approximate_posterior_inference) &
 			save_generated_quantities)
 		stop("Variational Bayes does not support tidybayes needed for save_generated_quantities, use sampling")
 
@@ -1185,7 +1270,8 @@ ppc_seq = function(input.df,
 		my_df %>%
 		do_inference(
 			formula,!!sample_column ,!!gene_column ,!!value_column ,!!significance_column ,!!do_check_column,
-			full_bayes,
+			approximate_posterior_inference,
+			approximate_posterior_analysis,
 			C,
 			X,
 			lambda_mu_mu,
@@ -1235,7 +1321,8 @@ ppc_seq = function(input.df,
 		my_df %>%
 		do_inference(
 			formula,!!sample_column ,!!gene_column ,!!value_column ,!!significance_column ,!!do_check_column,
-			full_bayes,
+			approximate_posterior_inference,
+			approximate_posterior_analysis,
 			C,
 			X,
 			lambda_mu_mu,
@@ -1258,11 +1345,11 @@ ppc_seq = function(input.df,
 	# Merge results and return
 	merge_results(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental) %>%
 
-	# Add fit attribute if any
-	add_attr(res_test %>% attr("fit"), "fit") %>%
+		# Add fit attribute if any
+		add_attr(res_test %>% attr("fit"), "fit") %>%
 
-	# Add total draws
-	add_attr(res_test %>% attr("total_draws"), "total_draws")
+		# Add total draws
+		add_attr(res_test %>% attr("total_draws"), "total_draws")
 
 
 
