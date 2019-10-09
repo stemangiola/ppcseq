@@ -23,6 +23,8 @@ Imports:
     dplyr, 
     magrittr, 
     purrr,
+    future,
+    furrr,
     tidyr (>= 0.8.3.9000), 
     ggplot2,
     foreach,

@@ -12,13 +12,14 @@ test_that("Quick test",{
       percent_false_positive_genes = "5%",
       tol_rel_obj = 0.01,
       approximate_posterior_inference = T,
-      approximate_posterior_analysis = T
+      approximate_posterior_analysis = T,
+      how_many_negative_controls = 50
     )
 
   expect_equal(
 
-    as.integer(unlist(res[c(1, 2, 4, 5, 6),5])),
-    c(0,1,0,0,0)
+    as.integer(unlist(res[,5])),
+    c(0,1,0)
   )
 
 })

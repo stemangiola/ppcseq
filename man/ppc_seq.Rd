@@ -32,6 +32,8 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
 
 \item{approximate_posterior_inference}{A boolean}
 
+\item{approximate_posterior_analysis}{A boolean}
+
 \item{how_many_negative_controls}{An integer}
 
 \item{save_generated_quantities}{A boolean}
