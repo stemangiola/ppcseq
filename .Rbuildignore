@@ -2,3 +2,7 @@
 ^\.Rproj\.user$
 ^dev/*
 ^README_files*
+^README*
+^.RData*
+^.Rhistory*
+.gitignore
