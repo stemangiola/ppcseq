@@ -845,6 +845,7 @@ do_inference = function(my_df,
 												intercept_shift_scale,
 												additional_parameters_to_save,
 												adj_prob_theshold,
+												how_many_posterior_draws,
 												to_exclude = tibble(S = integer(), G = integer()),
 												truncation_compensation = 1,
 												save_generated_quantities = F,
@@ -872,9 +873,6 @@ do_inference = function(my_df,
 		distinct(!!gene_column) %>%
 		nrow
 
-	# Calculate the needed posterior draws
-	how_many_posterior_draws =  5 %>% divide_by(adj_prob_theshold) %>% max(1000)
-
 	# if analysis approximated
 	# If posterior analysis is approximated I just need enough
 	how_many_posterior_draws_practical = ifelse(approximate_posterior_analysis, 1000, how_many_posterior_draws)
@@ -882,7 +880,10 @@ do_inference = function(my_df,
 
 	# Identify the optimal number of chain
 	# based on how many draws we need from the posterior
-	chains = find_optimal_number_of_chains(how_many_posterior_draws_practical)
+	chains =
+		find_optimal_number_of_chains(how_many_posterior_draws_practical) %>%
+		min(cores) %>%
+		max(3)
 
 	# Find how many cores per chain, minimum 1 of course
 	my_cores = cores %>% divide_by(chains) %>% floor %>% max(1)
@@ -1136,6 +1137,8 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
 #' @importFrom ttBulk normalise_abundance
+#' @importFrom benchmarkme get_ram
+#' @importFrom magrittr multiply_by
 #'
 #' @param input.df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -1198,8 +1201,7 @@ ppc_seq = function(input.df,
 	check_if_any_NA(input.df, !!sample_column, !!gene_column, !!value_column, !!significance_column, !!do_check_column, parse_formula(formula))
 
 	# Check is testing environment is supported
-	if ((approximate_posterior_inference) &
-			save_generated_quantities)
+	if (approximate_posterior_inference &	save_generated_quantities)
 		stop("Variational Bayes does not support tidybayes needed for save_generated_quantities, use sampling")
 
 	# Check percent FP input
@@ -1223,6 +1225,33 @@ ppc_seq = function(input.df,
 				quo_name(value_column)
 			)
 		)
+
+	# Calculate the adj_prob_theshold
+	adj_prob_theshold_1  = 0.05
+	adj_prob_theshold_2 =
+		pfpg / 100 /
+		(input.df %>% distinct(!!sample_column) %>% nrow) *
+		ifelse(do_check_only_on_detrimental, 2, 1)
+
+	# Calculate adj_prob_theshold
+	how_many_posterior_draws_1 =  5 %>% divide_by(adj_prob_theshold_1) %>% max(1000) # I want 5 draws in the tail
+	how_many_posterior_draws_2 =  5 %>% divide_by(adj_prob_theshold_2) %>% max(1000) # I want 5 draws in the tail
+
+	# Check if enough memory for full draw
+	available_memory = benchmarkme::get_ram() %>% as.numeric() %>% multiply_by(1e+9)
+	required_memory = ifelse(
+		approximate_posterior_inference %>% `!`,
+		1.044e+06 + how_many_posterior_draws_2 * 3.777e-02, # Regression taken from performances.R
+		1.554e+06 + how_many_posterior_draws_2 * 7.327e-02  # Regression taken from performances.R
+	)
+	if(required_memory > available_memory & !approximate_posterior_analysis) {
+		warning("
+						You don't have enough memory to model the posterior distribution with MCMC draws.
+						Therefore the parameter approximate_posterior_analysis was set to TRUE
+		")
+		approximate_posterior_analysis = T
+	}
+
 
 	# distinct_at is not released yet for dplyr, thus we have to use this trick
 	my_df <- format_input(
@@ -1271,7 +1300,7 @@ ppc_seq = function(input.df,
 		do_inference(
 			formula,!!sample_column ,!!gene_column ,!!value_column ,!!significance_column ,!!do_check_column,
 			approximate_posterior_inference,
-			approximate_posterior_analysis,
+			approximate_posterior_analysis = F,
 			C,
 			X,
 			lambda_mu_mu,
@@ -1279,7 +1308,8 @@ ppc_seq = function(input.df,
 			exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
-			adj_prob_theshold  = 0.05,
+			adj_prob_theshold  = adj_prob_theshold_1,
+			how_many_posterior_draws = how_many_posterior_draws_1,
 			pass_fit = pass_fit,
 			tol_rel_obj = tol_rel_obj,
 			write_on_disk = write_on_disk
@@ -1330,11 +1360,9 @@ ppc_seq = function(input.df,
 			exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
-			adj_prob_theshold =
-				pfpg / 100 /
-				(my_df %>% distinct(!!sample_column) %>% nrow) *
-				ifelse(do_check_only_on_detrimental, 2, 1), # If check only deleterious is one side test
+			adj_prob_theshold = adj_prob_theshold_2, # If check only deleterious is one side test
 			# * 2 because we just test one side of the distribution
+			how_many_posterior_draws = how_many_posterior_draws_2,
 			to_exclude = to_exclude,
 			save_generated_quantities = save_generated_quantities,
 			tol_rel_obj = tol_rel_obj,
