@@ -30,7 +30,9 @@ Imports:
     foreach,
     tidybayes,
     ttBulk,
-    testthat
+    testthat,
+    benchmarkme,
+    multidplyr
 Remotes: 
     github::stemangiola/ttBulk, github::stan-dev/rstantools
 LinkingTo: 
