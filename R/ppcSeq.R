@@ -647,8 +647,11 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
 #' @param how_many_posterior_draws An integer
+#' @param cores An integer
 #'
-fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws){
+#' @export
+
+fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, cores){
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
@@ -669,8 +672,6 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		separate(par, c(".variable", "G"), sep="[\\[\\]\\,]", extra = "drop") %>%
 		mutate( G = G %>% as.integer)
 
-	plan(multiprocess)
-
 	# Calculate quantiles
 	fit_mu %>%
 		select(S, G, mu_mean, mu_sd) %>%
@@ -680,30 +681,40 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 			by="G"
 		) %>%
 
-		# Calculate counts_rng
-		nest(data = -c(S, G)) %>%
-		mutate( counts_rng_quantiles =
-							future_map(data,
-												 ~ {
-												 	x = rnbinom(
-												 		how_many_posterior_draws,
-												 		mu = exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)),
-												 		size = 1/exp(rnorm(how_many_posterior_draws, .x$sigma_mean, .x$sigma_sd))
-												 	)
+		# Pass variables
+		mutate(how_many_posterior_draws = how_many_posterior_draws, adj_prob_theshold = adj_prob_theshold) %>%
 
-												 	x %>%
-												 		quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
-												 		as_tibble(rownames="prop") %>%
-												 		spread(prop, value) %>%
-												 		setNames(c(".lower", ".upper")) %>%
+		do_parallel_start(cores, "G") %>%
+		do({
 
-												 		# Add mean and sd
-												 		mutate(mean = mean(x), sd = sd(x))
-												 }
-							)
-		) %>%
-		select(-data) %>%
-		unnest(cols = c(counts_rng_quantiles)) %>%
+			`%>%` = magrittr::`%>%`
+
+			dplyr::do(
+				dplyr::group_by((.), S, G),
+				{
+					.x = (.)
+					how_many_posterior_draws = unique(.x$how_many_posterior_draws)
+					adj_prob_theshold = unique(.x$adj_prob_theshold)
+
+					x = rnbinom(
+						how_many_posterior_draws,
+						mu = exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)),
+						size = 1/exp(rnorm(how_many_posterior_draws, .x$sigma_mean, .x$sigma_sd))
+					)
+
+					x %>%
+						quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
+						tibble::as_tibble(rownames="prop") %>%
+						tidyr::spread(prop, value) %>%
+						setNames(c(".lower", ".upper")) %>%
+
+						# Add mean and sd
+						dplyr::mutate(mean = mean(x), sd = sd(x))
+				})
+		}) %>%
+		do_parallel_end() %>%
+
+
 		mutate(.variable = "counts_rng") %>%
 		select(.variable, S, G, mean, sd, .lower, .upper)
 
@@ -817,6 +828,7 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @param intercept_shift_scale A real
 #' @param additional_parameters_to_save A character vector
 #' @param adj_prob_theshold A real
+#' @param how_many_posterior_draws A real number of posterior draws needed
 #' @param to_exclude A boolean
 #' @param truncation_compensation A real
 #' @param save_generated_quantities A boolean
@@ -828,6 +840,7 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #'
 #' @return A tibble with additional columns
 #'
+#' @export
 do_inference = function(my_df,
 												formula,
 												sample_column ,
@@ -1013,7 +1026,7 @@ do_inference = function(my_df,
 
 		ifelse_pipe(
 			approximate_posterior_analysis,
-			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10),
+			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10, cores),
 			~ .x %>% fit_to_counts_rng(adj_prob_theshold)
 		) %>%
 
@@ -1238,7 +1251,7 @@ ppc_seq = function(input.df,
 	how_many_posterior_draws_2 =  5 %>% divide_by(adj_prob_theshold_2) %>% max(1000) # I want 5 draws in the tail
 
 	# Check if enough memory for full draw
-	available_memory = benchmarkme::get_ram() %>% as.numeric() %>% multiply_by(1e+9)
+	available_memory = get_ram() %>% as.numeric() %>% multiply_by(1e+9)
 	required_memory = ifelse(
 		approximate_posterior_inference %>% `!`,
 		1.044e+06 + how_many_posterior_draws_2 * 3.777e-02, # Regression taken from performances.R
