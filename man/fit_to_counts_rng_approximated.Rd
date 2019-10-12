@@ -5,7 +5,7 @@
 \title{fit_to_counts_rng_approximated}
 \usage{
 fit_to_counts_rng_approximated(fit, adj_prob_theshold,
-  how_many_posterior_draws)
+  how_many_posterior_draws, cores)
 }
 \arguments{
 \item{fit}{A fit object}
@@ -13,6 +13,8 @@ fit_to_counts_rng_approximated(fit, adj_prob_theshold,
 \item{adj_prob_theshold}{fit real}
 
 \item{how_many_posterior_draws}{An integer}
+
+\item{cores}{An integer}
 }
 \description{
 fit_to_counts_rng_approximated

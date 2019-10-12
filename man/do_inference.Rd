@@ -9,8 +9,9 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
   approximate_posterior_inference = F,
   approximate_posterior_analysis = F, C, X, lambda_mu_mu, cores,
   exposure_rate_multiplier, intercept_shift_scale,
-  additional_parameters_to_save, adj_prob_theshold, to_exclude = tibble(S
-  = integer(), G = integer()), truncation_compensation = 1,
+  additional_parameters_to_save, adj_prob_theshold,
+  how_many_posterior_draws, to_exclude = tibble(S = integer(), G =
+  integer()), truncation_compensation = 1,
   save_generated_quantities = F, inits_fx = "random",
   prior_from_discovery = tibble(.variable = character(), mean =
   numeric(), sd = numeric()), pass_fit = F, tol_rel_obj = 0.01,
@@ -50,6 +51,8 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
 \item{additional_parameters_to_save}{A character vector}
 
 \item{adj_prob_theshold}{A real}
+
+\item{how_many_posterior_draws}{A real number of posterior draws needed}
 
 \item{to_exclude}{A boolean}
 
