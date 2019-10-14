@@ -1,8 +1,9 @@
 
-
+#' @export
 do_parallel_start = function(df, cores, partition_by){
 
-	cl <- multidplyr::new_cluster(cores)
+	# Only if cores > 1
+	if(cores > 1)		cl <- multidplyr::new_cluster(cores)
 
 	df %>%
 		dplyr::left_join(
@@ -10,20 +11,26 @@ do_parallel_start = function(df, cores, partition_by){
 				dplyr::select(!!partition_by) %>%
 				dplyr::distinct() %>%
 				dplyr::mutate(
-					part = 1:n() %>%
+					`.part` = 1:n() %>%
 						magrittr::divide_by(length((.))) %>%
 						magrittr::multiply_by(!!cores) %>%
 						ceiling
 				)
 		)  %>%
-		group_by(part) %>%
-		multidplyr::partition(cl)
+		group_by(.part) %>%
+
+		# Only if cores > 1
+		ifelse_pipe(cores > 1,	~ .x %>% multidplyr::partition(cl))
+
 }
 
-
+#' @export
 do_parallel_end = function(.){
 	(.) %>%
-		dplyr::collect() %>%
+		# Only if cores > 1
+		ifelse_pipe((.) %>% class %>% magrittr::equals("multidplyr_party_df") %>% any,	~ .x %>% dplyr::collect()) %>%
 		dplyr::ungroup() %>%
-		dplyr::select(-part)
+
+		# Only if cores > 1
+		dplyr::select(-`.part`)
 }

@@ -14,7 +14,7 @@ test_that("VB post approx",{
       approximate_posterior_inference = T,
       approximate_posterior_analysis = T,
       how_many_negative_controls = 50,
-      cores=2
+      cores=1
     )
 
   expect_equal(
@@ -39,7 +39,7 @@ test_that("VB post full",{
       approximate_posterior_inference = T,
       approximate_posterior_analysis = F,
       how_many_negative_controls = 50,
-      cores=2
+      cores=1
     )
 
   expect_equal(
@@ -64,7 +64,7 @@ test_that("bayes post approx",{
       approximate_posterior_inference = F,
       approximate_posterior_analysis = T,
       how_many_negative_controls = 50,
-      cores=2
+      cores=1
     )
 
   expect_equal(
@@ -89,7 +89,7 @@ test_that("bayes full",{
       approximate_posterior_inference = F,
       approximate_posterior_analysis = F,
       how_many_negative_controls = 50,
-      cores=2
+      cores=1
     )
 
   expect_equal(

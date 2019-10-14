@@ -592,6 +592,7 @@ add_exposure_rate = function(input.df, fit){
 		)
 }
 
+#' @export
 check_if_within_posterior = function(input.df, my_df, do_check_column, value_column){
 
 	writeLines(sprintf("executing %s", "check_if_within_posterior"))
@@ -1008,7 +1009,7 @@ do_inference = function(my_df,
 				stanmodels$negBinomial_MPI,
 				#pcc_seq_model, #
 				chains = chains,
-				cores = chains,
+				cores = cores,
 				iter = (how_many_posterior_draws_practical / chains) %>% ceiling %>% sum(150),
 				warmup = 150,
 				save_warmup = FALSE,
