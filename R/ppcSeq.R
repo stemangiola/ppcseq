@@ -592,7 +592,6 @@ add_exposure_rate = function(input.df, fit){
 		)
 }
 
-#' @export
 check_if_within_posterior = function(input.df, my_df, do_check_column, value_column){
 
 	writeLines(sprintf("executing %s", "check_if_within_posterior"))
