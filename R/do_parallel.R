@@ -1,6 +1,8 @@
+
+
 do_parallel_start = function(df, cores, partition_by){
 
-	cluster <- multidplyr::new_cluster(cores)
+	cl <- multidplyr::new_cluster(cores)
 
 	df %>%
 		dplyr::left_join(
@@ -14,7 +16,8 @@ do_parallel_start = function(df, cores, partition_by){
 						ceiling
 				)
 		)  %>%
-		multidplyr::partition(part, cluster)
+		group_by(part) %>%
+		multidplyr::partition(cl)
 }
 
 
