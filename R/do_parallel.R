@@ -1,5 +1,5 @@
 
-#' @export
+
 do_parallel_start = function(df, cores, partition_by){
 
 	# Only if cores > 1
@@ -24,7 +24,7 @@ do_parallel_start = function(df, cores, partition_by){
 
 }
 
-#' @export
+
 do_parallel_end = function(.){
 	(.) %>%
 		# Only if cores > 1
