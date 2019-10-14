@@ -31,7 +31,8 @@ Imports:
     tidybayes,
     ttBulk,
     testthat,
-    benchmarkme
+    benchmarkme,
+    multidplyr
 Remotes: 
     github::stemangiola/ttBulk, github::stan-dev/rstantools, github::tidyverse/multidplyr@0.0.0.9000
 LinkingTo: 
