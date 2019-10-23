@@ -32,7 +32,10 @@ Imports:
     ttBulk,
     testthat,
     benchmarkme,
-    multidplyr
+    multidplyr,
+    KernSmooth,
+    cluster,
+    survival
 Remotes: 
     github::stemangiola/ttBulk, github::stan-dev/rstantools, github::tidyverse/multidplyr
 LinkingTo: 
