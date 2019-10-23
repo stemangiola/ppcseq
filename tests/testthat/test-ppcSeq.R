@@ -14,7 +14,7 @@ test_that("VB post approx",{
       approximate_posterior_inference = T,
       approximate_posterior_analysis = T,
       how_many_negative_controls = 50,
-      cores=1
+      cores=1,pass_fit = T
     )
 
   expect_equal(
