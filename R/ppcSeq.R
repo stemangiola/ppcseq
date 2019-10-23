@@ -809,7 +809,7 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom ttBulk normalise_abundance
+#' @importFrom ttBulk scale_abundance
 #'
 #' @param my_df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -1149,7 +1149,7 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom ttBulk normalise_abundance
+#' @importFrom ttBulk scale_abundance
 #' @importFrom benchmarkme get_ram
 #' @importFrom magrittr multiply_by
 #'
@@ -1289,7 +1289,7 @@ ppc_seq = function(input.df,
 	# Build better scales for the inference
 	exposure_rate_multiplier =
 		my_df %>%
-		normalise_abundance(!!sample_column,!!gene_column,!!value_column) %>%
+		scale_abundance(!!sample_column,!!gene_column,!!value_column) %>%
 		distinct(!!sample_column, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
 		summarise(l %>% sd) %>%
@@ -1298,7 +1298,7 @@ ppc_seq = function(input.df,
 	# Build better scales for the inference
 	intercept_shift_scale =
 		my_df %>%
-		normalise_abundance(!!sample_column,!!gene_column,!!value_column) %>%
+		scale_abundance(!!sample_column,!!gene_column,!!value_column) %>%
 		mutate(cc =
 					 	!!as.symbol(sprintf(
 					 		"%s normalised",  quo_name(value_column)
@@ -1376,6 +1376,7 @@ ppc_seq = function(input.df,
 			adj_prob_theshold = adj_prob_theshold_2, # If check only deleterious is one side test
 			# * 2 because we just test one side of the distribution
 			how_many_posterior_draws = how_many_posterior_draws_2,
+			pass_fit = pass_fit,
 			to_exclude = to_exclude,
 			save_generated_quantities = save_generated_quantities,
 			tol_rel_obj = tol_rel_obj,
@@ -1387,11 +1388,10 @@ ppc_seq = function(input.df,
 	merge_results(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental) %>%
 
 		# Add fit attribute if any
-		add_attr(res_test %>% attr("fit"), "fit") %>%
+		add_attr(res_discovery %>% attr("fit"), "fit 1") %>%
+		add_attr(res_test %>% attr("fit"), "fit 2") %>%
 
 		# Add total draws
 		add_attr(res_test %>% attr("total_draws"), "total_draws")
-
-
 
 }
