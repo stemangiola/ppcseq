@@ -195,6 +195,7 @@ vb_iterative = function(model,
 				output_samples = output_samples,
 				iter = iter,
 				tol_rel_obj = tol_rel_obj,
+				seed = 654321,
 				pars=c("counts_rng", "exposure_rate", additional_parameters_to_save),
 				...
 			)
@@ -309,12 +310,14 @@ inits_fx =
 #' @import ggplot2
 #'
 #' @param .x A tibble
+#' @param symbol A symbol object
 #' @param value_column A symbol object
 #' @param sample_column A symbol object
 #' @param covariate A character string
 #'
 #' @return A ggplot
 produce_plots = function(.x,
+												 symbol,
 												 value_column,
 												 sample_column,
 												 covariate) {
@@ -380,7 +383,8 @@ produce_plots = function(.x,
 				shape = 21,
 				fill = "black"
 			)
-		)
+		) +
+		ggtitle(symbol)
 }
 
 # Add annotation if sample belongs to high or low group
@@ -462,6 +466,7 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 					 	pmap(
 					 		list(
 					 			`sample wise data`,
+					 			symbol,
 					 			# nested data for plot
 					 			quo_name(value_column),
 					 			# name of value column
@@ -469,7 +474,7 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 					 			# name of sample column
 					 			parse_formula(formula)[1] # main covariate
 					 		),
-					 		~ produce_plots(..1, ..2, ..3, ..4)
+					 		~ produce_plots(..1, ..2, ..3, ..4, ..5)
 					 	)) %>%
 
 		# Add summary statistics
@@ -552,6 +557,7 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 			iter = (how_many_posterior_draws / chains) %>% ceiling %>% sum(150),
 			warmup = 150,
 			save_warmup = FALSE,
+			seed = 654321,
 			init = inits_fx,
 			pars = c(
 				"counts_rng",
@@ -1012,6 +1018,7 @@ do_inference = function(my_df,
 				iter = (how_many_posterior_draws_practical / chains) %>% ceiling %>% sum(150),
 				warmup = 150,
 				save_warmup = FALSE,
+				seed = 654321,
 				init = inits_fx,
 				pars = c(
 					"counts_rng",
