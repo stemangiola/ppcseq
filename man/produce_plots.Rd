@@ -4,10 +4,12 @@
 \alias{produce_plots}
 \title{Produce generated quantities plots with marked uotliers}
 \usage{
-produce_plots(.x, value_column, sample_column, covariate)
+produce_plots(.x, symbol, value_column, sample_column, covariate)
 }
 \arguments{
 \item{.x}{A tibble}
+
+\item{symbol}{A symbol object}
 
 \item{value_column}{A symbol object}
 

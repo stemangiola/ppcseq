@@ -179,7 +179,8 @@ res =
 		gene_column = transcript,
 		pass_fit = T,
 		tol_rel_obj = 0.01,
-		just_discovery = T, full_bayes = T,
+		just_discovery = T,
+		full_bayes = T,
 		cores = 30,
 		additional_parameters_to_save = c("intercept", "sigma_raw")
 	)
