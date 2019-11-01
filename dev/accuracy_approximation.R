@@ -16,23 +16,24 @@ my_theme =
 	)
 
 read_csv("dev/elapsed_data.csv") %>%
-	filter(FDR<1) %>%
+	filter(
+		approximate_posterior_inference == F &
+			approximate_posterior_analysis == F &
+			fp_rate == "1%" &
+			genes == 164
+	) %>%
+	slice(1) %>%
+	map(.$)
+
+
+
+"/stornext/Bioinf/data/bioinf-data/Papenfuss_lab/projects/ppc-benchmarking/archive/v0.4.1/tmp_kzehrku.rds" %>%
+	readRDS() %>%
+	attributes %>%
+	names
+
 	ggplot(aes(x = draws, y=memory)) +
 	geom_point(aes(color=fp_rate)) +
 	geom_smooth(method = "lm") +
 	facet_grid(approximate_posterior_inference + approximate_posterior_analysis ~cores) +
 	my_theme
-
-read_csv("dev/elapsed_data.csv") %>%
-	filter(FDR<1) %>%
-	ggplot(aes(x = draws, y=elapsed)) +
-	geom_point(aes(color=fp_rate)) +
-	geom_smooth(method = "lm") +
-	facet_grid(approximate_posterior_inference + approximate_posterior_analysis ~cores) +
-	my_theme
-
-read_csv("dev/elapsed_data.csv") %>%
-	filter(FDR<1) %>%
-	nest(data = -c(bayes)) %>%
-	mutate(fit = map(.x=data,~lm(memory ~ draws, data = .x))) %>%
-	{map(.$fit, summary)}
