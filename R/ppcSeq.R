@@ -1264,8 +1264,12 @@ ppc_seq = function(input.df,
 		1.044e+06 + how_many_posterior_draws_2 * 3.777e-02, # Regression taken from performances.R
 		1.554e+06 + how_many_posterior_draws_2 * 7.327e-02  # Regression taken from performances.R
 	)
-	if(required_memory > available_memory & !approximate_posterior_analysis) {
-		warning("
+
+	if(is.na(available_memory)) {
+		warning(paste0("Could not get the amount of available memory. Assuming there is at least ", round(required_memory / 1e9), " GB available."))
+	}
+	else if(required_memory > available_memory & !approximate_posterior_analysis) {
+		message("
 						You don't have enough memory to model the posterior distribution with MCMC draws.
 						Therefore the parameter approximate_posterior_analysis was set to TRUE
 		")
