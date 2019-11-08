@@ -421,6 +421,7 @@ add_deleterious_if_covariate_exists = function(input.df, X){
 #' @param value_column A column name
 #' @param do_check_only_on_detrimental A boolean
 #'
+#' @export
 merge_results = function(res_discovery, res_test, formula, gene_column, value_column, sample_column, do_check_only_on_detrimental){
 
 	res_discovery %>%
@@ -431,6 +432,7 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 			!!gene_column,
 			!!value_column,
 			!!sample_column,
+			mean,
 			`.lower`,
 			`.upper`,
 			`exposure rate`,
@@ -443,12 +445,13 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 				select(
 					S,
 					G,
+					mean,
 					`.lower`,
 					`.upper`,
 					ppc,
 					one_of(c("generated quantities", "deleterious outliers"))
 				) %>%
-				rename(`.lower_2` = `.lower`, `.upper_2` = `.upper`),
+				rename(mean_2 = mean, `.lower_2` = `.lower`, `.upper_2` = `.upper`),
 			by = c("S", "G")
 		) %>%
 
