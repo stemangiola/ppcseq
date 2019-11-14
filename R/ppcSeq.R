@@ -830,7 +830,8 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @param X A tibble
 #' @param lambda_mu_mu A real
 #' @param cores An integer
-#' @param exposure_rate_multiplier A real
+#' @param exposure_mode String, either "estimate" to estimate exposure within model or "DESeq2" to use DESeq2's normalization.
+#' @param exposure_rate_multiplier A real. Only taken into account when `exposure_mode = "estimate"`
 #' @param intercept_shift_scale A real
 #' @param additional_parameters_to_save A character vector
 #' @param adj_prob_theshold A real
@@ -860,7 +861,8 @@ do_inference = function(my_df,
 												X,
 												lambda_mu_mu,
 												cores,
-												exposure_rate_multiplier,
+												exposure_mode = "estimate",
+												exposure_rate_multiplier = 1,
 												intercept_shift_scale,
 												additional_parameters_to_save,
 												adj_prob_theshold,
@@ -987,6 +989,42 @@ do_inference = function(my_df,
 
 	# Dimension od the data package to pass to Stan
 	CP = ncol(counts_package)
+
+	# Get the exposure from DESeq2 if needed
+	if(exposure_mode == "estimate") {
+		exposure_given = 0
+		exposure_rate_data = numeric(0)
+	} else if(exposure_mode == "DESeq2") {
+		exposure_given = 1
+
+		#Reconsutrct count matrix from the tidy data
+		wide_df <- my_df %>%
+			dplyr::select(!!sample_column, !!gene_column, !!value_column) %>%
+			tidyr::pivot_wider(names_from = !!gene_column, values_from = !!value_column)
+
+		count_matrix <- wide_df %>% dplyr::select(-!!sample_column) %>% as.matrix()
+		rownames(count_matrix) <- wide_df %>% dplyr::pull(!!sample_column)
+
+		#The colData is actually ignored later, just needs good length
+		colData <- data.frame(Sample = rownames(count_matrix))
+
+		sample_order_orig <-  counts_MPI %>% select(sample, S) %>% distinct() %>% arrange(S) %>% pull(sample)
+		if(!all(sample_order_orig ==  rownames(count_matrix))) {
+			stop("Incompatible sample order for Stan and DESeq2")
+		}
+
+		#I put the ~1 formula as estimating size factors does not take design formula into account
+		dds <- DESeq2::DESeqDataSetFromMatrix(countData = t(count_matrix), colData = colData, design = ~ 1)
+
+		dds <- DESeq2::estimateSizeFactors(dds, type = "poscounts")
+		exposure_rate_data <- log(DESeq2::sizeFactors(dds))
+		#Allow memory to be GC-ed
+		wide_df <- NULL
+		count_matrix <- NULL
+		dds <- NULL
+	} else {
+		stop("exposure_mode must be either 'estimate' or 'DESeq2'")
+	}
 
 	# Run model
 	#writeLines(sprintf("- Roughly the memory allocation for the fit object is %s Gb", object.size(1:(S * how_many_to_check * how_many_posterior_draws))/1e9))
@@ -1193,6 +1231,7 @@ ppc_seq = function(input.df,
 									 do_check_column,
 									 approximate_posterior_inference = T,
 									 approximate_posterior_analysis = F,
+									 exposure_mode = "estimate",
 									 how_many_negative_controls = 500,
 									 save_generated_quantities = F,
 									 additional_parameters_to_save = c(),  # For development purpose
@@ -1329,7 +1368,8 @@ ppc_seq = function(input.df,
 			X,
 			lambda_mu_mu,
 			cores,
-			exposure_rate_multiplier,
+			exposure_mode = exposure_mode,
+			exposure_rate_multiplier = exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
 			adj_prob_theshold  = adj_prob_theshold_1,
@@ -1381,7 +1421,8 @@ ppc_seq = function(input.df,
 			X,
 			lambda_mu_mu,
 			cores,
-			exposure_rate_multiplier,
+			exposure_mode = exposure_mode,
+			exposure_rate_multiplier = exposure_rate_multiplier,
 			intercept_shift_scale,
 			additional_parameters_to_save,
 			adj_prob_theshold = adj_prob_theshold_2, # If check only deleterious is one side test

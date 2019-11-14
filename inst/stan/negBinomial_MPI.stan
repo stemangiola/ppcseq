@@ -111,6 +111,7 @@ functions{
 
   }
 
+
 matrix merge_coefficients(row_vector intercept, row_vector alpha_sub_1, matrix alpha_2,  int C, int S, int G){
 	matrix[C,G] my_alpha;
 
@@ -156,9 +157,12 @@ data {
 
 	int<lower=0> how_many_to_check;
 
+	int<lower=0,upper=1> exposure_given;
 	// For better adaptation
 	real exposure_rate_multiplier;
 	real intercept_shift_scale[2];
+
+  vector[exposure_given ? S : 0] exposure_rate_data;
 
 	// Truncation
 	real<lower=0> truncation_compensation;
@@ -177,7 +181,8 @@ parameters {
   real<lower=0> lambda_sigma;
   real lambda_skew;
 
-  vector<multiplier = exposure_rate_multiplier>[S] exposure_rate;
+  vector<multiplier = exposure_rate_multiplier>[exposure_given ? 0 : S] exposure_rate_param;
+  vector[exposure_given ? 1 : 0] exposure_helper;
 
   // Gene-wise properties of the data
   row_vector[G] intercept;
@@ -201,6 +206,7 @@ transformed parameters {
 }
 
 model {
+	vector[S] exposure_rate;
 
   lambda_mu ~ normal(lambda_mu_mu,2);
   lambda_sigma ~ normal(0,2);
@@ -218,8 +224,15 @@ model {
   sigma_raw ~ normal(sigma_slope * intercept + sigma_intercept,sigma_sigma);
 
   // Exposure prior
-  exposure_rate ~ normal(0,1);
-  sum(exposure_rate) ~ normal(0, 0.001 * S);
+  if(exposure_given) {
+  	exposure_rate = (exposure_rate_data * exposure_rate_multiplier) + exposure_helper[1] * 1e-12;
+  	exposure_helper[1] ~ normal(0,1);
+  } else {
+	  exposure_rate = exposure_rate_param;
+	  exposure_rate_param ~ normal(0,1);
+  	sum(exposure_rate_param) ~ normal(0, 0.001 * S);
+  }
+
 
 	//Gene-wise properties of the data
 	target += sum(map_rect(
@@ -257,6 +270,14 @@ model {
 }
 generated quantities{
 	vector[how_many_to_check] counts_rng[S];
+	vector[S] exposure_rate;
+
+  if(exposure_given) {
+  	exposure_rate = exposure_rate_data;
+  } else {
+	  exposure_rate = exposure_rate_param;
+  }
+
 
 	for(g in 1:how_many_to_check) for(s in 1:S)
 		counts_rng[s,g] =	neg_binomial_2_log_rng(exposure_rate[s] + lambda_log_param[s,g],	sigma[g] * truncation_compensation);

@@ -13,3 +13,5 @@ dev/false_positive_study.RData
 dev/false_positive_study.pdf
 dev/*rds
 temp*
+
+src/RcppExports.cpp
