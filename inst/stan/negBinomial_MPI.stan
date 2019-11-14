@@ -182,6 +182,7 @@ parameters {
   real lambda_skew;
 
   vector<multiplier = exposure_rate_multiplier>[exposure_given ? 0 : S] exposure_rate_param;
+  //Used for a workaround around an ADVI bug
   vector[exposure_given ? 1 : 0] exposure_helper;
 
   // Gene-wise properties of the data
@@ -225,6 +226,7 @@ model {
 
   // Exposure prior
   if(exposure_given) {
+  	//I use the exposure helper to convert exposure_rate to variables, otherwise it breaks ADVI (probably a bug)
   	exposure_rate = (exposure_rate_data * exposure_rate_multiplier) + exposure_helper[1] * 1e-12;
   	exposure_helper[1] ~ normal(0,1);
   } else {
