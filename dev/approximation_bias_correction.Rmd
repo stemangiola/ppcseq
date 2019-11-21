@@ -1,0 +1,270 @@
+---
+title: "Approximation bias correction"
+author: "Mangiola Stefano"
+date: "11/21/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(viridis)
+library(tidyverse)
+
+my_theme =
+	theme_bw() +
+	theme(
+		panel.border = element_blank(),
+		axis.line = element_line(),
+		panel.grid.major = element_line(size = 0.2),
+		panel.grid.minor = element_line(size = 0.1),
+		text = element_text(size=12),
+		legend.position="bottom",
+		aspect.ratio=1,
+		strip.background = element_blank(),
+		axis.title.x  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
+		axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
+	)
+```
+
+## R Markdown
+
+```{r load data, cache=TRUE}
+load("dev/inference_before_correction.rda")
+```
+
+## Absolute error
+
+The analysis approximation method is introducing some biases. It underestimates the upper quantiles and overestimates the lower quantiles
+
+```{r asolute error, echo=FALSE, cache=TRUE}
+inference_before_correction %>%
+	filter(Difference != 0) %>%
+	filter(p==2 & title=="Approximate posterior analysis") %>%
+	left_join(
+		ppcSeq::counts %>% group_by( symbol) %>% summarise(value = value %>% `+` (1) %>% log %>% mean, PValue = PValue %>% log %>% mean)
+	) %>%
+	#sample_frac(0.05) %>%
+	{
+		my_df = (.)
+		ggplot(my_df, aes(x = interaction(sample, symbol), y=Difference, group=sign, sample = sample, symbol=symbol, color = value)) +
+
+			geom_point(alpha=0.5, size=0.1) +
+			scale_color_viridis(option="magma") +
+
+			facet_grid(Comparison ~ adj_prob_theshold_2, scales = "free_y") +
+			theme(axis.line = element_line(),
+						axis.title.x=element_blank(),
+						axis.text.x=element_blank(),
+						axis.ticks.x=element_blank(),
+						#legend.position = "none",
+						text = element_text(size=12),
+						strip.background = element_blank(),
+						axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
+			)
+	}
+```
+
+## Error relative to estimate value
+
+There is a clear correlation with mu, for lower quantiles it seems pretty linear, for upper quantiles it could be exponential
+
+```{r mu error, echo=FALSE, cache=TRUE}
+inference_before_correction %>%
+	filter(Difference != 0) %>%
+	filter(p==2 & title=="Approximate posterior analysis") %>%
+	left_join(
+		ppcSeq::counts %>% group_by( symbol) %>% summarise(value = value %>% `+` (1) %>% log %>% mean, PValue = PValue %>% log %>% mean)
+	) %>%
+	ggplot( aes(x = mean_2.x, y=Difference, group=sign, sample = sample, symbol=symbol)) +
+
+	geom_point(alpha=0.5, size=0.1) 	+		facet_grid(Comparison ~ adj_prob_theshold_2, scales = "free_y") +
+	my_theme +
+	theme(axis.line = element_line(),
+				legend.position = "none",
+				text = element_text(size=12),
+				strip.background = element_blank(),
+				axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
+	)
+```
+
+## Error relative to overdispersion
+
+The sutuation is much less clear with overdispersion. However some sort of association is present.
+
+```{r sigma error, echo=FALSE, cache=TRUE}
+inference_before_correction %>%
+	filter(Difference != 0) %>%
+	filter(p==2 & title=="Approximate posterior analysis") %>%
+
+	ggplot( aes(x = exp(sigma_raw), y=(Difference), group=sign, sample = sample, symbol=symbol)) +
+
+	geom_point(alpha=0.5, size=0.1) 	+		facet_grid(Comparison ~ adj_prob_theshold_2, scales = "free_y") +
+	my_theme +
+	theme(axis.line = element_line(),
+				legend.position = "none",
+				text = element_text(size=12),
+				strip.background = element_blank(),
+				axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
+	)
+```
+
+## UPPER quantiles - Relation between log(mu) 1/exp(sigma) and log(error)
+
+```{r relation up, cache=TRUE}
+
+inference_before_correction%>%
+	filter(Difference != 0) %>%
+	filter(p==2 & title=="Approximate posterior analysis") %>%
+
+	filter(Comparison == ".upper_diff") %>%
+	sample_frac(0.5) %>%
+	ggplot( aes(x = intercept, y=sigma_raw, group=sign, sample = sample, symbol=symbol, color = Difference)) +
+
+	geom_jitter() 	+		facet_grid(Comparison ~ adj_prob_theshold_2, scales = "free_y") +
+	scale_color_viridis(option="magma", trans = "log") +
+	my_theme +
+	theme(axis.line = element_line(),
+				#legend.position = "none",
+				text = element_text(size=12),
+				strip.background = element_blank(),
+				axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
+	)
+
+```
+
+## lower quantiles - Relation between log(mu) 1/exp(sigma) and log(error)
+
+```{r relation down, cache=TRUE}
+
+inference_before_correction%>%
+	filter(Difference != 0) %>%
+	filter(p==2 & title=="Approximate posterior analysis") %>%
+
+	filter(Comparison == ".lower_diff") %>%
+	sample_frac(0.5) %>%
+	ggplot( aes(x = intercept, y=sigma_raw, group=sign, sample = sample, symbol=symbol, color = -Difference)) +
+
+	geom_jitter() 	+		facet_grid(Comparison ~ adj_prob_theshold_2, scales = "free_y") +
+	scale_color_viridis(option="magma", trans = "log") +
+	my_theme +
+	theme(axis.line = element_line(),
+				#legend.position = "none",
+				text = element_text(size=12),
+				strip.background = element_blank(),
+				axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
+	)
+
+```
+
+
+## Quantiles affects upper bias exponentially
+
+```{r quantiles, cache=TRUE}
+
+my_medians = inference_before_correction %>%
+            filter(Difference != 0) %>%
+            filter(p==2 & title=="Approximate posterior analysis") %>%
+            
+            filter(Comparison == ".upper_diff") %>%
+            mutate(Difference = (log(Difference)-intercept)) %>%
+            group_by(adj_prob_theshold_2) %>% 
+            summarise(Difference = Difference %>% median(na.rm = T)) %>% 
+            ungroup()
+
+inference_before_correction %>%
+    filter(Difference != 0) %>%
+    filter(p==2 & title=="Approximate posterior analysis") %>%
+    
+    filter(Comparison == ".upper_diff") %>%
+    sample_frac(0.5) %>%
+
+    ggplot( aes(x = log(adj_prob_theshold_2), y=log(Difference)-intercept, color = intercept)) +
+    
+    geom_jitter(alpha = 0.2) 	+	
+	# geom_point(
+	# 	data = my_medians ,
+	# 	aes(x = log(adj_prob_theshold_2), y=(Difference))
+	# ) +
+	geom_smooth(method  = "lm", color = "black") +
+	scale_color_viridis(option="magma", trans = "log") +
+	my_theme +
+    theme(axis.line = element_line(),
+          #legend.position = "none",
+          text = element_text(size=12),
+          strip.background = element_blank(),
+          axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
+    )
+
+inference_before_correction %>%
+    filter(Difference != 0) %>%
+    filter(p==2 & title=="Approximate posterior analysis") %>%
+    
+    filter(Comparison == ".upper_diff") %>%
+    sample_frac(0.5) %>%
+    mutate(Difference = (log(Difference)-intercept)) %>%
+    group_by(adj_prob_theshold_2) %>% summarise(Difference = Difference %>% median(na.rm = T)) %>% ungroup() %>%
+    
+    ggplot( aes(x = log(adj_prob_theshold_2), y=(Difference))) +
+    
+    geom_jitter() 	+		
+    #scale_color_gradient( trans = "log") +
+	my_theme +
+    theme(axis.line = element_line(),
+          #legend.position = "none",
+          text = element_text(size=12),
+          strip.background = element_blank(),
+          axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
+    )
+```
+
+
+## Build linear models for errors
+
+Upper quantiles
+
+```{r model up, cache=TRUE}
+
+# Build linear model - UPPER diff
+inference_before_correction%>%
+	filter(Difference != 0) %>%
+	filter(p==2 & title=="Approximate posterior analysis") %>%
+
+
+	filter(Comparison == ".upper_diff") %>%
+	group_by(symbol, intercept, sigma_raw, adj_prob_theshold_2) %>%
+	summarise(Difference = Difference %>% median) %>%
+	ungroup() %>%
+	lm(log(Difference) ~ intercept + sigma_raw + log(adj_prob_theshold_2), data = .) %>%
+	{
+		lm_approx_bias_upper = (.)
+		save(lm_approx_bias_upper, file = "dev/lm_approx_bias_upper.rda")
+		(.) %>% summary
+	}
+
+```
+
+Lower quantiles (here the difference is negative)
+
+```{r model down, cache=TRUE}
+
+# Build linear model - LOWER diff
+inference_before_correction%>%
+	filter(Difference != 0) %>%
+	filter(p==2 & title=="Approximate posterior analysis") %>%
+
+	filter(Comparison == ".lower_diff") %>%
+	group_by(symbol, intercept, sigma_raw, adj_prob_theshold_2) %>%
+	summarise(Difference = Difference %>% median) %>%
+	ungroup() %>%
+	lm(log(-Difference) ~ intercept + sigma_raw + log(adj_prob_theshold_2), data = .) %>%
+	{
+		lm_approx_bias_upper = (.)
+		save(lm_approx_bias_upper, file = "dev/lm_approx_bias_lower.rda")
+		(.) %>% summary
+	}
+
+```
+
+
+
