@@ -195,7 +195,7 @@ vb_iterative = function(model,
 				output_samples = output_samples,
 				iter = iter,
 				tol_rel_obj = tol_rel_obj,
-				seed = 654321,
+				#seed = 654321,
 				pars=c("counts_rng", "exposure_rate", additional_parameters_to_save),
 				...
 			)
@@ -528,7 +528,7 @@ select_to_check_and_house_keeping = function(input.df, do_check_column, signific
 		}
 }
 
-run_model = function(model, approximate_posterior_inference, chains, how_many_posterior_draws, inits_fx, tol_rel_obj, additional_parameters_to_save){
+run_model = function(model, approximate_posterior_inference, chains, how_many_posterior_draws, inits_fx, tol_rel_obj, additional_parameters_to_save, seed){
 
 	writeLines(sprintf("executing %s", "run_model"))
 
@@ -560,7 +560,7 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 			iter = (how_many_posterior_draws / chains) %>% ceiling %>% sum(150),
 			warmup = 150,
 			save_warmup = FALSE,
-			seed = 654321,
+			seed = seed,
 			init = inits_fx,
 			pars = c(
 				"counts_rng",
@@ -681,6 +681,13 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		separate(par, c(".variable", "G"), sep="[\\[\\]\\,]", extra = "drop") %>%
 		mutate( G = G %>% as.integer)
 
+	fit_exposure =
+		fit_summary %>%
+		filter(grepl("exposure_rate", par))	%>%
+		rename(exposure_mean = mean, exposure_sd = sd) %>%
+		separate(par, c(".variable", "S"), sep="[\\[\\]\\,]", extra = "drop") %>%
+		mutate( S = S %>% as.integer)
+
 	# Calculate quantiles
 	fit_mu %>%
 		select(S, G, mu_mean, mu_sd) %>%
@@ -688,6 +695,11 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 			fit_sigma %>%
 				select(G, sigma_mean, sigma_sd),
 			by="G"
+		) %>%
+		left_join(
+			fit_exposure %>%
+				select(S, exposure_mean, exposure_sd),
+			by="S"
 		) %>%
 
 		# Pass variables
@@ -707,7 +719,9 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 
 					x = rnbinom(
 						how_many_posterior_draws,
-						mu = exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)),
+						mu =
+							exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)) *
+							exp(rnorm(how_many_posterior_draws, .x$exposure_mean, .x$exposure_sd)),
 						size = 1/exp(rnorm(how_many_posterior_draws, .x$sigma_mean, .x$sigma_sd))
 					)
 
@@ -729,6 +743,7 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 
 }
 
+
 save_generated_quantities_in_case = function(input.df, fit, save_generated_quantities){
 
 	writeLines(sprintf("executing %s", "save_generated_quantities_in_case"))
@@ -742,8 +757,8 @@ save_generated_quantities_in_case = function(input.df, fit, save_generated_quant
 				left_join(fit %>% tidybayes::gather_draws(counts_rng[S, G])) %>%
 
 				# Nest them in the data frame
-				group_by(`.variable`, S , G, mean, se_mean , sd, `.lower`, `.upper`) %>%
-				nest(.key = "generated quantities")
+				nest(`generated quantities` = c(.chain, .iteration, .draw, .value ))
+
 		)
 }
 
@@ -846,6 +861,7 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @param pass_fit A fit
 #' @param tol_rel_obj A real
 #' @param write_on_disk A boolean
+#' @param seed an integer
 #'
 #' @return A tibble with additional columns
 #'
@@ -877,7 +893,8 @@ do_inference = function(my_df,
 																											sd = numeric()),
 												pass_fit = F,
 												tol_rel_obj = 0.01,
-												write_on_disk = F) {
+												write_on_disk = F,
+												seed) {
 
 	writeLines(sprintf("executing %s", "do_inference"))
 
@@ -887,6 +904,10 @@ do_inference = function(my_df,
 	value_column = enquo(value_column)
 	significance_column = enquo(significance_column)
 	do_check_column = enquo(do_check_column)
+
+	# Check that the dataset is squared
+	if(my_df %>% distinct(sample, symbol) %>% count(symbol) %>% count(n) %>% nrow %>% `>` (1))
+		stop("The input data frame does not represent a rectangular structure. Each transcript must be present in all samples.")
 
 	# Get the number of transcripts to check
 	how_many_to_check =
@@ -1021,7 +1042,7 @@ do_inference = function(my_df,
 				iter = (how_many_posterior_draws_practical / chains) %>% ceiling %>% sum(150),
 				warmup = 150,
 				save_warmup = FALSE,
-				seed = 654321,
+				seed = seed,
 				init = inits_fx,
 				pars = c(
 					"counts_rng",
@@ -1173,6 +1194,7 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @param approximate_posterior_analysis A boolean
 #' @param do_check_column A symbol
 #' @param how_many_negative_controls An integer
+#' @param draws_after_tail An integer. How many draws should on average be after the tail, in a way to inform CI
 #' @param save_generated_quantities A boolean
 #' @param additional_parameters_to_save A character vector
 #' @param cores An integer
@@ -1182,6 +1204,9 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @param tol_rel_obj A real
 #' @param just_discovery A boolean
 #' @param write_on_disk A boolean
+#' @param seed an integer
+#' @param adj_prob_theshold_2 A boolean. Used for development and testing purposes
+#' @param correct_approximation_tail_bias A boolean. Used for development and testing purposes
 #'
 #' @return A tibble with additional columns
 #'
@@ -1197,6 +1222,7 @@ ppc_seq = function(input.df,
 									 approximate_posterior_inference = T,
 									 approximate_posterior_analysis = F,
 									 how_many_negative_controls = 500,
+									 draws_after_tail = 10,
 									 save_generated_quantities = F,
 									 additional_parameters_to_save = c(),  # For development purpose
 									 cores = detect_cores(), # For development purpose,
@@ -1205,7 +1231,10 @@ ppc_seq = function(input.df,
 									 do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
 									 tol_rel_obj = 0.01,
 									 just_discovery = F,
-									 write_on_disk = F
+									 write_on_disk = F,
+									 seed = 654321,
+									 adj_prob_theshold_2 = NULL,
+									 correct_approximation_tail_bias = T
 ) {
 	# Prepare column same enquo
 	sample_column = enquo(sample_column)
@@ -1251,14 +1280,17 @@ ppc_seq = function(input.df,
 
 	# Calculate the adj_prob_theshold
 	adj_prob_theshold_1  = 0.05
-	adj_prob_theshold_2 =
-		pfpg / 100 /
-		(input.df %>% distinct(!!sample_column) %>% nrow) *
-		ifelse(do_check_only_on_detrimental, 2, 1)
+	if(adj_prob_theshold_2 %>% is.null)
+		adj_prob_theshold_2 =
+			pfpg / 100 /
+			(input.df %>% distinct(!!sample_column) %>% nrow) *
+			ifelse(do_check_only_on_detrimental, 2, 1)
+
+	print(sprintf("adj_prob_theshold_2 = %s", adj_prob_theshold_2))
 
 	# Calculate adj_prob_theshold
-	how_many_posterior_draws_1 =  5 %>% divide_by(adj_prob_theshold_1) %>% max(1000) # I want 5 draws in the tail
-	how_many_posterior_draws_2 =  5 %>% divide_by(adj_prob_theshold_2) %>% max(1000) # I want 5 draws in the tail
+	how_many_posterior_draws_1 =  draws_after_tail %>% divide_by(adj_prob_theshold_1) %>% max(1000) # I want 5 draws in the tail
+	how_many_posterior_draws_2 =  draws_after_tail %>% divide_by(adj_prob_theshold_2) %>% max(1000) # I want 5 draws in the tail
 
 	# Check if enough memory for full draw
 	available_memory = get_ram() %>% as.numeric() %>% multiply_by(1e+9)
@@ -1335,7 +1367,8 @@ ppc_seq = function(input.df,
 			how_many_posterior_draws = how_many_posterior_draws_1,
 			pass_fit = pass_fit,
 			tol_rel_obj = tol_rel_obj,
-			write_on_disk = write_on_disk
+			write_on_disk = write_on_disk,
+			seed = seed
 		)
 
 	# For building some figure I just need the discovery run, return prematurely
@@ -1391,7 +1424,8 @@ ppc_seq = function(input.df,
 			save_generated_quantities = save_generated_quantities,
 			tol_rel_obj = tol_rel_obj,
 			truncation_compensation = 0.7352941, # Taken by approximation study
-			write_on_disk = write_on_disk
+			write_on_disk = write_on_disk,
+			seed = seed
 		)
 
 	# Merge results and return
