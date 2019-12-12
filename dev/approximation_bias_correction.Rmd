@@ -259,8 +259,8 @@ inference_before_correction%>%
 	ungroup() %>%
 	lm(log(-Difference) ~ intercept + sigma_raw + log(adj_prob_theshold_2), data = .) %>%
 	{
-		lm_approx_bias_upper = (.)
-		save(lm_approx_bias_upper, file = "dev/lm_approx_bias_lower.rda")
+		lm_approx_bias_lower = (.)
+		save(lm_approx_bias_lower, file = "dev/lm_approx_bias_lower.rda")
 		(.) %>% summary
 	}
 

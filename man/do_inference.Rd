@@ -4,18 +4,37 @@
 \alias{do_inference}
 \title{do_inference}
 \usage{
-do_inference(my_df, formula, sample_column, gene_column, value_column,
-  significance_column, do_check_column,
+do_inference(
+  my_df,
+  formula,
+  sample_column,
+  gene_column,
+  value_column,
+  significance_column,
+  do_check_column,
   approximate_posterior_inference = F,
-  approximate_posterior_analysis = F, C, X, lambda_mu_mu, cores,
-  exposure_rate_multiplier, intercept_shift_scale,
-  additional_parameters_to_save, adj_prob_theshold,
-  how_many_posterior_draws, to_exclude = tibble(S = integer(), G =
-  integer()), truncation_compensation = 1,
-  save_generated_quantities = F, inits_fx = "random",
-  prior_from_discovery = tibble(.variable = character(), mean =
-  numeric(), sd = numeric()), pass_fit = F, tol_rel_obj = 0.01,
-  write_on_disk = F)
+  approximate_posterior_analysis = F,
+  do_correct_approx = T,
+  C,
+  X,
+  lambda_mu_mu,
+  cores,
+  exposure_rate_multiplier,
+  intercept_shift_scale,
+  additional_parameters_to_save,
+  adj_prob_theshold,
+  how_many_posterior_draws,
+  to_exclude = tibble(S = integer(), G = integer()),
+  truncation_compensation = 1,
+  save_generated_quantities = F,
+  inits_fx = "random",
+  prior_from_discovery = tibble(.variable = character(), mean = numeric(), sd =
+    numeric()),
+  pass_fit = F,
+  tol_rel_obj = 0.01,
+  write_on_disk = F,
+  seed
+)
 }
 \arguments{
 \item{my_df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
@@ -35,6 +54,8 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
 \item{approximate_posterior_inference}{A boolean}
 
 \item{approximate_posterior_analysis}{A boolean}
+
+\item{do_correct_approx}{A boolean}
 
 \item{C}{An integer}
 
@@ -69,6 +90,8 @@ do_inference(my_df, formula, sample_column, gene_column, value_column,
 \item{tol_rel_obj}{A real}
 
 \item{write_on_disk}{A boolean}
+
+\item{seed}{an integer}
 }
 \value{
 A tibble with additional columns

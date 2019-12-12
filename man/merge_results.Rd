@@ -4,8 +4,15 @@
 \alias{merge_results}
 \title{merge_results}
 \usage{
-merge_results(res_discovery, res_test, formula, gene_column, value_column,
-  sample_column, do_check_only_on_detrimental)
+merge_results(
+  res_discovery,
+  res_test,
+  formula,
+  gene_column,
+  value_column,
+  sample_column,
+  do_check_only_on_detrimental
+)
 }
 \arguments{
 \item{res_discovery}{A tibble}

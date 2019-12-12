@@ -4,16 +4,32 @@
 \alias{ppc_seq}
 \title{pcc_seq main}
 \usage{
-ppc_seq(input.df, formula = ~1, sample_column = sample,
-  gene_column = symbol, value_column = `read count`,
-  significance_column = `p-value`, do_check_column,
+ppc_seq(
+  input.df,
+  formula = ~1,
+  sample_column = sample,
+  gene_column = symbol,
+  value_column = `read count`,
+  significance_column = `p-value`,
+  do_check_column,
   approximate_posterior_inference = T,
-  approximate_posterior_analysis = F, how_many_negative_controls = 500,
-  save_generated_quantities = F, additional_parameters_to_save = c(),
-  cores = detect_cores(), percent_false_positive_genes = "1\%",
+  approximate_posterior_analysis = F,
+  do_correct_approx = T,
+  how_many_negative_controls = 500,
+  draws_after_tail = 10,
+  save_generated_quantities = F,
+  additional_parameters_to_save = c(),
+  cores = detect_cores(),
+  percent_false_positive_genes = "1\%",
   pass_fit = F,
   do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
-  tol_rel_obj = 0.01, just_discovery = F, write_on_disk = F)
+  tol_rel_obj = 0.01,
+  just_discovery = F,
+  write_on_disk = F,
+  seed = 654321,
+  adj_prob_theshold_2 = NULL,
+  correct_approximation_tail_bias = T
+)
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}
@@ -34,7 +50,11 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
 
 \item{approximate_posterior_analysis}{A boolean}
 
+\item{do_correct_approx}{A boolean}
+
 \item{how_many_negative_controls}{An integer}
+
+\item{draws_after_tail}{An integer. How many draws should on average be after the tail, in a way to inform CI}
 
 \item{save_generated_quantities}{A boolean}
 
@@ -53,6 +73,12 @@ ppc_seq(input.df, formula = ~1, sample_column = sample,
 \item{just_discovery}{A boolean}
 
 \item{write_on_disk}{A boolean}
+
+\item{seed}{an integer}
+
+\item{adj_prob_theshold_2}{A boolean. Used for development and testing purposes}
+
+\item{correct_approximation_tail_bias}{A boolean. Used for development and testing purposes}
 }
 \value{
 A tibble with additional columns
