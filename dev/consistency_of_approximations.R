@@ -3,6 +3,7 @@ library(magrittr)
 library(ppcSeq)
 plan(multicore)
 library(foreach)
+library(viridis)
 
 my_theme =
 	theme_bw() +
@@ -48,7 +49,7 @@ make_df_plot = function(.data){
 
 }
 
-wrapper = function(adj_prob_theshold_2){
+wrapper = function(adj_prob_theshold_2, do_correct_approx = F){
 
 	res_0 =
 	ppcSeq::counts %>%
@@ -64,7 +65,7 @@ wrapper = function(adj_prob_theshold_2){
 		pass_fit = T,
 		additional_parameters_to_save = additional_parameters_to_save,
 		save_generated_quantities = T,
-		adj_prob_theshold_2 = adj_prob_theshold_2
+		adj_prob_theshold_2 = adj_prob_theshold_2, do_correct_approx = do_correct_approx
 	)
 
 	fit_to_lambda_sigma = function(fit){
@@ -133,7 +134,7 @@ res_1 =
 		seed = 654321,
 		pass_fit = T,
 		additional_parameters_to_save = additional_parameters_to_save,
-		adj_prob_theshold_2 = adj_prob_theshold_2
+		adj_prob_theshold_2 = adj_prob_theshold_2, do_correct_approx = do_correct_approx
 	)
 
 res_2 =
@@ -148,7 +149,7 @@ res_2 =
 		percent_false_positive_genes = percent_false_positive_genes,
 		cores = 20,
 		additional_parameters_to_save = additional_parameters_to_save,
-		adj_prob_theshold_2 = adj_prob_theshold_2, pass_fit = T
+		adj_prob_theshold_2 = adj_prob_theshold_2, pass_fit = T, do_correct_approx = do_correct_approx
 	)
 
 res_3 =
@@ -164,7 +165,7 @@ res_3 =
 		cores = 20,
 		adj_prob_theshold_2 = adj_prob_theshold_2,
 		additional_parameters_to_save = additional_parameters_to_save,
-		pass_fit = T
+		pass_fit = T, do_correct_approx = do_correct_approx
 	)
 
 res_4 =
@@ -180,7 +181,7 @@ res_4 =
 		cores = 20,
 		adj_prob_theshold_2 = adj_prob_theshold_2,
 		additional_parameters_to_save = additional_parameters_to_save,
-		pass_fit = T
+		pass_fit = T, do_correct_approx = do_correct_approx
 	)
 res_1_parsed =
 	res_1 %>%
@@ -255,6 +256,38 @@ df_plot_1 =
 	make_df_plot %>%
 	mutate(p = 1)
 
+# Make correction and recalculate
+
+# x = res_parsed_2 %>% ungroup() %>% nest(data = -c(symbol, sample)) %>% mutate(new_CI = map(data, ~ tibble(
+# 	diff_low =  predict(lm_approx_bias_lower,  newdata = data.frame(intercept = log(.x$value.y), sigma_raw = .x$sigma_raw.y, adj_prob_theshold_2 = (adj_prob_theshold))) %>%
+# 		exp() %>%		magrittr::multiply_by(-1) ,
+# 	diff_high =  predict(lm_approx_bias_upper,  newdata = data.frame(intercept = log(.x$value.y), sigma_raw = .x$sigma_raw.y, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp()
+#
+#
+# ))) %>% unnest
+#
+# x %>%
+# ungroup() %>%
+# 	mutate(
+# 		.upper_diff = .upper_2.x - .upper_2.y,
+# 		.upper_diff2 = .upper_2.x - (.upper_2.y + diff_high),
+# 		.lower_diff = .lower_2.x - .lower_2.y,
+#
+# 		mean_diff = mean_2.x - mean_2.y
+# 	) %>%
+# 	drop_na() %>%
+# 	ggplot( aes(x = mean_2.x, y=.upper_diff, sample = sample, symbol=symbol)) +
+#
+# 	geom_point(alpha=0.5, size=0.1) +
+# 	theme(axis.line = element_line(),
+# 				legend.position = "none",
+# 				text = element_text(size=12),
+# 				strip.background = element_blank(),
+# 				axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
+# 	)
+
+
+
 df_plot_2 =
 	res_parsed_2 %>%
 	make_df_plot %>%
@@ -275,7 +308,7 @@ df_plot_all =
 
 # Plot bias trends
 df_plot_all =
-	dir(path="dev/", pattern = "^w_", full.names = T) %>%
+	dir(path="dev/", pattern = "^w_corrected", full.names = T) %>%
 	map_dfr(~ {
 		load(.x)
 		w
@@ -384,7 +417,7 @@ df_plot_all%>%
 	ggplot( aes(x = intercept, y=sigma_raw, group=sign, sample = sample, symbol=symbol, color = -Difference)) +
 
 	geom_jitter() 	+		facet_grid(Comparison ~ adj_prob_theshold_2, scales = "free_y") +
-	scale_color_gradient( trans = "log") +
+	scale_color_viridis(option="magma", trans = "log") +
 	theme(axis.line = element_line(),
 				#legend.position = "none",
 				text = element_text(size=12),
@@ -406,10 +439,10 @@ df_plot_all%>%
 	group_by(symbol, intercept, sigma_raw, adj_prob_theshold_2) %>%
 	summarise(Difference = Difference %>% median) %>%
 	ungroup() %>%
-	lm(log(Difference) ~ intercept + sigma_raw + log(adj_prob_theshold_2), data = .) %>%
+	lm(log(Difference) ~ (intercept) + sigma_raw + log(adj_prob_theshold_2), data = .) %>%
 	{
 		lm_approx_bias_upper = (.)
-		save(lm_approx_bias_upper, file = "dev/lm_approx_bias_upper.rda")
+		save(lm_approx_bias_upper, file = "data/lm_approx_bias_upper.rda")
 		(.) %>% summary
 	}
 
@@ -427,10 +460,10 @@ df_plot_all%>%
 	group_by(symbol, intercept, sigma_raw, adj_prob_theshold_2) %>%
 	summarise(Difference = Difference %>% median) %>%
 	ungroup() %>%
-	lm(log(-Difference) ~ intercept + sigma_raw + log(adj_prob_theshold_2), data = .) %>%
+	lm(log(-Difference) ~ (intercept) + sigma_raw + log(adj_prob_theshold_2), data = .) %>%
 	{
 		lm_approx_bias_upper = (.)
-		save(lm_approx_bias_upper, file = "dev/lm_approx_bias_lower.rda")
+		save(lm_approx_bias_lower, file = "data/lm_approx_bias_lower.rda")
 		(.) %>% summary
 	}
 
@@ -508,4 +541,9 @@ df_plot%>%
 
 # Model after correction
 
-df_plot %>% group_by(p, title, Comparison) %>% summarise(Difference %>% median) %>% filter(title=="Approximate posterior analysis" & p ==2)
+df_plot_all =
+	foreach(p = c(0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001), .combine=bind_rows ) %do% {
+		w = wrapper(p, do_correct_approx = T)
+		save(w, file=sprintf("dev/w_corrected_%s.rda", p))
+		w
+	}
