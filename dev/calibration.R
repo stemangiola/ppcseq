@@ -31,16 +31,22 @@ res_1 =
 		value_column = value,
 		save_generated_quantities = T,
 		percent_false_positive_genes = "5%",
-		full_bayes = T
+		approximate_posterior_inference = F,
+		approximate_posterior_analysis = F
 	)
 
 input_2 =
 	res_1 %>%
+	ungroup %>%
 	select(symbol, `sample wise data`) %>%
-	unnest %>%
-	select(symbol, sample, `generated quantities`) %>%
-	unnest %>%
-	filter(`.draw` == 1) %>%
+	unnest(cols = `sample wise data`) %>%
+	select(symbol, sample, mean_2, .lower_2, .upper_2 , `generated quantities`) %>%
+
+	# Filter first draw
+	mutate(`generated quantities` = map(`generated quantities`, ~ .x %>% filter(`.draw` == 1))) %>%
+
+	# unpack
+	unnest(cols =  `generated quantities`) %>%
 	select(-`.chain`, -`.iteration`, -`.draw`) %>%
 	rename(value = `.value`) %>%
 	left_join( ppcSeq::counts %>% select(-value) %>% distinct()	) %>%
