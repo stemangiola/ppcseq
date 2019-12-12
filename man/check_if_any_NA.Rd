@@ -4,8 +4,15 @@
 \alias{check_if_any_NA}
 \title{Check if NA}
 \usage{
-check_if_any_NA(input.df, sample_column, gene_column, value_column,
-  significance_column, do_check_column, formula_columns)
+check_if_any_NA(
+  input.df,
+  sample_column,
+  gene_column,
+  value_column,
+  significance_column,
+  do_check_column,
+  formula_columns
+)
 }
 \arguments{
 \item{input.df}{A tibble including a gene name column | sample name column | read counts column | covariates column}

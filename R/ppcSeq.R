@@ -656,11 +656,12 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
 #' @param how_many_posterior_draws An integer
+#' @param do_correct_approx A boolean
 #' @param cores An integer
 #'
 #' @export
 
-fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, cores){
+fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, do_correct_approx = T, cores){
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
@@ -703,9 +704,15 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		) %>%
 
 		# Pass variables
-		mutate(how_many_posterior_draws = how_many_posterior_draws, adj_prob_theshold = adj_prob_theshold) %>%
+		mutate(
+			how_many_posterior_draws = how_many_posterior_draws,
+			adj_prob_theshold = adj_prob_theshold,
+			do_correct_approx = do_correct_approx,
+			lm_approx_bias_lower = list(lm_approx_bias_lower),
+			lm_approx_bias_upper = list(lm_approx_bias_upper)
+		) %>%
 
-		do_parallel_start(cores, "G") %>%
+		#do_parallel_start(cores, "G") %>%
 		do({
 
 			`%>%` = magrittr::`%>%`
@@ -713,20 +720,39 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 			dplyr::do(
 				dplyr::group_by((.), S, G),
 				{
-					.x = (.)
-					how_many_posterior_draws = unique(.x$how_many_posterior_draws)
-					adj_prob_theshold = unique(.x$adj_prob_theshold)
+					my_df = (.)
+					how_many_posterior_draws = unique(my_df$how_many_posterior_draws)
+					adj_prob_theshold = unique(my_df$adj_prob_theshold)
+					do_correct_approx = my_df$do_correct_approx[1]
+					lm_approx_bias_lower = my_df[1,]$lm_approx_bias_lower[[1]]
+					lm_approx_bias_upper = my_df[1,]$lm_approx_bias_upper[[1]]
 
 					x = rnbinom(
 						how_many_posterior_draws,
 						mu =
-							exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)) *
-							exp(rnorm(how_many_posterior_draws, .x$exposure_mean, .x$exposure_sd)),
-						size = 1/exp(rnorm(how_many_posterior_draws, .x$sigma_mean, .x$sigma_sd))
+							exp(rnorm(how_many_posterior_draws, my_df$mu_mean, my_df$mu_sd)) *
+							exp(rnorm(how_many_posterior_draws, my_df$exposure_mean, my_df$exposure_sd)),
+						size = 1/exp(rnorm(how_many_posterior_draws, my_df$sigma_mean, my_df$sigma_sd))
 					)
 
+					#browser()
 					x %>%
 						quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
+
+						# If activated correct the approximate quantiles
+						ifelse_pipe(
+							do_correct_approx,
+							~ (.x +
+									c(
+										predict(lm_approx_bias_lower,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp() %>%		magrittr::multiply_by(-1) ,
+										predict(lm_approx_bias_upper,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp()
+
+									)) %>%
+
+								# Make sure no CI is < 0
+								purrr::map_dbl( ~ .x %>% max(0))
+						) %>%
+
 						tibble::as_tibble(rownames="prop") %>%
 						tidyr::spread(prop, value) %>%
 						setNames(c(".lower", ".upper")) %>%
@@ -735,11 +761,60 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 						dplyr::mutate(mean = mean(x), sd = sd(x))
 				})
 		}) %>%
-		do_parallel_end() %>%
+		#do_parallel_end() %>%
 
 
 		mutate(.variable = "counts_rng") %>%
 		select(.variable, S, G, mean, sd, .lower, .upper)
+
+	# # Calculate quantiles
+	# fit_mu %>%
+	# 	select(S, G, mu_mean, mu_sd) %>%
+	# 	left_join(
+	# 		fit_sigma %>%
+	# 			select(G, sigma_mean, sigma_sd),
+	# 		by="G"
+	# 	) %>%
+	# 	left_join(
+	# 		fit_exposure %>%
+	# 			select(S, exposure_mean, exposure_sd),
+	# 		by="S"
+	# 	) %>%
+	#
+	# 	# Pass variables
+	# 	mutate(how_many_posterior_draws = how_many_posterior_draws, adj_prob_theshold = adj_prob_theshold) %>%
+	#
+	# 	do({
+	#
+	# 		`%>%` = magrittr::`%>%`
+	#
+	# 		dplyr::do(
+	# 			dplyr::group_by((.), S, G),
+	# 			{
+	# 				.x = (.)
+	# 				how_many_posterior_draws = unique(.x$how_many_posterior_draws)
+	# 				adj_prob_theshold = unique(.x$adj_prob_theshold)
+	# 				browser()
+	# 				qnbinom(
+	# 					c(adj_prob_theshold, 1 - adj_prob_theshold),
+	# 					mu =
+	# 						exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)) *
+	# 						exp(rnorm(how_many_posterior_draws, .x$exposure_mean, .x$exposure_sd)),
+	# 					size = 1/exp(rnorm(how_many_posterior_draws, .x$sigma_mean, .x$sigma_sd))
+	# 				)  %>%
+	# 					tibble::as_tibble(rownames="prop") %>%
+	# 					tidyr::spread(prop, value) %>%
+	# 					setNames(c(".lower", ".upper")) %>%
+	#
+	# 					# Add mean and sd
+	# 					dplyr::mutate(mean = mean(x), sd = sd(x))
+	#
+	# 			})
+	# 	}) %>%
+	#
+	#
+	# 	mutate(.variable = "counts_rng") %>%
+	# 	select(.variable, S, G, mean, sd, .lower, .upper)
 
 }
 
@@ -844,6 +919,7 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @param do_check_column A column name
 #' @param approximate_posterior_inference A boolean
 #' @param approximate_posterior_analysis A boolean
+#' @param do_correct_approx A boolean
 #' @param C An integer
 #' @param X A tibble
 #' @param lambda_mu_mu A real
@@ -875,6 +951,7 @@ do_inference = function(my_df,
 												do_check_column,
 												approximate_posterior_inference = F,
 												approximate_posterior_analysis = F,
+												do_correct_approx = T,
 												C,
 												X,
 												lambda_mu_mu,
@@ -1057,7 +1134,7 @@ do_inference = function(my_df,
 
 		ifelse_pipe(
 			approximate_posterior_analysis,
-			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10, cores),
+			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10, do_correct_approx, cores),
 			~ .x %>% fit_to_counts_rng(adj_prob_theshold)
 		) %>%
 
@@ -1192,6 +1269,7 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @param significance_column A column name
 #' @param approximate_posterior_inference A boolean
 #' @param approximate_posterior_analysis A boolean
+#' @param do_correct_approx A boolean
 #' @param do_check_column A symbol
 #' @param how_many_negative_controls An integer
 #' @param draws_after_tail An integer. How many draws should on average be after the tail, in a way to inform CI
@@ -1221,6 +1299,7 @@ ppc_seq = function(input.df,
 									 do_check_column,
 									 approximate_posterior_inference = T,
 									 approximate_posterior_analysis = F,
+									 do_correct_approx = T,
 									 how_many_negative_controls = 500,
 									 draws_after_tail = 10,
 									 save_generated_quantities = F,
@@ -1356,6 +1435,7 @@ ppc_seq = function(input.df,
 			formula,!!sample_column ,!!gene_column ,!!value_column ,!!significance_column ,!!do_check_column,
 			approximate_posterior_inference,
 			approximate_posterior_analysis = F,
+			do_correct_approx = do_correct_approx,
 			C,
 			X,
 			lambda_mu_mu,
@@ -1409,6 +1489,7 @@ ppc_seq = function(input.df,
 			formula,!!sample_column ,!!gene_column ,!!value_column ,!!significance_column ,!!do_check_column,
 			approximate_posterior_inference,
 			approximate_posterior_analysis,
+			do_correct_approx = do_correct_approx,
 			C,
 			X,
 			lambda_mu_mu,

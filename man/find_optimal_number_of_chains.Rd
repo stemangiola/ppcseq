@@ -6,8 +6,10 @@
 Because there is a fix cost (warmup) to starting a new chain,
 we need to use the minimum amount that we can parallelise}
 \usage{
-find_optimal_number_of_chains(how_many_posterior_draws,
-  max_number_to_check = 100)
+find_optimal_number_of_chains(
+  how_many_posterior_draws,
+  max_number_to_check = 100
+)
 }
 \arguments{
 \item{how_many_posterior_draws}{A real number of posterior draws needed}

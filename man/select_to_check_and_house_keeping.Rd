@@ -4,8 +4,13 @@
 \alias{select_to_check_and_house_keeping}
 \title{Select only significant genes plus background for efficient normalisation}
 \usage{
-select_to_check_and_house_keeping(input.df, do_check_column,
-  significance_column, gene_column, how_many_negative_controls = 500)
+select_to_check_and_house_keeping(
+  input.df,
+  do_check_column,
+  significance_column,
+  gene_column,
+  how_many_negative_controls = 500
+)
 }
 \arguments{
 \item{input.df}{A tibble}
