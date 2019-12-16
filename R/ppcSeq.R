@@ -712,7 +712,7 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 			lm_approx_bias_upper = list(lm_approx_bias_upper)
 		) %>%
 
-		#do_parallel_start(cores, "G") %>%
+		do_parallel_start(cores, "G") %>%
 		do({
 
 			`%>%` = magrittr::`%>%`
@@ -761,7 +761,7 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 						dplyr::mutate(mean = mean(x), sd = sd(x))
 				})
 		}) %>%
-		#do_parallel_end() %>%
+		do_parallel_end() %>%
 
 
 		mutate(.variable = "counts_rng") %>%
