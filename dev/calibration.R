@@ -4,6 +4,7 @@ library(ppcSeq)
 library(furrr)
 plan(multicore)
 
+
 my_theme =
 	theme_bw() +
 	theme(
@@ -89,7 +90,7 @@ es =
 
 (
 	es %>%
-		mutate(fp = fp %>% divide_by(10)) %>%
+		mutate(fp = fp %>% divide_by(100)) %>%
 		unnest(`false positive predicted`) %>%
 		ggplot(aes(x=fp, y= `false positive predicted`)) +
 		geom_jitter(width = 0.01) +
