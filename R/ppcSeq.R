@@ -983,7 +983,7 @@ do_inference = function(my_df,
 	do_check_column = enquo(do_check_column)
 
 	# Check that the dataset is squared
-	if(my_df %>% distinct(sample, symbol) %>% count(symbol) %>% count(n) %>% nrow %>% `>` (1))
+	if(my_df %>% distinct(!!sample_column, !!gene_column) %>% count(!!gene_column) %>% count(n) %>% nrow %>% `>` (1))
 		stop("The input data frame does not represent a rectangular structure. Each transcript must be present in all samples.")
 
 	# Get the number of transcripts to check
