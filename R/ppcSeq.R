@@ -469,7 +469,7 @@ merge_results = function(res_discovery, res_test, formula, gene_column, value_co
 					 	pmap(
 					 		list(
 					 			`sample wise data`,
-					 			symbol,
+					 			!!gene_column,
 					 			# nested data for plot
 					 			quo_name(value_column),
 					 			# name of value column
@@ -1370,6 +1370,8 @@ ppc_seq = function(input.df,
 	# Calculate adj_prob_theshold
 	how_many_posterior_draws_1 =  draws_after_tail %>% divide_by(adj_prob_theshold_1) %>% max(1000) # I want 5 draws in the tail
 	how_many_posterior_draws_2 =  draws_after_tail %>% divide_by(adj_prob_theshold_2) %>% max(1000) # I want 5 draws in the tail
+
+	print(sprintf("how_many_posterior_draws_2 = %s", how_many_posterior_draws_2))
 
 	# Check if enough memory for full draw
 	available_memory = get_ram() %>% as.numeric() %>% multiply_by(1e+9)
