@@ -4,7 +4,7 @@ library(ttBulk)
 library(ppcSeq)
 
 #TCGA_tbl = readRDS("/wehisan/bioinf/bioinf-data/Papenfuss_lab/projects/mangiola.s/PostDoc/temp_TCGA_tbl.RData")
-#load("dev/TCGA_tbl.RData")
+# load("dev/TCGA_tbl.RData")
 
 # Interctept only
 

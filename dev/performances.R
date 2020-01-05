@@ -23,13 +23,24 @@ read_csv("dev/elapsed_data.csv") %>%
 	facet_grid(approximate_posterior_inference + approximate_posterior_analysis ~cores) +
 	my_theme
 
-read_csv("dev/elapsed_data.csv") %>%
+(read_csv("dev/elapsed_data.csv") %>%
+	filter(approximate_posterior_analysis==F) %>%
 	filter(FDR<1) %>%
 	ggplot(aes(x = draws, y=elapsed)) +
 	geom_point(aes(color=fp_rate)) +
 	geom_smooth(method = "lm") +
 	facet_grid(approximate_posterior_inference + approximate_posterior_analysis ~cores) +
-	my_theme
+	scale_colour_brewer(palette = "Set1") +
+	my_theme) %>%
+	ggsave(
+		"dev/performances.pdf",
+		plot = .,
+		device = "pdf",
+		useDingbats=FALSE,
+		width=183,
+		height = 120,
+		units = "mm"
+	)
 
 read_csv("dev/elapsed_data.csv") %>%
 	filter(FDR<1) %>%

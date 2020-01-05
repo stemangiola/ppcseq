@@ -499,20 +499,24 @@ library(scales)
 
 save(df_plot, file="dev/df_plot.rda")
 
-df_plot%>%
-	# mutate(Difference = Difference %>% abs) %>%
+#df_plot%>%
+
+	df_plot_all %>%
+	 mutate(Difference = Difference / mean_2.x) %>%
 	sample_frac(0.05) %>%
 	{
 		ggplot((.), aes(x = interaction(sample, symbol), y=Difference, group=sign, sample = sample, symbol=symbol)) +
 
 			geom_point(alpha=0.5, size=0.1) +
 			geom_hline(
-				data = df_plot  %>% group_by(p, title, Comparison, sign) %>% summarise(Difference %>% mean),
+				data = df_plot_all %>%
+					mutate(Difference = Difference / mean_2.x)  %>% group_by(p, title, Comparison, sign) %>% summarise(Difference %>% mean),
 				aes(yintercept=`Difference %>% mean`, color=sign),
 				size=1
 			) +
 			geom_hline(
-				data =df_plot %>% group_by(p, title, Comparison) %>% summarise(Difference %>% median),
+				data =df_plot_all %>%
+					mutate(Difference = Difference / mean_2.x) %>% group_by(p, title, Comparison) %>% summarise(Difference %>% median),
 				aes(yintercept=`Difference %>% median`),
 				color = "yellow",
 				size=1
