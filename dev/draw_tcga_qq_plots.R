@@ -1,9 +1,7 @@
 library(tidyverse)
 library(magrittr)
 library(foreach)
-library(doParallel)
-registerDoParallel()
-library(tidyTranscriptomics)
+library(ttBulk)
 library(ppcSeq)
 #source("https://gist.githubusercontent.com/stemangiola/dd3573be22492fc03856cd2c53a755a9/raw/e4ec6a2348efc2f62b88f10b12e70f4c6273a10a/tidy_extensions.R")
 
@@ -146,15 +144,14 @@ TCGA_tbl = read_csv(
 
 	# Prepare data frame
 	tidyr::separate(ens_iso, c("ens", "iso"), sep = "\\.") %>%
-	add_symbol_from_ensembl(ensembl_transcript_column = ens) %>%
-	filter(hgnc_symbol %>% is.na %>% `!`) %>%
-	rename(transcript = hgnc_symbol) %>%
-	create_tt_from_tibble_bulk(
-		sample_column = sample,
-		transcript_column = transcript,
-		counts_column = `read count`
+	annotate_symbol(ens) %>%
+	filter(transcript %>% is.na %>% `!`) %>%
+	ttBulk(
+		sample,
+		transcript,
+		 `read count`
 	) %>%
-	aggregate_duplicated_transcripts_bulk() %>%
+	aggregate_duplicates() %>%
 	mutate(`read count` = `read count` %>% as.integer) %>%
 	mutate_if(is.character, as.factor) %>%
 
@@ -180,9 +177,10 @@ res =
 		pass_fit = T,
 		tol_rel_obj = 0.01,
 		just_discovery = T,
-		full_bayes = T,
+		approximate_posterior_inference = F,
+		approximate_posterior_analysis = T,
 		cores = 30,
-		additional_parameters_to_save = c("intercept", "sigma_raw")
+		additional_parameters_to_save = c("intercept", "sigma_raw", "sigma_intercept", "sigma_slope", "sigma_sigma")
 	)
 
 saveRDS(res, file="~/PostDoc/temp_res_ppcSeq.RData")
