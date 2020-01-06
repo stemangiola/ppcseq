@@ -1374,7 +1374,12 @@ ppc_seq = function(input.df,
 	print(sprintf("how_many_posterior_draws_2 = %s", how_many_posterior_draws_2))
 
 	# Check if enough memory for full draw
-	available_memory = get_ram() %>% as.numeric() %>% multiply_by(1e+9)
+	available_memory = ifelse(
+		.Platform$OS.type == "windows",
+		shell('systeminfo | findstr Memory', intern = TRUE)[1] %>% gsub(",", "", .) %>% gsub(".*?([0-9]+).*", "\\1", .) %>% as.integer %>% divide_by(1000) %>% multiply_by(1e+9),
+		get_ram() %>% as.numeric() %>% multiply_by(1e+9)
+	)
+
 	required_memory = ifelse(
 		approximate_posterior_inference %>% `!`,
 		1.044e+06 + how_many_posterior_draws_2 * 3.777e-02, # Regression taken from performances.R
