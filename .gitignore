@@ -12,5 +12,6 @@
 dev/false_positive_study.RData
 dev/false_positive_study.pdf
 dev/*rds
+dev/*rda
 dev/approximation_bias_correction_cache*
 temp*
