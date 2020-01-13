@@ -175,7 +175,6 @@ res =
 		sample_column = sample,
 		gene_column = transcript,
 		pass_fit = T,
-		tol_rel_obj = 0.01,
 		just_discovery = T,
 		approximate_posterior_inference = F,
 		approximate_posterior_analysis = T,
