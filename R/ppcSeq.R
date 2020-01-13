@@ -1298,7 +1298,7 @@ ppc_seq = function(input.df,
 									 significance_column = `p-value`,
 									 do_check_column,
 									 approximate_posterior_inference = T,
-									 approximate_posterior_analysis = T,
+									 approximate_posterior_analysis = F,
 									 do_correct_approx = T,
 									 how_many_negative_controls = 500,
 									 draws_after_tail = 10,
@@ -1372,6 +1372,12 @@ ppc_seq = function(input.df,
 	how_many_posterior_draws_2 =  draws_after_tail %>% divide_by(adj_prob_theshold_2) %>% max(1000) # I want 5 draws in the tail
 
 	print(sprintf("how_many_posterior_draws_2 = %s", how_many_posterior_draws_2))
+
+	# If too many draws required revert to approximation of CI
+	if(how_many_posterior_draws_2 > 20000) {
+		writeLines(sprintf("The number of draws needed to calculate the CI from the posterior would be larger than %s. To avoid impractical computation times, the calculation of the CI will be based on the mean, exposure and overdisperison posteriors.", how_many_posterior_draws_2))
+		approximate_posterior_analysis = T
+	}
 
 	# Check if enough memory for full draw
 	available_memory = ifelse(
