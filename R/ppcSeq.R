@@ -818,7 +818,6 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 
 }
 
-
 save_generated_quantities_in_case = function(input.df, fit, save_generated_quantities){
 
 	writeLines(sprintf("executing %s", "save_generated_quantities_in_case"))
