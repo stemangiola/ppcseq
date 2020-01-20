@@ -28,7 +28,7 @@ my_theme =
 		panel.grid.minor = element_line(size = 0.1),
 		text = element_text(size=12),
 		legend.position="bottom",
-		axis.text.x = element_text(angle = 90, hjust = 1, size = 5),
+		#axis.text.x = element_text(angle = 90, hjust = 1, size = 5),
 		strip.background = element_blank(),
 		axis.title.x  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
 		axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
@@ -88,3 +88,14 @@ cowplot::plot_grid(p1, p2, align = "h", ncol = 1, axis="b" , rel_heights = c(1,4
 
 res %>% filter(`ppc samples failed` == 1) %>%
 	pull(plot) %>% `[[` (1) + theme( legend.position = "bottom")
+
+# How many outliers after first passage
+res %>% filter(`tot deleterious outliers` == 0) %>% unnest(`sample wise data`) %>% rowwise() %>% filter(! between(value, .lower_2, .upper_2)) %>% ungroup()
+
+# What is the n_eff I achieve on real data
+res %>% attr("fit 2") %>%
+	rstan::summary() %$% summary %>%
+	as_tibble(rownames="par") %>%
+	filter(grepl("counts_rng", par)) %>%
+	ggplot(aes(n_eff)) + geom_histogram() +
+	my_theme
