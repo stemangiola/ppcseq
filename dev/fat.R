@@ -2,22 +2,24 @@ library(tidyverse)
 library(magrittr)
 library(ppcSeq)
 
-res =
-	ppcSeq::ppc_seq(
-		dplyr::mutate(ppcSeq::counts,  is_significant = FDR < 0.05 ),
-		formula = ~ Label,
-		significance_column = PValue,
-		do_check_column  = is_significant,
-		value_column = value,
-		percent_false_positive_genes = "0.5%",
-		approximate_posterior_inference = F,
-		approximate_posterior_analysis = F,
-		how_many_negative_controls = 500,
-		cores=30,
-		pass_fit = T
-	)
+# res =
+# 	ppcSeq::ppc_seq(
+# 		dplyr::mutate(ppcSeq::counts,  is_significant = FDR < 0.05 ),
+# 		formula = ~ Label,
+# 		significance_column = PValue,
+# 		do_check_column  = is_significant,
+# 		value_column = value,
+# 		percent_false_positive_genes = "0.5%",
+# 		approximate_posterior_inference = F,
+# 		approximate_posterior_analysis = F,
+# 		how_many_negative_controls = 500,
+# 		cores=30,
+# 		pass_fit = T
+# 	)
+#
+# save(res, file = "dev/fat_ppc.rda")
 
-save(res, file = "dev/fat_ppc.rda")
+load("dev/fat_ppc.rda")
 
 my_theme =
 	theme_bw() +
@@ -57,7 +59,7 @@ p2 =
 		axis.title.y  = element_blank(),
 		axis.text.x = element_text(angle = 90, hjust = 1, size = 5)
 		)
-		) %>%
+	) %>%
 
 	# eliminate x labels. Anonymous function
 	{
