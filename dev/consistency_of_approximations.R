@@ -490,7 +490,6 @@ save(list=c("res_1", "res_2", "res_3", "res_4"), file="dev/consistency_or_approx
 # 	my_theme
 
 # Plot differences
-
 signed_log <- scales::trans_new("signed_log",
 																transform=function(x) sign(x)*log(abs(x)),
 																inverse=function(x) sign(x)*exp(abs(x)))
@@ -544,10 +543,17 @@ save(df_plot, file="dev/df_plot.rda")
 
 
 # Model after correction
-
 df_plot_all =
 	foreach(p = c(0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001), .combine=bind_rows ) %do% {
 		w = wrapper(p, do_correct_approx = T)
 		save(w, file=sprintf("dev/w_corrected_%s.rda", p))
 		w
 	}
+
+# Goodness of the linear models
+load("data/lm_approx_bias_lower.rda")
+lm_approx_bias_lower %>% summary
+load("data/lm_approx_bias_upper.rda")
+lm_approx_bias_upper %>% summary
+
+
