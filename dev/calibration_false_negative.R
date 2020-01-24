@@ -93,8 +93,18 @@ input_2 =
 
 	# Add outliers
 	left_join( outlier_df	) %>%
-	mutate(is_outlier = sample(1:3,size = n(), prob = c(1-how_many_outliers, rep(how_many_outliers, 2)/2), replace = T )) %>%
-	mutate(value = recode(is_outlier, value, outlier_low, outlier_high)) %>%
+	left_join(
+		(.) %>%
+			distinct(symbol) %>%
+			mutate(is_symbol_outlier = sample(1:3,size = n(), prob = c(1-how_many_outliers, rep(how_many_outliers, 2)/2), replace = T ))
+	)	%>%
+	group_by(symbol) %>%
+	mutate(is_outlier = ifelse(is_symbol_outlier & row_number() == sample(size=1, 1:n()), is_symbol_outlier, 1)) %>%
+	ungroup() %>%
+
+	# Outliers all up
+	mutate(value = ifelse(is_outlier == 1, value, outlier_high)) %>%
+	#mutate(value = recode(is_outlier, value, outlier_low, outlier_high)) %>%
 
 	# Add negative controls
 	bind_rows(
@@ -115,9 +125,10 @@ es =
 		run = 1:3
 	) %>%
 		as_tibble() %>%
+		#slice(1) %>%   # <<<<<<<<< TESING
 		mutate(`data source` = list(input_2)) %>%
 		mutate(
-			`false positive predicted` =
+			`inference` =
 				map2(fp, `data source`, ~
 						.y %>%
 						ppc_seq(
@@ -127,16 +138,87 @@ es =
 							value_column = value,
 							percent_false_positive_genes = sprintf("%s%%", .x),
 							cores = 30
-						) %>%
-						filter( `tot deleterious outliers`>0) %>%
-						nrow %>%
-						divide_by( input_2 %>% filter(is_significant) %>% distinct(symbol) %>% nrow )
+						)
 				 	)
 		)
 
- es %>% saveRDS("dev/es_calibration_false_negative.rds")
+es %>% saveRDS("dev/es_calibration_false_negative.rds")
 
-# es = loadRDS("dev/es_calibration_false_negative.rds")
+# es = readRDS("dev/es_calibration_false_negative.rds")
+
+
+stats =
+	es %>%
+	mutate(
+		inference = map(inference, ~ .x %>% select(symbol, `ppc samples failed`)) # unnest(`sample wise data`) %>% select(symbol, sample, ppc))
+	) %>%
+	mutate(`data source` = map(`data source`, ~ .x  %>% filter(is_significant) %>% distinct(symbol, is_symbol_outlier))) %>%
+	mutate(integrated = map2(inference, `data source`, ~ .x %>% left_join(.y))) %>%
+	select(-`data source` , -  inference) %>%
+	unnest(integrated)
+
+# Where the data does not have outliers
+fp_stat =
+	stats %>%
+	filter(is_symbol_outlier == 1) %>%
+	mutate(false_positive =   `ppc samples failed` > 0 ) %>%
+	mutate(true_negative =  `ppc samples failed` == 0) %>%
+	group_by(fp, run) %>%
+	summarise(sum(false_positive), sum(true_negative)) %>%
+	mutate(`false positive predicted` = `sum(false_positive)` / (`sum(false_positive)` + `sum(true_negative)`))
+
+p1 =
+	fp_stat %>%
+	ggplot(aes(x = fp/100, y = `false positive predicted` )) +
+	geom_smooth(method = "lm", color = "#4b68b1") +
+	geom_point() +
+	#geom_abline(intercept = 0, slope = 1, linetype ="dashed") +
+	xlab("False positive aimed") +
+	ylab("False positive predicted") +
+	my_theme
+
+fn_stat =
+	stats %>%
+	filter(is_symbol_outlier > 1) %>%
+	mutate(true_positive =   `ppc samples failed` > 0 ) %>%
+	mutate(false_negative =  `ppc samples failed` == 0) %>%
+	group_by(fp, run) %>%
+	summarise(sum(true_positive), sum(false_negative)) %>%
+	mutate(`false negative predicted` = `sum(false_negative)` / (`sum(false_negative)` + `sum(true_positive)`))
+
+p2 =
+	fn_stat %>%
+	ggplot(aes(x = fp / 100, y = `false negative predicted` )) + geom_point()  +
+	geom_abline(intercept = 0, slope = 1) +
+	xlab("False positive aimed") +
+	ylab("False negative predicted") +
+	my_theme
+
+# ROC
+p3 =
+	tibble(
+	`false positive predicted` = fp_stat %>% pull(`false positive predicted`) %>% sort,
+	`false negative predicted` = fn_stat %>% pull(`false negative predicted`) %>% sort,
+	) %>%
+		ggplot(aes(y = `false negative predicted`, x = `false positive predicted`)) +
+		geom_line() +
+		xlab("False positive predicted") +
+		ylab("False negative predicted") +
+		my_theme
+
+# Compose plots
+cowplot::plot_grid(plotlist = list(p1, p2, p3), align = "v", ncol = 3, axis="b", rel_widths = 1 ) %>%
+
+	# Save plots
+	ggsave(
+		"dev/fp_fn_ROC.pdf",
+		plot = .,
+		useDingbats=FALSE,
+		units = c("mm"),
+		width = 183
+	)
+
+
 #
 # es %>% slice(1) %>% unnest(`false positive predicted`)
 # (
