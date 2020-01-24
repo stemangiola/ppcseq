@@ -13,7 +13,7 @@ ppc_seq(
   significance_column = `p-value`,
   do_check_column,
   approximate_posterior_inference = T,
-  approximate_posterior_analysis = F,
+  approximate_posterior_analysis = NULL,
   do_correct_approx = T,
   how_many_negative_controls = 500,
   draws_after_tail = 10,
