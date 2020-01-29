@@ -665,6 +665,23 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
+
+	draws_mu = fit %>% extract("lambda_log_param") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.)))
+	draws_sigma = fit %>% extract("sigma_raw") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("sigma..%s", colnames(.) %>% gsub("V", "", .)))
+	draws_exposure = fit %>% extract("exposure_rate") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .)))
+
+	cov_mat =
+		do.call(cbind, list(draws_mu, draws_sigma, draws_exposure)) %>%
+		cov
+
+	mean_mat =
+		do.call(cbind, list(draws_mu, draws_sigma, draws_exposure)) %>%
+		colMeans()
+
+	cov_mat %>% as.numeric %>% as_tibble() %>% ggplot(aes(value)) + geom_histogram() + scale_y_log10()
+
+	# <<< I don't have much correlation and therefore stopped working
+
 	fit_summary  = fit %>% rstan::summary() %$% summary %>%
 		as_tibble(rownames="par")
 
