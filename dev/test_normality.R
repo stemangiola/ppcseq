@@ -48,7 +48,7 @@ p =
 	ungroup %>%
 	nest(data = -c(G, .variable, S)) %>%
 	mutate(
-		`P-value` = future_map(data, ~ shapiro.test(sample(.x$.value, size=5000)) %>% unlist %>% `[` (2) %>% as.numeric )
+		`P-value` = future_map(data, ~ shapiro.test(sample(.x$.value, size=5000) %>% scale) %>% unlist %>% `[` (2) %>% as.numeric )
 	) %>%
 	unnest(cols = c(`P-value`)) %>%
 	ggplot(aes(`P-value`)) +
