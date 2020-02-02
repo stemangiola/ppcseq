@@ -20,6 +20,8 @@ fit_to_counts_rng_approximated(
 
 \item{how_many_posterior_draws}{An integer}
 
+\item{truncation_compensation}{A real}
+
 \item{do_correct_approx}{A boolean}
 
 \item{cores}{An integer}
