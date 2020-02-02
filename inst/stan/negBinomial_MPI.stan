@@ -259,6 +259,7 @@ generated quantities{
 	vector[how_many_to_check] counts_rng[S];
 
 	for(g in 1:how_many_to_check) for(s in 1:S)
+	// Make the overdispersion bigger making sigma smaller. Because inferring on truncated data with naive NB underestimate overdispersion
 		counts_rng[s,g] =	neg_binomial_2_log_rng(exposure_rate[s] + lambda_log_param[s,g],	sigma[g] * truncation_compensation);
 
 }
