@@ -308,7 +308,7 @@ df_plot_all =
 
 # Plot bias trends
 df_plot_all =
-	dir(path="dev/", pattern = "^w_corrected", full.names = T) %>%
+	dir(path="dev/", pattern = "^w_[0-9]", full.names = T) %>%
 	map_dfr(~ {
 		load(.x)
 		w
@@ -359,22 +359,30 @@ df_plot_all%>%
 	}
 
 # Plot lambda error
-df_plot_all%>%
+(df_plot_all%>%
 	filter(Difference != 0) %>%
 	filter(p==2 & title=="Approximate posterior analysis") %>%
 	left_join(
 		ppcSeq::counts %>% group_by( symbol) %>% summarise(value = value %>% `+` (1) %>% log %>% mean, PValue = PValue %>% log %>% mean)
 	) %>%
-	ggplot( aes(x = mean_2.x, y=Difference, group=sign, sample = sample, symbol=symbol, color = value)) +
+	ggplot( aes(x = mean_2.x, y=Difference, group=sign, sample = sample, symbol=symbol)) +
 
 	geom_point(alpha=0.5, size=0.1) 	+		facet_grid(Comparison ~ adj_prob_theshold_2, scales = "free_y") +
+	scale_color_viridis(option="magma") +
+		ylab("Error") + xlab("Mean of negative binomial") +
+	my_theme +
 	theme(axis.line = element_line(),
-				legend.position = "none",
-				text = element_text(size=12),
+				text = element_text(size=10),
 				strip.background = element_blank(),
-				axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10))
-	)
-
+				axis.title.y  = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
+				axis.text.x = element_text(angle = 40, hjust = 1)
+	)) %>%
+	ggsave(plot = .,
+					 "correction_approximation_bias.pdf",
+					 useDingbats=FALSE,
+					 units = c("mm"),
+					 width = 183
+		)
 
 
 # Scatter plot intercept sigma colored by error - UPPER diff
@@ -513,6 +521,7 @@ save(df_plot, file="dev/df_plot.rda")
 				aes(yintercept=`Difference %>% mean`, color=sign),
 				size=1
 			) +
+			scale_color_manual(values=c( "#e11f28", "#397fba")) +
 			geom_hline(
 				data =df_plot_all %>%
 					mutate(Difference = Difference / mean_2.x) %>% group_by(p, title, Comparison) %>% summarise(Difference %>% median),
