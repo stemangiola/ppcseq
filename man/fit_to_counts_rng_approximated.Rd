@@ -8,6 +8,7 @@ fit_to_counts_rng_approximated(
   fit,
   adj_prob_theshold,
   how_many_posterior_draws,
+  truncation_compensation,
   do_correct_approx = T,
   cores
 )
