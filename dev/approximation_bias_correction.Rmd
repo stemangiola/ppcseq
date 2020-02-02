@@ -30,8 +30,8 @@ my_theme =
 ## R Markdown
 
 ```{r load data, cache=TRUE}
-load("dev/inference_before_correction.rda")
-load("dev/inference_after_correction.rda")
+load("inference_before_correction.rda")
+load("inference_after_correction.rda")
 ```
 
 
