@@ -48,7 +48,7 @@ make_df_plot = function(.data){
 
 }
 
-wrapper = function(adj_prob_theshold_2){
+wrapper = function(adj_prob_theshold_2, do_correct_approx = F){
 
 	res_0 =
 		ppcSeq::counts %>%
@@ -64,7 +64,7 @@ wrapper = function(adj_prob_theshold_2){
 			pass_fit = T,
 			additional_parameters_to_save = additional_parameters_to_save,
 			save_generated_quantities = T,
-			adj_prob_theshold_2 = adj_prob_theshold_2
+			adj_prob_theshold_2 = adj_prob_theshold_2, do_correct_approx = do_correct_approx
 		)
 
 	fit_to_lambda_sigma = function(fit){
@@ -133,7 +133,7 @@ wrapper = function(adj_prob_theshold_2){
 			seed = 654321,
 			pass_fit = T,
 			additional_parameters_to_save = additional_parameters_to_save,
-			adj_prob_theshold_2 = adj_prob_theshold_2
+			adj_prob_theshold_2 = adj_prob_theshold_2, do_correct_approx = do_correct_approx
 		)
 
 	res_2 =
@@ -148,7 +148,7 @@ wrapper = function(adj_prob_theshold_2){
 			percent_false_positive_genes = percent_false_positive_genes,
 			cores = 20,
 			additional_parameters_to_save = additional_parameters_to_save,
-			adj_prob_theshold_2 = adj_prob_theshold_2, pass_fit = T
+			adj_prob_theshold_2 = adj_prob_theshold_2, pass_fit = T, do_correct_approx = do_correct_approx
 		)
 
 	res_3 =
@@ -164,7 +164,7 @@ wrapper = function(adj_prob_theshold_2){
 			cores = 20,
 			adj_prob_theshold_2 = adj_prob_theshold_2,
 			additional_parameters_to_save = additional_parameters_to_save,
-			pass_fit = T
+			pass_fit = T, do_correct_approx = do_correct_approx
 		)
 
 	res_4 =
@@ -180,7 +180,7 @@ wrapper = function(adj_prob_theshold_2){
 			cores = 20,
 			adj_prob_theshold_2 = adj_prob_theshold_2,
 			additional_parameters_to_save = additional_parameters_to_save,
-			pass_fit = T
+			pass_fit = T, do_correct_approx = do_correct_approx
 		)
 	res_1_parsed =
 		res_1 %>%
@@ -268,7 +268,7 @@ wrapper = function(adj_prob_theshold_2){
 
 df_plot_all =
 	foreach(p = c(0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001), .combine=bind_rows ) %do% {
-		w = wrapper(p)
+		w = wrapper(p, do_correct_approx = F)
 		save(w, file=sprintf("dev/w_%s.rda", p))
 		w
 	}
