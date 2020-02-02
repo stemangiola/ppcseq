@@ -661,160 +661,67 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #'
 #' @export
 
-fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, do_correct_approx = T, cores){
+fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, do_correct_approx = T, cores){
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
-	fit_summary  = fit %>% rstan::summary() %$% summary %>%
-		as_tibble(rownames="par")
+	draws_mu =
+		fit %>% extract("lambda_log_param") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
+		as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
+	draws_sigma =
+		fit %>% extract("sigma_raw") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
+		as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
+	draws_exposure =
+		fit %>% extract("exposure_rate") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
+		as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
 
-	fit_mu =
-		fit_summary %>%
-		filter(grepl("lambda_log_param", par)) %>%
-		rename(mu_mean = mean, mu_sd = sd) %>%
-		separate(par, c(".variable", "S", "G"), sep="[\\[\\]\\,]", extra = "drop") %>%
-		mutate(S = S %>% as.integer, G = G %>% as.integer)
-
-	fit_sigma =
-		fit_summary %>%
-		filter(grepl("sigma_raw", par))	%>%
-		rename(sigma_mean = mean, sigma_sd = sd) %>%
-		separate(par, c(".variable", "G"), sep="[\\[\\]\\,]", extra = "drop") %>%
-		mutate( G = G %>% as.integer)
-
-	fit_exposure =
-		fit_summary %>%
-		filter(grepl("exposure_rate", par))	%>%
-		rename(exposure_mean = mean, exposure_sd = sd) %>%
-		separate(par, c(".variable", "S"), sep="[\\[\\]\\,]", extra = "drop") %>%
-		mutate( S = S %>% as.integer)
-
-	# Calculate quantiles
-	fit_mu %>%
-		select(S, G, mu_mean, mu_sd) %>%
-		left_join(
-			fit_sigma %>%
-				select(G, sigma_mean, sigma_sd),
-			by="G"
-		) %>%
-		left_join(
-			fit_exposure %>%
-				select(S, exposure_mean, exposure_sd),
-			by="S"
-		) %>%
-
-		# Pass variables
+	draws_mu %>%
+		left_join(draws_sigma) %>%
+		left_join(draws_exposure) %>%
+		nest(data = -c(S, G)) %>%
 		mutate(
-			how_many_posterior_draws = how_many_posterior_draws,
-			adj_prob_theshold = adj_prob_theshold,
-			do_correct_approx = do_correct_approx,
-			lm_approx_bias_lower = list(lm_approx_bias_lower),
-			lm_approx_bias_upper = list(lm_approx_bias_upper)
+			CI = map(
+				data,
+				~ {
+					.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = T)
+
+						draws = rnbinom(n =how_many_posterior_draws,	mu = exp(.x_supersampled$mu + .x_supersampled$exposure),	size = 1/exp(.x_supersampled$sigma) * truncation_compensation	)
+
+						draws %>%
+
+							# Process quantile
+							quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
+
+							# If activated correct the approximate quantiles
+							ifelse_pipe(
+								do_correct_approx,
+								~ (.x +
+									 	c(
+									 		predict(lm_approx_bias_lower,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp() %>%		magrittr::multiply_by(-1) ,
+									 		predict(lm_approx_bias_upper,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp()
+
+									 	)) %>%
+
+									# Make sure no CI is < 0
+									purrr::map_dbl( ~ .x %>% max(0))
+							) %>%
+
+							tibble::as_tibble(rownames="prop") %>%
+							tidyr::spread(prop, value) %>%
+							setNames(c(".lower", ".upper")) %>%
+
+							# Add mean and sd
+							dplyr::mutate(mean = mean(draws), sd = sd(draws))
+				}
+			)
 		) %>%
+		select(-data) %>%
+		unnest(CI) %>%
 
-		do_parallel_start(cores, "G") %>%
-		do({
-
-			`%>%` = magrittr::`%>%`
-
-			dplyr::do(
-				dplyr::group_by((.), S, G),
-				{
-					my_df = (.)
-					how_many_posterior_draws = unique(my_df$how_many_posterior_draws)
-					adj_prob_theshold = unique(my_df$adj_prob_theshold)
-					do_correct_approx = my_df$do_correct_approx[1]
-					lm_approx_bias_lower = my_df[1,]$lm_approx_bias_lower[[1]]
-					lm_approx_bias_upper = my_df[1,]$lm_approx_bias_upper[[1]]
-
-					x = rnbinom(
-						how_many_posterior_draws,
-						mu =
-							exp(rnorm(how_many_posterior_draws, my_df$mu_mean, my_df$mu_sd)) *
-							exp(rnorm(how_many_posterior_draws, my_df$exposure_mean, my_df$exposure_sd)),
-						size = 1/exp(rnorm(how_many_posterior_draws, my_df$sigma_mean, my_df$sigma_sd))
-					)
-
-					#browser()
-					x %>%
-						quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
-
-						# If activated correct the approximate quantiles
-						ifelse_pipe(
-							do_correct_approx,
-							~ (.x +
-									c(
-										predict(lm_approx_bias_lower,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp() %>%		magrittr::multiply_by(-1) ,
-										predict(lm_approx_bias_upper,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp()
-
-									)) %>%
-
-								# Make sure no CI is < 0
-								purrr::map_dbl( ~ .x %>% max(0))
-						) %>%
-
-						tibble::as_tibble(rownames="prop") %>%
-						tidyr::spread(prop, value) %>%
-						setNames(c(".lower", ".upper")) %>%
-
-						# Add mean and sd
-						dplyr::mutate(mean = mean(x), sd = sd(x))
-				})
-		}) %>%
-		do_parallel_end() %>%
-
-
+		# Adapt to old dataset
 		mutate(.variable = "counts_rng") %>%
-		select(.variable, S, G, mean, sd, .lower, .upper)
+		mutate(S = as.integer(S), G = as.integer(G))
 
-	# # Calculate quantiles
-	# fit_mu %>%
-	# 	select(S, G, mu_mean, mu_sd) %>%
-	# 	left_join(
-	# 		fit_sigma %>%
-	# 			select(G, sigma_mean, sigma_sd),
-	# 		by="G"
-	# 	) %>%
-	# 	left_join(
-	# 		fit_exposure %>%
-	# 			select(S, exposure_mean, exposure_sd),
-	# 		by="S"
-	# 	) %>%
-	#
-	# 	# Pass variables
-	# 	mutate(how_many_posterior_draws = how_many_posterior_draws, adj_prob_theshold = adj_prob_theshold) %>%
-	#
-	# 	do({
-	#
-	# 		`%>%` = magrittr::`%>%`
-	#
-	# 		dplyr::do(
-	# 			dplyr::group_by((.), S, G),
-	# 			{
-	# 				.x = (.)
-	# 				how_many_posterior_draws = unique(.x$how_many_posterior_draws)
-	# 				adj_prob_theshold = unique(.x$adj_prob_theshold)
-	# 				browser()
-	# 				qnbinom(
-	# 					c(adj_prob_theshold, 1 - adj_prob_theshold),
-	# 					mu =
-	# 						exp(rnorm(how_many_posterior_draws, .x$mu_mean, .x$mu_sd)) *
-	# 						exp(rnorm(how_many_posterior_draws, .x$exposure_mean, .x$exposure_sd)),
-	# 					size = 1/exp(rnorm(how_many_posterior_draws, .x$sigma_mean, .x$sigma_sd))
-	# 				)  %>%
-	# 					tibble::as_tibble(rownames="prop") %>%
-	# 					tidyr::spread(prop, value) %>%
-	# 					setNames(c(".lower", ".upper")) %>%
-	#
-	# 					# Add mean and sd
-	# 					dplyr::mutate(mean = mean(x), sd = sd(x))
-	#
-	# 			})
-	# 	}) %>%
-	#
-	#
-	# 	mutate(.variable = "counts_rng") %>%
-	# 	select(.variable, S, G, mean, sd, .lower, .upper)
 
 }
 
@@ -1133,7 +1040,7 @@ do_inference = function(my_df,
 
 		ifelse_pipe(
 			approximate_posterior_analysis,
-			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10, do_correct_approx, cores),
+			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10, truncation_compensation, do_correct_approx, cores),
 			~ .x %>% fit_to_counts_rng(adj_prob_theshold)
 		) %>%
 
