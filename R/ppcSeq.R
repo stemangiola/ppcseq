@@ -656,6 +656,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
 #' @param how_many_posterior_draws An integer
+#' @param truncation_compensation A real
 #' @param do_correct_approx A boolean
 #' @param cores An integer
 #'
@@ -692,19 +693,19 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 							# Process quantile
 							quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
 
-							# If activated correct the approximate quantiles
-							ifelse_pipe(
-								do_correct_approx,
-								~ (.x +
-									 	c(
-									 		predict(lm_approx_bias_lower,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp() %>%		magrittr::multiply_by(-1) ,
-									 		predict(lm_approx_bias_upper,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp()
-
-									 	)) %>%
-
-									# Make sure no CI is < 0
-									purrr::map_dbl( ~ .x %>% max(0))
-							) %>%
+							# # If activated correct the approximate quantiles
+							# ifelse_pipe(
+							# 	do_correct_approx,
+							# 	~ (.x +
+							# 		 	c(
+							# 		 		predict(lm_approx_bias_lower,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp() %>%		magrittr::multiply_by(-1) ,
+							# 		 		predict(lm_approx_bias_upper,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp()
+							#
+							# 		 	)) %>%
+							#
+							# 		# Make sure no CI is < 0
+							# 		purrr::map_dbl( ~ .x %>% max(0))
+							# ) %>%
 
 							tibble::as_tibble(rownames="prop") %>%
 							tidyr::spread(prop, value) %>%
