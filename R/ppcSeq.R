@@ -815,7 +815,7 @@ check_if_any_NA = function(input.df, sample_column, gene_column, value_column, s
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom ttBulk scale_abundance
+#' @importFrom tidyBulk scale_abundance
 #'
 #' @param my_df A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -1164,7 +1164,7 @@ format_input = function(input.df, formula, sample_column, gene_column, value_col
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom ttBulk scale_abundance
+#' @importFrom tidyBulk scale_abundance
 #' @importFrom benchmarkme get_ram
 #' @importFrom magrittr multiply_by
 #'
@@ -1218,7 +1218,7 @@ ppc_seq = function(input.df,
 									 tol_rel_obj = 0.01,
 									 just_discovery = F,
 									 write_on_disk = F,
-									 seed = 654321,
+									 seed = sample(1:99999, size = 1),
 									 adj_prob_theshold_2 = NULL,
 									 correct_approximation_tail_bias = T
 ) {
@@ -1345,7 +1345,7 @@ ppc_seq = function(input.df,
 		scale_abundance(!!sample_column,!!gene_column,!!value_column) %>%
 		mutate(cc =
 					 	!!as.symbol(sprintf(
-					 		"%s normalised",  quo_name(value_column)
+					 		"%s_scaled",  quo_name(value_column)
 					 	)) %>%
 					 	`+` (1) %>% log) %>%
 		summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
