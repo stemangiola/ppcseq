@@ -26,7 +26,7 @@ ppc_seq(
   tol_rel_obj = 0.01,
   just_discovery = F,
   write_on_disk = F,
-  seed = 654321,
+  seed = sample(1:99999, size = 1),
   adj_prob_theshold_2 = NULL,
   correct_approximation_tail_bias = T
 )
