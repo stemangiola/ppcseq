@@ -47,34 +47,34 @@ outlier_prop = 1e-10
 how_many_outliers = 0.2
 
 # outlier_df =
-# 	res_1 %>%
-# 	attr("fit 2") %>%
-# 	tidybayes::spread_draws(lambda_log_param[S, G], sigma_raw[G], exposure_rate[S]) %>%
-# 	tidybayes::median_qi() %>%
-# 	ungroup()  %>%
-# 	nest(data = -c(S, G)) %>%
-# 	mutate(
-# 		CI = map(
-# 			data,
-#
-# 			# Calculate quantiles
-# 			~ qnbinom(
-# 				c(outlier_prop, 1-outlier_prop),
-# 				mu=exp(.x$lambda_log_param + .x$exposure_rate),
-# 				size = 1/exp(.x$sigma_raw)
-# 			) %>%
-# 				enframe(name=NULL) %>%
-# 				mutate(id = c("outlier_low", "outlier_high")) %>%
-# 				spread(id, value)
-# 		)
-# 	) %>%
-# 	unnest(CI) %>%
-# 	select(S, G, contains("outlier"))
+	# res_1 %>%
+	# attr("fit 2") %>%
+	# tidybayes::spread_draws(lambda_log_param[S, G], sigma_raw[G], exposure_rate[S]) %>%
+	# tidybayes::median_qi() %>%
+	# ungroup()  %>%
+	# nest(data = -c(S, G)) %>%
+	# mutate(
+	# 	CI = map(
+	# 		data,
+	#
+	# 		# Calculate quantiles
+	# 		~ qnbinom(
+	# 			c(outlier_prop, 1-outlier_prop),
+	# 			mu=exp(.x$lambda_log_param + .x$exposure_rate),
+	# 			size = 1/exp(.x$sigma_raw)
+	# 		) %>%
+	# 			enframe(name=NULL) %>%
+	# 			mutate(id = c("outlier_low", "outlier_high")) %>%
+	# 			spread(id, value)
+	# 	)
+	# ) %>%
+	# unnest(CI) %>%
+	# select(S, G, contains("outlier"))
 #
 # outlier_df %>% saveRDS("dev/outlier_for_calibration_false_negative.rds")
 
 outlier_df = readRDS("dev/outlier_for_calibration_false_negative.rds")
-
+set.seed(534231)
 input_2 =
 	res_1 %>%
 	ungroup %>%
@@ -137,7 +137,8 @@ es =
 							do_check_column = is_significant,
 							value_column = value,
 							percent_false_positive_genes = sprintf("%s%%", .x),
-							cores = 30
+							cores = 30,
+							approximate_posterior_inference = F, approximate_posterior_analysis = F
 						)
 				 	)
 		)
