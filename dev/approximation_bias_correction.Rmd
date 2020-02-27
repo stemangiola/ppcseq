@@ -212,7 +212,7 @@ inference_before_correction %>%
 	filter(Difference != 0) %>%
 	filter(p==2 & title=="Approximate posterior analysis") %>%
 	left_join(
-		ppcSeq::counts %>% group_by( symbol) %>% summarise(value = value %>% `+` (1) %>% log %>% mean, PValue = PValue %>% log %>% mean)
+		ppcseq::counts %>% group_by( symbol) %>% summarise(value = value %>% `+` (1) %>% log %>% mean, PValue = PValue %>% log %>% mean)
 	) %>%
 	arrange(adj_prob_theshold_2 %>% desc) %>%
 	mutate(adj_prob_theshold_2 = factor(adj_prob_theshold_2, levels = .$adj_prob_theshold_2 %>% unique)) %>%

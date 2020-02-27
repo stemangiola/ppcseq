@@ -1,14 +1,14 @@
-context('ppcSeq')
+context('ppcseq')
 
 test_that("VB post approx no correction",{
 
   res =
-    ppcSeq::ppc_seq(
-      dplyr::mutate(ppcSeq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
+    ppcseq::identify_outliers(
+      dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
-      significance_column = PValue,
-      do_check_column  = is_significant,
-      value_column = value,
+      .significance = PValue,
+      .do_check  = is_significant,
+      .abundance = value,
       percent_false_positive_genes = "1%",
       tol_rel_obj = 0.01,
       approximate_posterior_inference = T,
@@ -29,12 +29,12 @@ test_that("VB post approx no correction",{
 test_that("VB post approx yes correction",{
 
   res =
-    ppcSeq::ppc_seq(
-      dplyr::mutate(ppcSeq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
+    ppcseq::identify_outliers(
+      dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
-      significance_column = PValue,
-      do_check_column  = is_significant,
-      value_column = value,
+      .significance = PValue,
+      .do_check  = is_significant,
+      .abundance = value,
       percent_false_positive_genes = "1%",
       tol_rel_obj = 0.01,
       approximate_posterior_inference = T,
@@ -55,12 +55,12 @@ test_that("VB post approx yes correction",{
 test_that("VB post full",{
 
   res =
-    ppcSeq::ppc_seq(
-      dplyr::mutate(ppcSeq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
+    ppcseq::identify_outliers(
+      dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
-      significance_column = PValue,
-      do_check_column  = is_significant,
-      value_column = value,
+      .significance = PValue,
+      .do_check  = is_significant,
+      .abundance = value,
       percent_false_positive_genes = "1%",
       tol_rel_obj = 0.01,
       approximate_posterior_inference = T,
@@ -80,12 +80,12 @@ test_that("VB post full",{
 test_that("bayes post approx",{
 
   res =
-    ppcSeq::ppc_seq(
-      dplyr::mutate(ppcSeq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
+    ppcseq::identify_outliers(
+      dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
-      significance_column = PValue,
-      do_check_column  = is_significant,
-      value_column = value,
+      .significance = PValue,
+      .do_check  = is_significant,
+      .abundance = value,
       percent_false_positive_genes = "1%",
       tol_rel_obj = 0.01,
       approximate_posterior_inference = F,
@@ -105,12 +105,12 @@ test_that("bayes post approx",{
 test_that("bayes full",{
 
   res =
-    ppcSeq::ppc_seq(
-      dplyr::mutate(ppcSeq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
+    ppcseq::identify_outliers(
+      dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
-      significance_column = PValue,
-      do_check_column  = is_significant,
-      value_column = value,
+      .significance = PValue,
+      .do_check  = is_significant,
+      .abundance = value,
       percent_false_positive_genes = "1%",
       tol_rel_obj = 0.01,
       approximate_posterior_inference = F,

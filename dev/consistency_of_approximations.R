@@ -1,6 +1,6 @@
 library(tidyverse)
 library(magrittr)
-library(ppcSeq)
+library(ppcseq)
 plan(multicore)
 library(foreach)
 library(viridis)
@@ -52,13 +52,13 @@ make_df_plot = function(.data){
 wrapper = function(adj_prob_theshold_2, do_correct_approx = F){
 
 	res_0 =
-	ppcSeq::counts %>%
+	ppcseq::counts %>%
 	mutate(is_significant = FDR < FDR_threshold) %>%
-	ppc_seq(
+	identify_outliers(
 		formula = ~ Label,
-		significance_column = PValue,
-		do_check_column = is_significant,
-		value_column = value,
+		.significance = PValue,
+		.do_check = is_significant,
+		.abundance = value,
 		percent_false_positive_genes = percent_false_positive_genes,
 		approximate_posterior_inference = F,
 		approximate_posterior_analysis = F,
@@ -88,7 +88,7 @@ input_0 =
 	mutate(`generated quantities` = map(`generated quantities`, ~ .x %>% filter(`.draw` %in% c(1, 10, 30, 50, 200) & .chain == 1))) %>%
 
 	# Attach annotation
-	left_join( ppcSeq::counts %>% select(-value) %>% distinct()	) %>%
+	left_join( ppcseq::counts %>% select(-value) %>% distinct()	) %>%
 
 	# unpack
 	unnest(cols =  `generated quantities`) %>%
@@ -101,7 +101,7 @@ input_0 =
 	bind_rows(
 		(.) %>% distinct(sample, sample_draw) %>%
 			left_join(
-				ppcSeq::counts %>%
+				ppcseq::counts %>%
 					inner_join(
 						(.) %>%
 							arrange(PValue) %>%
@@ -122,11 +122,11 @@ input_0 =
 
 res_1 =
 	input_0 %>%
-	ppc_seq(
+	identify_outliers(
 		formula = ~ Label,
-		significance_column = PValue,
-		do_check_column = is_significant,
-		value_column = value,
+		.significance = PValue,
+		.do_check = is_significant,
+		.abundance = value,
 		approximate_posterior_inference = F,
 		approximate_posterior_analysis = F,
 		percent_false_positive_genes = percent_false_positive_genes,
@@ -139,11 +139,11 @@ res_1 =
 
 res_2 =
 	input_0 %>%
-	ppc_seq(
+	identify_outliers(
 		formula = ~ Label,
-		significance_column = PValue,
-		do_check_column = is_significant,
-		value_column = value,
+		.significance = PValue,
+		.do_check = is_significant,
+		.abundance = value,
 		approximate_posterior_inference = T,
 		approximate_posterior_analysis = T,
 		percent_false_positive_genes = percent_false_positive_genes,
@@ -154,11 +154,11 @@ res_2 =
 
 res_3 =
 	input_0 %>%
-	ppc_seq(
+	identify_outliers(
 		formula = ~ Label,
-		significance_column = PValue,
-		do_check_column = is_significant,
-		value_column = value,
+		.significance = PValue,
+		.do_check = is_significant,
+		.abundance = value,
 		approximate_posterior_inference = F,
 		approximate_posterior_analysis = T,
 		percent_false_positive_genes = percent_false_positive_genes,
@@ -170,11 +170,11 @@ res_3 =
 
 res_4 =
 	input_0 %>%
-	ppc_seq(
+	identify_outliers(
 		formula = ~ Label,
-		significance_column = PValue,
-		do_check_column = is_significant,
-		value_column = value,
+		.significance = PValue,
+		.do_check = is_significant,
+		.abundance = value,
 		approximate_posterior_inference = T,
 		approximate_posterior_analysis = F,
 		percent_false_positive_genes = percent_false_positive_genes,
@@ -326,7 +326,7 @@ df_plot_all%>%
 	filter(Difference != 0) %>%
 	filter(p==2 & title=="Approximate posterior analysis") %>%
 	left_join(
-		ppcSeq::counts %>% group_by( symbol) %>% summarise(value = value %>% `+` (1) %>% log %>% mean, PValue = PValue %>% log %>% mean)
+		ppcseq::counts %>% group_by( symbol) %>% summarise(value = value %>% `+` (1) %>% log %>% mean, PValue = PValue %>% log %>% mean)
 	) %>%
 	#sample_frac(0.05) %>%
 	{
@@ -363,7 +363,7 @@ df_plot_all%>%
 	filter(Difference != 0) %>%
 	filter(p==2 & title=="Approximate posterior analysis") %>%
 	left_join(
-		ppcSeq::counts %>% group_by( symbol) %>% summarise(value = value %>% `+` (1) %>% log %>% mean, PValue = PValue %>% log %>% mean)
+		ppcseq::counts %>% group_by( symbol) %>% summarise(value = value %>% `+` (1) %>% log %>% mean, PValue = PValue %>% log %>% mean)
 	) %>%
 	ggplot( aes(x = mean_2.x, y=Difference, group=sign, sample = sample, symbol=symbol)) +
 

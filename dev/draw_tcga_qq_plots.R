@@ -2,7 +2,7 @@ library(tidyverse)
 library(magrittr)
 library(foreach)
 library(ttBulk)
-library(ppcSeq)
+library(ppcseq)
 #source("https://gist.githubusercontent.com/stemangiola/dd3573be22492fc03856cd2c53a755a9/raw/e4ec6a2348efc2f62b88f10b12e70f4c6273a10a/tidy_extensions.R")
 
 
@@ -167,13 +167,13 @@ res =
 	TCGA_tbl %>%
 	mutate(do_check = (!`house keeping`) & run==1) %>%
 
-	ppc_seq(
-		significance_column = PValue,
-		do_check_column = do_check,
-		value_column = `read count`,
+	identify_outliers(
+		.significance = PValue,
+		.do_check = do_check,
+		.abundance = `read count`,
 		percent_false_positive_genes = "5%",
-		sample_column = sample,
-		gene_column = transcript,
+		.sample = sample,
+		.transcript = transcript,
 		pass_fit = T,
 		just_discovery = T,
 		approximate_posterior_inference = F,
@@ -182,9 +182,9 @@ res =
 		additional_parameters_to_save = c("intercept", "sigma_raw", "sigma_intercept", "sigma_slope", "sigma_sigma")
 	)
 
-saveRDS(res, file="~/PostDoc/temp_res_ppcSeq.RData")
+saveRDS(res, file="~/PostDoc/temp_res_ppcseq.RData")
 
-# res = readRDS("~/PostDoc/temp_res_ppcSeq.RData")
+# res = readRDS("~/PostDoc/temp_res_ppcseq.RData")
 #
 # x = res %>% distinct(transcript, G, S, `read count`, sample) %>%
 #
@@ -247,7 +247,7 @@ saveRDS(res, file="~/PostDoc/temp_res_ppcSeq.RData")
 # 	do_parallel_end()
 #
 # xx = x %>%
-# 	create_tt_from_tibble_bulk(sample_column = sample, transcript_column = transcript, counts_column = `read count`) %>%
+# 	create_tt_from_tibble_bulk(.sample = sample, transcript_column = transcript, counts_column = `read count`) %>%
 # 	group_by(transcript) %>%
 # 	do(
 # 		(.) %>%
