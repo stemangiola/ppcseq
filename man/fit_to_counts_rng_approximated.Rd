@@ -9,7 +9,6 @@ fit_to_counts_rng_approximated(
   adj_prob_theshold,
   how_many_posterior_draws,
   truncation_compensation,
-  do_correct_approx = T,
   cores
 )
 }
@@ -22,9 +21,9 @@ fit_to_counts_rng_approximated(
 
 \item{truncation_compensation}{A real}
 
-\item{do_correct_approx}{A boolean}
-
 \item{cores}{An integer}
+
+\item{do_correct_approx}{A boolean}
 }
 \description{
 fit_to_counts_rng_approximated
