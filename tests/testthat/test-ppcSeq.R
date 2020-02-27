@@ -6,6 +6,7 @@ test_that("VB post approx no correction",{
     ppcseq::identify_outliers(
       dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
+      sample, symbol, value,
       .significance = PValue,
       .do_check  = is_significant,
       .abundance = value,
@@ -32,6 +33,7 @@ test_that("VB post approx yes correction",{
     ppcseq::identify_outliers(
       dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
+      sample, symbol, value,
       .significance = PValue,
       .do_check  = is_significant,
       .abundance = value,
@@ -58,6 +60,7 @@ test_that("VB post full",{
     ppcseq::identify_outliers(
       dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
+      sample, symbol, value,
       .significance = PValue,
       .do_check  = is_significant,
       .abundance = value,
@@ -83,6 +86,7 @@ test_that("bayes post approx",{
     ppcseq::identify_outliers(
       dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
+      sample, symbol, value,
       .significance = PValue,
       .do_check  = is_significant,
       .abundance = value,
@@ -108,6 +112,7 @@ test_that("bayes full",{
     ppcseq::identify_outliers(
       dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), T, F) ),
       formula = ~ Label,
+      sample, symbol, value,
       .significance = PValue,
       .do_check  = is_significant,
       .abundance = value,
