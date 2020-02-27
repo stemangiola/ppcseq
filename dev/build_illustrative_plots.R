@@ -1,7 +1,7 @@
 # Build illustrative plots
 
 library(tidyverse)
-library(ppcSeq)
+library(ppcseq)
 
 my_theme =
 	theme_bw() +
@@ -21,13 +21,13 @@ my_theme =
 
 
 # res =
-# 	ppcSeq::counts %>%
+# 	ppcseq::counts %>%
 # 	mutate(is_significant = FDR < "0.2") %>%
-# 	ppc_seq(
+# 	identify_outliers(
 # 		formula = ~ Label,
-# 		significance_column = PValue,
-# 		do_check_column = is_significant,
-# 		value_column = value,
+# 		.significance = PValue,
+# 		.do_check = is_significant,
+# 		.abundance = value,
 # 		save_generated_quantities = T,
 # 		percent_false_positive_genes = "5%",
 # 		approximate_posterior_inference = F,
@@ -97,7 +97,7 @@ reg =
 (
 	res %>%
 		ungroup() %>%
-		left_join(ppcSeq::counts) %>%
+		left_join(ppcseq::counts) %>%
 		#tidyBulk::scale_abundance(sample, symbol, value) %>%
 		filter(symbol == "ART3") %>%
 		mutate(Label = Label %>% as.factor %>% as.integer) %>%
@@ -111,7 +111,7 @@ reg =
 			data = reg %>%
 				filter(G == 3) %>%
 				left_join(
-					ppcSeq::counts %>%
+					ppcseq::counts %>%
 						mutate(S = sample %>% as.factor %>% as.integer) %>%
 						distinct(S, Label) %>%
 						mutate(Label = Label %>% as.factor %>% as.integer)
