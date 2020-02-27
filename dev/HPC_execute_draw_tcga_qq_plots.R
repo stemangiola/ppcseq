@@ -1,7 +1,7 @@
 library(tidyverse)
 library(magrittr)
 library(ttBulk)
-library(ppcSeq)
+library(ppcseq)
 
 #TCGA_tbl = readRDS("/wehisan/bioinf/bioinf-data/Papenfuss_lab/projects/mangiola.s/PostDoc/temp_TCGA_tbl.RData")
 # load("dev/TCGA_tbl.RData")
@@ -32,26 +32,26 @@ create_input_df = function(df, my_run){
 		mutate(do_check = (!`house keeping`) & run==my_run)
 }
 
-get_NB_qq_values = function(input.df) {
-	input.df = input.df %>% arrange(`read count normalised adjusted`)
+get_NB_qq_values = function(.data) {
+	.data = .data %>% arrange(`read count normalised adjusted`)
 
 	predicted_NB =
 		qnbinom(
 			# If 1 sample, just use median
 			switch(
-				input.df %>% nrow %>% `>` (1) %>% `!` %>% sum(1),
-				ppoints(input.df$`read count normalised adjusted`),
+				.data %>% nrow %>% `>` (1) %>% `!` %>% sum(1),
+				ppoints(.data$`read count normalised adjusted`),
 				0.5
 			),
-			size = input.df$sigma_raw %>% unique %>% exp %>% `^` (-1),
-			mu = input.df$lambda %>% unique %>% exp
+			size = .data$sigma_raw %>% unique %>% exp %>% `^` (-1),
+			mu = .data$lambda %>% unique %>% exp
 		)
 
-	input.df %>%	mutate(predicted_NB = predicted_NB)
+	.data %>%	mutate(predicted_NB = predicted_NB)
 }
 
-plot_trends = function(input.df, symbols) {
-	input.df %>%
+plot_trends = function(.data, symbols) {
+	.data %>%
 		filter(transcript %in% symbols) %>%
 		ggplot(
 			aes(
@@ -104,13 +104,13 @@ foreach(r = 1:6) %do% {
 
 		create_input_df(r)  %>%
 
-		ppc_seq(
-			significance_column = PValue,
-			do_check_column = do_check,
-			value_column = `read count`,
+		identify_outliers(
+			.significance = PValue,
+			.do_check = do_check,
+			.abundance = `read count`,
 			percent_false_positive_genes = "5%",
-			sample_column = sample,
-			gene_column = transcript,
+			.sample = sample,
+			.transcript = transcript,
 			pass_fit = T,
 			tol_rel_obj = 0.01,
 			just_discovery = T, full_bayes = F,
@@ -126,9 +126,9 @@ foreach(r = 1:6) %do% {
 
 TCGA_tbl.MDS =
 	TCGA_tbl %>%
-	create_ttBulk(sample_column = sample, transcript_column = transcript, counts_column = `read count`) %>%
+	create_ttBulk(.sample = sample, transcript_column = transcript, counts_column = `read count`) %>%
 	normalise_counts() %>%
-	reduce_dimensions(value_column = `read count normalised`, method = "MDS", components = 1:10)
+	reduce_dimensions(.abundance = `read count normalised`, method = "MDS", components = 1:10)
 
 TCGA_tbl.MDS %>%
 	select(sample,  `CAPRA-S`, contains("Dimension")) %>%
@@ -152,14 +152,14 @@ foreach(r = 1:6) %do% {
 
 		create_input_df(r)  %>%
 
-		ppc_seq(
+		identify_outliers(
 			~ risk + laboratory,
-			significance_column = PValue,
-			do_check_column = do_check,
-			value_column = `read count`,
+			.significance = PValue,
+			.do_check = do_check,
+			.abundance = `read count`,
 			percent_false_positive_genes = "5%",
-			sample_column = sample,
-			gene_column = transcript,
+			.sample = sample,
+			.transcript = transcript,
 			pass_fit = T,
 			tol_rel_obj = 0.01,
 			just_discovery = T, full_bayes = F,
@@ -182,11 +182,11 @@ X =
 	create_input_df(1) %>%
 	format_input(
 		~ risk + laboratory,
-		sample_column = sample,
-		gene_column = transcript,
-		value_column = `read count`,
-		do_check_column = do_check,
-		significance_column= PValue,
+		.sample = sample,
+		.transcript = transcript,
+		.abundance = `read count`,
+		.do_check = do_check,
+		.significance= PValue,
 		how_many_negative_controls = 500
 	) %>%
 	create_design_matrix(~ risk + laboratory, sample)
@@ -346,7 +346,7 @@ no = get_regression()
 yes_theoretical = get_regression_adjusted_theoretical()
 lowly_transcribed =
 	TCGA_tbl %>%
-	ttBulk::normalise_counts(sample_column = sample, transcript_column=transcript, counts_column = `read count`, action="get") %>%
+	ttBulk::normalise_counts(.sample = sample, transcript_column=transcript, counts_column = `read count`, action="get") %>%
 	distinct(transcript, `filtered_out_low_counts`)
 
 (

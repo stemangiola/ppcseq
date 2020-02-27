@@ -1,4 +1,4 @@
 library(testthat)
-library(ppcSeq)
+library(ppcseq)
 
-test_check("ppcSeq")
+test_check("ppcseq")
