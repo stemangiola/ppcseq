@@ -1,6 +1,6 @@
 library(tidyverse)
 library(magrittr)
-library(ppcSeq)
+library(ppcseq)
 
 my_theme =
 	theme_bw() +
@@ -20,13 +20,13 @@ my_theme =
 FDR_threshold = 0.05
 
 res =
-	ppcSeq::counts %>%
+	ppcseq::counts %>%
 	mutate(is_significant = FDR < FDR_threshold) %>%
-	ppc_seq(
+	identify_outliers(
 		formula = ~ Label,
-		significance_column = PValue,
-		do_check_column  = is_significant,
-		value_column = value,
+		.significance = PValue,
+		.do_check  = is_significant,
+		.abundance = value,
 		percent_false_positive_genes = "1%",
 		tol_rel_obj = 0.01,
 		approximate_posterior_inference = T,

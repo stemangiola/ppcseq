@@ -7,11 +7,11 @@
 do_inference(
   my_df,
   formula,
-  sample_column,
-  gene_column,
-  value_column,
-  significance_column,
-  do_check_column,
+  .sample,
+  .transcript,
+  .abundance,
+  .significance,
+  .do_check,
   approximate_posterior_inference = F,
   approximate_posterior_analysis = F,
   do_correct_approx = T,
@@ -41,15 +41,15 @@ do_inference(
 
 \item{formula}{A formula}
 
-\item{sample_column}{A column name}
+\item{.sample}{A column name}
 
-\item{gene_column}{A column name}
+\item{.transcript}{A column name}
 
-\item{value_column}{A column name}
+\item{.abundance}{A column name}
 
-\item{significance_column}{A column name}
+\item{.significance}{A column name}
 
-\item{do_check_column}{A column name}
+\item{.do_check}{A column name}
 
 \item{approximate_posterior_inference}{A boolean}
 

@@ -1,11 +1,11 @@
-#' The 'ppcSeq' package.
+#' The 'ppcseq' package.
 #'
 #' @description A DESCRIPTION OF THE PACKAGE
 #'
 #' @docType package
-#' @name ppcSeq-package
-#' @aliases ppcSeq
-#' @useDynLib ppcSeq, .registration = TRUE
+#' @name ppcseq-package
+#' @aliases ppcseq
+#' @useDynLib ppcseq, .registration = TRUE
 #' @import methods
 #' @import Rcpp
 #' @importFrom rstan sampling
