@@ -1,15 +1,15 @@
 library(tidyverse)
-library(ppcSeq)
+library(ppcseq)
 
 TCGA_tbl_subsample %>%
 	mutate(do_check = (!`house keeping`) & run==1) %>%
 	mutate(`read count` = `read count` %>% as.integer) %>%
-	ppc_seq(
-		significance_column = PValue,
-		do_check_column = do_check,
-		value_column = `read count`,
-		sample_column = sample,
-		gene_column = transcript,
+	identify_outliers(
+		.significance = PValue,
+		.do_check = do_check,
+		.abundance = `read count`,
+		.sample = sample,
+		.transcript = transcript,
 		percent_false_positive_genes = "1%",
 		tol_rel_obj = 0.01,
 		cores = 2,
@@ -34,12 +34,12 @@ TCGA_tbl_subsample %>%
 
 	mutate(do_check = (!`house keeping`) & run==1) %>%
 	mutate(`read count` = `read count` %>% as.integer) %>%
-	ppc_seq(
-		significance_column = PValue,
-		do_check_column = do_check,
-		value_column = `read count`,
-		sample_column = sample,
-		gene_column = transcript,
+	identify_outliers(
+		.significance = PValue,
+		.do_check = do_check,
+		.abundance = `read count`,
+		.sample = sample,
+		.transcript = transcript,
 		percent_false_positive_genes = "1%",
 		tol_rel_obj = 0.01,
 		cores = 2,
