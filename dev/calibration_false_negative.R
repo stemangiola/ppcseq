@@ -1,6 +1,6 @@
 library(tidyverse)
 library(magrittr)
-library(ppcSeq)
+library(ppcseq)
 library(furrr)
 plan(multiprocess)
 
@@ -23,13 +23,13 @@ my_theme =
 FDR_threshold = 0.2
 #
 # res_1 =
-# 	ppcSeq::counts %>%
+# 	ppcseq::counts %>%
 # 	mutate(is_significant = FDR < FDR_threshold) %>%
-# 	ppc_seq(
+# 	identify_outliers(
 # 		formula = ~ Label,
-# 		significance_column = PValue,
-# 		do_check_column = is_significant,
-# 		value_column = value,
+# 		.significance = PValue,
+# 		.do_check = is_significant,
+# 		.abundance = value,
 # 		save_generated_quantities = T,
 # 		percent_false_positive_genes = "5%",
 # 		approximate_posterior_inference = F,
@@ -89,7 +89,7 @@ input_2 =
 	unnest(cols =  `generated quantities`) %>%
 	select(-`.chain`, -`.iteration`, -`.draw`) %>%
 	rename(value = `.value`) %>%
-	left_join( ppcSeq::counts %>% select(-value) %>% distinct()	) %>%
+	left_join( ppcseq::counts %>% select(-value) %>% distinct()	) %>%
 
 	# Add outliers
 	left_join( outlier_df	) %>%
@@ -108,7 +108,7 @@ input_2 =
 
 	# Add negative controls
 	bind_rows(
-		ppcSeq::counts %>%
+		ppcseq::counts %>%
 			inner_join(
 				(.) %>%
 					arrange(PValue) %>%
@@ -131,11 +131,11 @@ es =
 			`inference` =
 				map2(fp, `data source`, ~
 						.y %>%
-						ppc_seq(
+						identify_outliers(
 							formula = ~ Label,
-							significance_column = PValue,
-							do_check_column = is_significant,
-							value_column = value,
+							.significance = PValue,
+							.do_check = is_significant,
+							.abundance = value,
 							percent_false_positive_genes = sprintf("%s%%", .x),
 							cores = 30,
 							approximate_posterior_inference = F, approximate_posterior_analysis = F

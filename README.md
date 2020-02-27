@@ -13,7 +13,7 @@ Then, install with
 You can get the test dataset with
 
 ``` r
-ppcSeq::counts 
+ppcseq::counts 
 ```
 
 You can convert a list of BAM/SAM files into a tidy data frame of
@@ -21,13 +21,13 @@ annotated counts
 
 ``` r
 counts.ppc = 
-    ppcSeq::counts %>%
+    ppcseq::counts %>%
     mutate(is_significant = FDR < 0.01) %>%
-    ppc_seq(
+    identify_outliers(
         formula = ~ Label,
-        significance_column = PValue,
-        do_check_column = is_significant,
-        value_column = value,
+        .significance = PValue,
+        .do_check = is_significant,
+        .abundance = value,
         percent_false_positive_genes = "5%"
     )
 ```
