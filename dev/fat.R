@@ -1,14 +1,14 @@
 library(tidyverse)
 library(magrittr)
-library(ppcSeq)
+library(ppcseq)
 
 # res =
-# 	ppcSeq::ppc_seq(
-# 		dplyr::mutate(ppcSeq::counts,  is_significant = FDR < 0.05 ),
+# 	ppcseq::identify_outliers(
+# 		dplyr::mutate(ppcseq::counts,  is_significant = FDR < 0.05 ),
 # 		formula = ~ Label,
-# 		significance_column = PValue,
-# 		do_check_column  = is_significant,
-# 		value_column = value,
+# 		.significance = PValue,
+# 		.do_check  = is_significant,
+# 		.abundance = value,
 # 		percent_false_positive_genes = "0.5%",
 # 		approximate_posterior_inference = F,
 # 		approximate_posterior_analysis = F,
@@ -37,7 +37,7 @@ my_theme =
 	)
 
 p1 =
-	res %>% left_join(ppcSeq::counts %>% distinct(symbol, FDR)) %>%
+	res %>% left_join(ppcseq::counts %>% distinct(symbol, FDR)) %>%
 	select(-`sample wise data`, - plot) %>%
 	ungroup() %>%
 	mutate(symbol = factor(symbol, unique(symbol))) %>%
