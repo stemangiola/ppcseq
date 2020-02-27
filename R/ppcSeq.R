@@ -16,22 +16,24 @@
 #' @importFrom benchmarkme get_ram
 #' @importFrom magrittr multiply_by
 #'
-#' @param .data A tibble including a gene name column | sample name column | read counts column | covariates column
-#' @param formula A formula
-#' @param .sample A column name
-#' @param .transcript A column name
-#' @param .abundance A column name
-#' @param .significance A column name
+#' @param .data A tibble including a transcript name column | sample name column | read counts column | covariate columns | Pvaue column | a significance column
+#' @param formula A formula. The sample formula used to perform the differential transcript abundance analysis
+#' @param .sample A column name as symbol. The sample identifier
+#' @param .transcript A column name as symbol. The transcript identifier
+#' @param .abundance A column name as symbol. The transcript abunace (read count)
+#' @param .significance A column name as symbol. A column with the Pvalue, or other significanc measure (preferred Pvalue over false discovery rate)
+#' @param .do_check A column name as symbol. A column with a booean indicating whether a transcript was identified as differentially abundant
+#' @param percent_false_positive_genes A real
+
+
+
 #' @param approximate_posterior_inference A boolean
 #' @param approximate_posterior_analysis A boolean
-#' @param do_correct_approx A boolean
-#' @param .do_check A symbol
 #' @param how_many_negative_controls An integer
 #' @param draws_after_tail An integer. How many draws should on average be after the tail, in a way to inform CI
 #' @param save_generated_quantities A boolean
 #' @param additional_parameters_to_save A character vector
 #' @param cores An integer
-#' @param percent_false_positive_genes A real
 #' @param pass_fit A boolean
 #' @param do_check_only_on_detrimental A boolean
 #' @param tol_rel_obj A real
@@ -50,15 +52,16 @@ identify_outliers = function(.data,
 														 .abundance,
 														 .significance,
 														 .do_check,
+														 percent_false_positive_genes = "1%",
+														 how_many_negative_controls = 500,
+
 														 approximate_posterior_inference = T,
 														 approximate_posterior_analysis = NULL,
-														 do_correct_approx = T,
-														 how_many_negative_controls = 500,
 														 draws_after_tail = 10,
+
 														 save_generated_quantities = F,
 														 additional_parameters_to_save = c(),  # For development purpose
 														 cores = detect_cores(), # For development purpose,
-														 percent_false_positive_genes = "1%",
 														 pass_fit = F,
 														 do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
 														 tol_rel_obj = 0.01,
@@ -202,7 +205,6 @@ identify_outliers = function(.data,
 			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,!!.do_check,
 			approximate_posterior_inference,
 			approximate_posterior_analysis = F,
-			do_correct_approx = do_correct_approx,
 			C,
 			X,
 			lambda_mu_mu,
@@ -256,7 +258,6 @@ identify_outliers = function(.data,
 			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,!!.do_check,
 			approximate_posterior_inference,
 			approximate_posterior_analysis,
-			do_correct_approx = do_correct_approx,
 			C,
 			X,
 			lambda_mu_mu,
@@ -307,16 +308,15 @@ identify_outliers = function(.data,
 #' @importFrom purrr map_int
 #' @importFrom tidybulk scale_abundance
 #'
-#' @param my_df A tibble including a gene name column | sample name column | read counts column | covariates column
+#' @param my_df A tibble including a transcript name column | sample name column | read counts column | covariates column
 #' @param formula A formula
-#' @param .sample A column name
-#' @param .transcript A column name
-#' @param .abundance A column name
-#' @param .significance A column name
-#' @param .do_check A column name
+#' @param .sample A column name as symbol
+#' @param .transcript A column name as symbol
+#' @param .abundance A column name as symbol
+#' @param .significance A column name as symbol
+#' @param .do_check A column name as symbol
 #' @param approximate_posterior_inference A boolean
 #' @param approximate_posterior_analysis A boolean
-#' @param do_correct_approx A boolean
 #' @param C An integer
 #' @param X A tibble
 #' @param lambda_mu_mu A real
@@ -347,7 +347,6 @@ do_inference = function(my_df,
 												.do_check,
 												approximate_posterior_inference = F,
 												approximate_posterior_analysis = F,
-												do_correct_approx = T,
 												C,
 												X,
 												lambda_mu_mu,
@@ -530,7 +529,7 @@ do_inference = function(my_df,
 
 		ifelse_pipe(
 			approximate_posterior_analysis,
-			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10, truncation_compensation, do_correct_approx, cores),
+			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10, truncation_compensation, cores),
 			~ .x %>% fit_to_counts_rng(adj_prob_theshold)
 		) %>%
 
