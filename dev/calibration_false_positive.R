@@ -1,6 +1,6 @@
 library(tidyverse)
 library(magrittr)
-library(ppcSeq)
+library(ppcseq)
 library(furrr)
 plan(multicore)
 
@@ -23,13 +23,13 @@ my_theme =
 FDR_threshold = 0.2
 
 res_1 =
-	ppcSeq::counts %>%
+	ppcseq::counts %>%
 	mutate(is_significant = FDR < FDR_threshold) %>%
-	ppc_seq(
+	identify_outliers(
 		formula = ~ Label,
-		significance_column = PValue,
-		do_check_column = is_significant,
-		value_column = value,
+		.significance = PValue,
+		.do_check = is_significant,
+		.abundance = value,
 		save_generated_quantities = T,
 		percent_false_positive_genes = "5%",
 		approximate_posterior_inference = F,
@@ -50,11 +50,11 @@ input_2 =
 	unnest(cols =  `generated quantities`) %>%
 	select(-`.chain`, -`.iteration`, -`.draw`) %>%
 	rename(value = `.value`) %>%
-	left_join( ppcSeq::counts %>% select(-value) %>% distinct()	) %>%
+	left_join( ppcseq::counts %>% select(-value) %>% distinct()	) %>%
 
 	# Add negative controls
 	bind_rows(
-		ppcSeq::counts %>%
+		ppcseq::counts %>%
 			inner_join(
 				(.) %>%
 					arrange(PValue) %>%
@@ -76,11 +76,11 @@ es =
 			`false positive predicted` =
 				future_map2(fp, `data source`, ~
 						.y %>%
-						ppc_seq(
+						identify_outliers(
 							formula = ~ Label,
-							significance_column = PValue,
-							do_check_column = is_significant,
-							value_column = value, full_bayes = F, percent_false_positive_genes = sprintf("%s%%", .x)
+							.significance = PValue,
+							.do_check = is_significant,
+							.abundance = value, full_bayes = F, percent_false_positive_genes = sprintf("%s%%", .x)
 						) %>%
 						filter( `tot deleterious outliers`>0) %>%
 						nrow %>%
