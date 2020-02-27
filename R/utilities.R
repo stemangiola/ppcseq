@@ -620,7 +620,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #'
 #' @export
 
-fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, do_correct_approx = T, cores){
+fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores){
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
@@ -650,20 +650,6 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 
 						# Process quantile
 						quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
-
-						# # If activated correct the approximate quantiles
-						# ifelse_pipe(
-						# 	do_correct_approx,
-						# 	~ (.x +
-						# 		 	c(
-						# 		 		predict(lm_approx_bias_lower,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp() %>%		magrittr::multiply_by(-1) ,
-						# 		 		predict(lm_approx_bias_upper,  newdata = data.frame(intercept = (my_df$mu_mean ), sigma_raw = my_df$sigma_mean, adj_prob_theshold_2 = (adj_prob_theshold))) %>% exp()
-						#
-						# 		 	)) %>%
-						#
-					# 		# Make sure no CI is < 0
-					# 		purrr::map_dbl( ~ .x %>% max(0))
-					# ) %>%
 
 					tibble::as_tibble(rownames="prop") %>%
 						tidyr::spread(prop, value) %>%
