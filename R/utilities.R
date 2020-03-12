@@ -615,7 +615,6 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @param adj_prob_theshold fit real
 #' @param how_many_posterior_draws An integer
 #' @param truncation_compensation A real
-#' @param do_correct_approx A boolean
 #' @param cores An integer
 #'
 #' @export
