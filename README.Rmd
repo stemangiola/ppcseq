@@ -13,27 +13,39 @@ library(ppcseq)
 
 To install:
 
-For linux systems, in order to exploit multi-threading, from R write:
+Before install, for linux systems, in order to exploit multi-threading, from R write:
+
+```{r eval=FALSE}
+fileConn<-file("~/.R/Makevars")
+writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
+close(fileConn)
+```
 
 Then, install with
 
+```{r eval=FALSE}
+devtools::install_github("stemangiola/ppcseq")
+```
+
 You can get the test dataset with
 
-```{r eval=FALSE}
+```{r}
 ppcseq::counts 
 ```
 
-You can convert a list of BAM/SAM files into a tidy data frame of annotated counts
+You can identify anrtefactual calls from your differential transcribt anundance analysis, due to outliers.
 
-```{r warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE,results='hide'}
 counts.ppc = 
 	ppcseq::counts %>%
 	mutate(is_significant = FDR < 0.01) %>%
 	identify_outliers(
 		formula = ~ Label,
+		.sample = sample, 
+		.transcript = symbol,
+		.abundance = value,
 		.significance = PValue,
 		.do_check = is_significant,
-		.abundance = value,
 		percent_false_positive_genes = "5%"
 	)
 ```
