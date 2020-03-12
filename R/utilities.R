@@ -330,7 +330,7 @@ produce_plots = function(.x,
 			panel.grid.major = element_line(size = 0.2),
 			panel.grid.minor = element_line(size = 0.1),
 			text = element_text(size = 12),
-			aspect.ratio = 1,
+			#aspect.ratio = 1,
 			axis.text.x = element_text(
 				angle = 90,
 				hjust = 1,
@@ -457,11 +457,11 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 
 		# Check if new package is installed with different sintax
 		ifelse_pipe(
-			packageVersion("tidyr") == "0.8.3.9000",
+			packageVersion("tidyr") >= "0.8.3.9000",
 			~ .x %>% nest(`sample wise data` = c(-!!.transcript)),
 			~ .x %>%
 				group_by(!!.transcript) %>%
-				nest(-!!.transcript, .key = `sample wise data`)
+				nest(`sample wise data` = -!!.transcript)
 		) %>%
 
 		# Create plots for every tested transcript
