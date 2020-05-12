@@ -498,6 +498,9 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 #'
 #' @importFrom rstan sampling
 #' @importFrom rstan vb
+#' @importFrom tidybulk bind_rows
+#' @importFrom tidybulk filter
+#'
 #'
 #' @param .data A tibble
 #' @param .do_check A boolean
@@ -508,10 +511,10 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 select_to_check_and_house_keeping = function(.data, .do_check, .significance, .transcript, how_many_negative_controls  = 500){
 	.data %>%
 		{
-			bind_rows(
+			tidybulk::bind_rows(
 				# Genes to check
 				(.) %>%
-					filter((!!.do_check)),
+					tidybulk::filter((!!.do_check)),
 
 				# Least changing genes, negative controls
 				(.) %>%
@@ -774,6 +777,10 @@ create_design_matrix = function(.data, formula, .sample){
 }
 
 #' Format the input
+#'
+#' @importFrom tidybulk distinct
+#' @importFrom tidybulk left_join
+#' @importFrom tidybulk mutate
 #'
 #' @param .data A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
