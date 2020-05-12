@@ -2,20 +2,22 @@ library(tidyverse)
 library(magrittr)
 library(ppcseq)
 
-# res =
-# 	ppcseq::identify_outliers(
-# 		dplyr::mutate(ppcseq::counts,  is_significant = FDR < 0.05 ),
-# 		formula = ~ Label,
-# 		.significance = PValue,
-# 		.do_check  = is_significant,
-# 		.abundance = value,
-# 		percent_false_positive_genes = "0.5%",
-# 		approximate_posterior_inference = F,
-# 		approximate_posterior_analysis = F,
-# 		how_many_negative_controls = 500,
-# 		cores=30,
-# 		pass_fit = T
-# 	)
+res =
+	ppcseq::identify_outliers(
+		dplyr::mutate(ppcseq::counts,  is_significant = FDR < 0.05 ),
+		formula = ~ Label,
+		.sample = sample,
+		.transcript = symbol,
+		.significance = PValue,
+		.do_check  = is_significant,
+		.abundance = value,
+		percent_false_positive_genes = "0.5%",
+		approximate_posterior_inference = F,
+		approximate_posterior_analysis = F,
+		how_many_negative_controls = 500,
+		cores=30,
+		pass_fit = T
+	)
 #
 # save(res, file = "dev/fat_ppc.rda")
 
