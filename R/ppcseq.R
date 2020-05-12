@@ -1,5 +1,5 @@
 
-#' pcc_seq main
+#' identify_outliers main
 #'
 #' @description This function calls the stan model.
 #'
@@ -24,9 +24,6 @@
 #' @param .significance A column name as symbol. A column with the Pvalue, or other significanc measure (preferred Pvalue over false discovery rate)
 #' @param .do_check A column name as symbol. A column with a booean indicating whether a transcript was identified as differentially abundant
 #' @param percent_false_positive_genes A real
-
-
-
 #' @param approximate_posterior_inference A boolean
 #' @param approximate_posterior_analysis A boolean
 #' @param how_many_negative_controls An integer
