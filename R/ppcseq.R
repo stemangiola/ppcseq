@@ -174,10 +174,12 @@ identify_outliers = function(.data,
 	# Prior info
 	lambda_mu_mu = 5.612671
 
+	# Scale dataset
+	my_df_scaled = scale_abundance(my_df, !!.sample,!!.transcript,!!.abundance)
+
 	# Build better scales for the inference
 	exposure_rate_multiplier =
-		my_df %>%
-		scale_abundance(!!.sample,!!.transcript,!!.abundance) %>%
+		my_df_scaled %>%
 		distinct(!!.sample, TMM, multiplier) %>%
 		mutate(l = multiplier %>% log) %>%
 		summarise(l %>% sd) %>%
@@ -185,8 +187,7 @@ identify_outliers = function(.data,
 
 	# Build better scales for the inference
 	intercept_shift_scale =
-		my_df %>%
-		scale_abundance(!!.sample,!!.transcript,!!.abundance) %>%
+		my_df_scaled %>%
 		mutate(cc =
 					 	!!as.symbol(sprintf(
 					 		"%s_scaled",  quo_name(.abundance)
