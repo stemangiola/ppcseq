@@ -22,8 +22,6 @@ fit_to_counts_rng_approximated(
 \item{truncation_compensation}{A real}
 
 \item{cores}{An integer}
-
-\item{do_correct_approx}{A boolean}
 }
 \description{
 fit_to_counts_rng_approximated

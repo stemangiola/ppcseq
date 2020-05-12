@@ -4,7 +4,9 @@
 \name{counts}
 \alias{counts}
 \title{Example data set}
-\format{An object of class \code{tbl_df} (inherits from \code{tbl}, \code{data.frame}) with 394821 rows and 9 columns.}
+\format{
+An object of class \code{tbl_df} (inherits from \code{tbl}, \code{data.frame}) with 394821 rows and 9 columns.
+}
 \usage{
 counts
 }
