@@ -2,7 +2,7 @@
 % Please edit documentation in R/ppcseq.R
 \name{identify_outliers}
 \alias{identify_outliers}
-\title{pcc_seq main}
+\title{identify_outliers main}
 \usage{
 identify_outliers(
   .data,
