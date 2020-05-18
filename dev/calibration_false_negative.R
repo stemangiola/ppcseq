@@ -180,56 +180,60 @@ es_1_step_model %>% saveRDS("dev/es_calibration_false_negative_1_step_model.rds"
 
 # es = readRDS("dev/es_calibration_false_negative.rds")
 
-
-stats =
+es_to_stats = function(es){
 	es %>%
-	mutate(
-		inference = map(inference, ~ .x %>% select(symbol, `ppc samples failed`)) # unnest(`sample wise data`) %>% select(symbol, sample, ppc))
-	) %>%
-	mutate(`data source` = map(`data source`, ~ .x %>% filter(is_significant) %>% distinct(symbol, is_symbol_outlier))) %>%
-	mutate(integrated = map2(inference, `data source`, ~ .x %>% left_join(.y))) %>%
-	select(-`data source` , -  inference) %>%
-	unnest(integrated) %>%
-	mutate(is_symbol_outlier = is_symbol_outlier == 1) %>%
+		mutate(
+			inference = map(inference, ~ .x %>% select(symbol, `ppc samples failed`)) # unnest(`sample wise data`) %>% select(symbol, sample, ppc))
+		) %>%
+		mutate(`data source` = map(`data source`, ~ .x %>% filter(is_significant) %>% distinct(symbol, is_symbol_outlier))) %>%
+		mutate(integrated = map2(inference, `data source`, ~ .x %>% left_join(.y))) %>%
+		select(-`data source` , -  inference) %>%
+		unnest(integrated) %>%
+		mutate(is_symbol_outlier = is_symbol_outlier != 1) %>%
 
-	# calculate TP_rate and FP_rate
-	nest(data = -c(run, fp)) %>%
-	mutate(FP = map_int(
-		data,
-		~ .x %>%
+		# calculate TP_rate and FP_rate
+		nest(data = -c(run, fp)) %>%
+		mutate(FP = map_int(
+			data,
+			~ .x %>%
 				count(outlier_detected = `ppc samples failed` > 0, is_symbol_outlier) %>%
 				filter(outlier_detected & !is_symbol_outlier) %>%
 				pull(n) %>% when(length(.)==0 ~ 0L, ~ (.))
 		)
-	) %>%
-	mutate(real_neg = map_int(
-		data,
-		~ .x %>%
-			count(`ppc samples failed`, is_symbol_outlier) %>%
-			filter(!is_symbol_outlier) %>%
-			pull(n) %>% sum
-	)
-	) %>%
-	mutate(TP = map_int(
-		data,
-		~ .x %>%
-			count(outlier_detected = `ppc samples failed` > 0, is_symbol_outlier) %>%
-			filter(outlier_detected & is_symbol_outlier) %>%
-			pull(n) %>% when(length(.)==0 ~ 0L, ~ (.))
-	)
-	) %>%
-	mutate(real_pos = map_int(
-		data,
-		~ .x %>%
-			count(`ppc samples failed`, is_symbol_outlier) %>%
-			filter(is_symbol_outlier) %>%
-			pull(n) %>% sum
-	)
-	) %>%
-	mutate(TP_rate = TP/real_pos, FP_rate = FP/real_neg)
+		) %>%
+		mutate(real_neg = map_int(
+			data,
+			~ .x %>%
+				count(`ppc samples failed`, is_symbol_outlier) %>%
+				filter(!is_symbol_outlier) %>%
+				pull(n) %>% sum
+		)
+		) %>%
+		mutate(TP = map_int(
+			data,
+			~ .x %>%
+				count(outlier_detected = `ppc samples failed` > 0, is_symbol_outlier) %>%
+				filter(outlier_detected & is_symbol_outlier) %>%
+				pull(n) %>% when(length(.)==0 ~ 0L, ~ (.))
+		)
+		) %>%
+		mutate(real_pos = map_int(
+			data,
+			~ .x %>%
+				count(`ppc samples failed`, is_symbol_outlier) %>%
+				filter(is_symbol_outlier) %>%
+				pull(n) %>% sum
+		)
+		) %>%
+		mutate(TP_rate = TP/real_pos, FP_rate = FP/real_neg)
+}
+stats = es_to_stats(es)
+stats_1_step_model = es_to_stats(es_1_step_model)
+
 
 fp_stat =
 	stats %>%
+	unnest(data) %>%
 	filter(is_symbol_outlier == 1) %>%
 	mutate(false_positive =   `ppc samples failed` > 0 ) %>%
 	mutate(true_negative =  `ppc samples failed` == 0) %>%
@@ -239,6 +243,7 @@ fp_stat =
 
 fn_stat =
 	stats %>%
+	unnest(data) %>%
 	filter(is_symbol_outlier > 1) %>%
 	mutate(true_positive =   `ppc samples failed` > 0 ) %>%
 	mutate(false_negative =  `ppc samples failed` == 0) %>%
@@ -269,8 +274,10 @@ p2 =
 # ROC
 p3 =
 	stats %>%
+	mutate(strategy = "2-steps") %>%
+	bind_rows(stats_1_step_model %>% mutate(strategy = "1-step")) %>%
 	arrange(FP_rate, TP_rate) %>%
-	ggplot(aes(y = TP_rate, x = FP_rate)) +
+	ggplot(aes(y = TP_rate, x = FP_rate, color = strategy)) +
 	geom_line() +
 	xlab("False positive rate") +
 	ylab("True positive rate") +
