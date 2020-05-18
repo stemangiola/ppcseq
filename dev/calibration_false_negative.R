@@ -93,17 +93,14 @@ input_2 =
 
 	# Add outliers
 	left_join( outlier_df	) %>%
-	left_join(
-		(.) %>%
-			distinct(symbol) %>%
-			mutate(is_symbol_outlier = sample(1:3,size = n(), prob = c(1-how_many_outliers, rep(how_many_outliers, 2)/2), replace = T ))
-	)	%>%
-	group_by(symbol) %>%
-	mutate(is_outlier = ifelse(is_symbol_outlier & row_number() == sample(size=1, 1:n()), is_symbol_outlier, 1)) %>%
-	ungroup() %>%
+
+	nest(data = -symbol) %>%
+	mutate(is_symbol_outlier = sample(c(T,F), replace = T, size = n())) %>%
+	mutate(data = map2(data, is_symbol_outlier, ~ .x %>% mutate(is_sample_outlier = ifelse(.y & row_number() == 1, T, F)))) %>%
+	unnest(data) %>%
 
 	# Outliers all up
-	mutate(value = ifelse(is_outlier == 1, value, outlier_high)) %>%
+	mutate(value = ifelse(is_sample_outlier, outlier_high, value)) %>%
 	#mutate(value = recode(is_outlier, value, outlier_low, outlier_high)) %>%
 
 	# Add negative controls
