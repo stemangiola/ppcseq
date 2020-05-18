@@ -47,29 +47,29 @@ outlier_prop = 1e-10
 how_many_outliers = 0.2
 
 # outlier_df =
-	# res_1 %>%
-	# attr("fit 2") %>%
-	# tidybayes::spread_draws(lambda_log_param[S, G], sigma_raw[G], exposure_rate[S]) %>%
-	# tidybayes::median_qi() %>%
-	# ungroup()  %>%
-	# nest(data = -c(S, G)) %>%
-	# mutate(
-	# 	CI = map(
-	# 		data,
-	#
-	# 		# Calculate quantiles
-	# 		~ qnbinom(
-	# 			c(outlier_prop, 1-outlier_prop),
-	# 			mu=exp(.x$lambda_log_param + .x$exposure_rate),
-	# 			size = 1/exp(.x$sigma_raw)
-	# 		) %>%
-	# 			enframe(name=NULL) %>%
-	# 			mutate(id = c("outlier_low", "outlier_high")) %>%
-	# 			spread(id, value)
-	# 	)
-	# ) %>%
-	# unnest(CI) %>%
-	# select(S, G, contains("outlier"))
+# res_1 %>%
+# attr("fit 2") %>%
+# tidybayes::spread_draws(lambda_log_param[S, G], sigma_raw[G], exposure_rate[S]) %>%
+# tidybayes::median_qi() %>%
+# ungroup()  %>%
+# nest(data = -c(S, G)) %>%
+# mutate(
+# 	CI = map(
+# 		data,
+#
+# 		# Calculate quantiles
+# 		~ qnbinom(
+# 			c(outlier_prop, 1-outlier_prop),
+# 			mu=exp(.x$lambda_log_param + .x$exposure_rate),
+# 			size = 1/exp(.x$sigma_raw)
+# 		) %>%
+# 			enframe(name=NULL) %>%
+# 			mutate(id = c("outlier_low", "outlier_high")) %>%
+# 			spread(id, value)
+# 	)
+# ) %>%
+# unnest(CI) %>%
+# select(S, G, contains("outlier"))
 #
 # outlier_df %>% saveRDS("dev/outlier_for_calibration_false_negative.rds")
 
@@ -119,31 +119,64 @@ input_2 =
 	mutate(value = value %>% as.integer) %>%
 	mutate(is_significant = FDR < FDR_threshold)
 
+saveRDS(input_2, "input_2.rds", compress = "gzip")
+
 es =
 	expand.grid(
 		fp = c(seq(0.2, 0.9, 0.1), seq(1, 10, 1)),
 		run = 1:3
 	) %>%
-		as_tibble() %>%
-		#slice(1) %>%   # <<<<<<<<< TESING
-		mutate(`data source` = list(input_2)) %>%
-		mutate(
-			`inference` =
-				map2(fp, `data source`, ~
-						.y %>%
-						identify_outliers(
-							formula = ~ Label,
-							.significance = PValue,
-							.do_check = is_significant,
-							.abundance = value,
-							percent_false_positive_genes = sprintf("%s%%", .x),
-							cores = 30,
-							approximate_posterior_inference = F, approximate_posterior_analysis = F
-						)
-				 	)
-		)
+	as_tibble() %>%
+	#slice(1) %>%   # <<<<<<<<< TESING
+	mutate(`data source` = list(input_2)) %>%
+	mutate(
+		`inference` =
+			map2(fp, `data source`, ~
+					 	.y %>%
+					 	identify_outliers(
+					 		.sample = sample,
+					 		.transcript = symbol,
+					 		.abundance = value,
+
+					 		formula = ~ Label,
+					 		.significance = PValue,
+					 		.do_check = is_significant,
+					 		percent_false_positive_genes = sprintf("%s%%", .x),
+					 		cores = 30,
+					 		approximate_posterior_inference = F, approximate_posterior_analysis = F
+					 	)
+			)
+	)
 
 es %>% saveRDS("dev/es_calibration_false_negative.rds")
+
+es_1_step_model =
+	expand.grid(
+		fp = c(seq(0.2, 0.9, 0.1), seq(1, 10, 1)),
+		run = 1:3
+	) %>%
+	as_tibble() %>%
+	#slice(1) %>%   # <<<<<<<<< TESING
+	mutate(`data source` = list(input_2)) %>%
+	mutate(
+		`inference` =
+			map2(fp, `data source`, ~
+					 	.y %>%
+					 	ppcseq:::identify_outliers_1_step(
+					 		.sample = sample,
+					 		.transcript = symbol,
+					 		.abundance = value,
+					 		formula = ~ Label,
+					 		.significance = PValue,
+					 		.do_check = is_significant,
+					 		percent_false_positive_genes = sprintf("%s%%", .x),
+					 		cores = 30,
+					 		approximate_posterior_inference = F, approximate_posterior_analysis = F
+					 	)
+			)
+	)
+
+es_1_step_model %>% saveRDS("dev/es_calibration_false_negative_1_step_model.rds")
 
 # es = readRDS("dev/es_calibration_false_negative.rds")
 
@@ -153,12 +186,48 @@ stats =
 	mutate(
 		inference = map(inference, ~ .x %>% select(symbol, `ppc samples failed`)) # unnest(`sample wise data`) %>% select(symbol, sample, ppc))
 	) %>%
-	mutate(`data source` = map(`data source`, ~ .x  %>% filter(is_significant) %>% distinct(symbol, is_symbol_outlier))) %>%
+	mutate(`data source` = map(`data source`, ~ .x %>% filter(is_significant) %>% distinct(symbol, is_symbol_outlier))) %>%
 	mutate(integrated = map2(inference, `data source`, ~ .x %>% left_join(.y))) %>%
 	select(-`data source` , -  inference) %>%
-	unnest(integrated)
+	unnest(integrated) %>%
+	mutate(is_symbol_outlier = is_symbol_outlier == 1) %>%
 
-# Where the data does not have outliers
+	# calculate TP_rate and FP_rate
+	nest(data = -c(run, fp)) %>%
+	mutate(FP = map_int(
+		data,
+		~ .x %>%
+				count(outlier_detected = `ppc samples failed` > 0, is_symbol_outlier) %>%
+				filter(outlier_detected & !is_symbol_outlier) %>%
+				pull(n) %>% when(length(.)==0 ~ 0L, ~ (.))
+		)
+	) %>%
+	mutate(real_neg = map_int(
+		data,
+		~ .x %>%
+			count(`ppc samples failed`, is_symbol_outlier) %>%
+			filter(!is_symbol_outlier) %>%
+			pull(n) %>% sum
+	)
+	) %>%
+	mutate(TP = map_int(
+		data,
+		~ .x %>%
+			count(outlier_detected = `ppc samples failed` > 0, is_symbol_outlier) %>%
+			filter(outlier_detected & is_symbol_outlier) %>%
+			pull(n) %>% when(length(.)==0 ~ 0L, ~ (.))
+	)
+	) %>%
+	mutate(real_pos = map_int(
+		data,
+		~ .x %>%
+			count(`ppc samples failed`, is_symbol_outlier) %>%
+			filter(is_symbol_outlier) %>%
+			pull(n) %>% sum
+	)
+	) %>%
+	mutate(TP_rate = TP/real_pos, FP_rate = FP/real_neg)
+
 fp_stat =
 	stats %>%
 	filter(is_symbol_outlier == 1) %>%
@@ -167,6 +236,16 @@ fp_stat =
 	group_by(fp, run) %>%
 	summarise(sum(false_positive), sum(true_negative)) %>%
 	mutate(`false positive predicted` = `sum(false_positive)` / (`sum(false_positive)` + `sum(true_negative)`))
+
+fn_stat =
+	stats %>%
+	filter(is_symbol_outlier > 1) %>%
+	mutate(true_positive =   `ppc samples failed` > 0 ) %>%
+	mutate(false_negative =  `ppc samples failed` == 0) %>%
+	group_by(fp, run) %>%
+	summarise(sum(true_positive), sum(false_negative)) %>%
+	mutate(`false negative predicted` = `sum(false_negative)` / (`sum(false_negative)` + `sum(true_positive)`))
+
 
 p1 =
 	fp_stat %>%
@@ -178,14 +257,6 @@ p1 =
 	ylab("False positive predicted") +
 	my_theme
 
-fn_stat =
-	stats %>%
-	filter(is_symbol_outlier > 1) %>%
-	mutate(true_positive =   `ppc samples failed` > 0 ) %>%
-	mutate(false_negative =  `ppc samples failed` == 0) %>%
-	group_by(fp, run) %>%
-	summarise(sum(true_positive), sum(false_negative)) %>%
-	mutate(`false negative predicted` = `sum(false_negative)` / (`sum(false_negative)` + `sum(true_positive)`))
 
 p2 =
 	fn_stat %>%
@@ -197,15 +268,13 @@ p2 =
 
 # ROC
 p3 =
-	tibble(
-	`false positive predicted` = fp_stat %>% pull(`false positive predicted`) %>% sort,
-	`false negative predicted` = fn_stat %>% pull(`false negative predicted`) %>% sort,
-	) %>%
-		ggplot(aes(y = `false negative predicted`, x = `false positive predicted`)) +
-		geom_line() +
-		xlab("False positive predicted") +
-		ylab("False negative predicted") +
-		my_theme
+	stats %>%
+	arrange(FP_rate, TP_rate) %>%
+	ggplot(aes(y = TP_rate, x = FP_rate)) +
+	geom_line() +
+	xlab("False positive rate") +
+	ylab("True positive rate") +
+	my_theme
 
 # Compose plots
 cowplot::plot_grid(plotlist = list(p1, p2, p3), align = "v", ncol = 3, axis="b", rel_widths = 1 ) %>%
