@@ -95,7 +95,7 @@ input_2 =
 	left_join( outlier_df	) %>%
 
 	nest(data = -symbol) %>%
-	mutate(is_symbol_outlier = sample(c(T,F), replace = T, size = n())) %>%
+	mutate(is_symbol_outlier = sample(c(T,F), replace = T, size = n(), prob = c(0.5, 0.5))) %>%
 	mutate(data = map2(data, is_symbol_outlier, ~ .x %>% mutate(is_sample_outlier = ifelse(.y & row_number() == 1, T, F)))) %>%
 	unnest(data) %>%
 
@@ -176,6 +176,7 @@ es_1_step_model =
 es_1_step_model %>% saveRDS("dev/es_calibration_false_negative_1_step_model.rds")
 
 # es = readRDS("dev/es_calibration_false_negative.rds")
+# es_1_step_model = readRDS("dev/es_calibration_false_negative_1_step_model.rds")
 
 es_to_stats = function(es){
 	es %>%
@@ -186,7 +187,6 @@ es_to_stats = function(es){
 		mutate(integrated = map2(inference, `data source`, ~ .x %>% left_join(.y))) %>%
 		select(-`data source` , -  inference) %>%
 		unnest(integrated) %>%
-		mutate(is_symbol_outlier = is_symbol_outlier != 1) %>%
 
 		# calculate TP_rate and FP_rate
 		nest(data = -c(run, fp)) %>%
@@ -275,6 +275,7 @@ p3 =
 	bind_rows(stats_1_step_model %>% mutate(strategy = "1-step")) %>%
 	arrange(FP_rate, TP_rate) %>%
 	ggplot(aes(y = TP_rate, x = FP_rate, color = strategy)) +
+	geom_abline(intercept = 0, slope = 1, color="grey", linestyle="dotted") +
 	geom_line() +
 	xlab("False positive rate") +
 	ylab("True positive rate") +
