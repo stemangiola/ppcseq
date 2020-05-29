@@ -36,6 +36,10 @@ ppcseq::counts
 You can identify anrtefactual calls from your differential transcribt anundance analysis, due to outliers.
 
 ```{r warning=FALSE, message=FALSE,results='hide'}
+# Import libraries
+library(dplyr)
+library(magrittr)
+
 counts.ppc = 
 	ppcseq::counts %>%
 	mutate(is_significant = FDR < 0.01) %>%
