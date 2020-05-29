@@ -196,7 +196,7 @@ vb_iterative = function(model,
 				iter = iter,
 				tol_rel_obj = tol_rel_obj,
 				#seed = 654321,
-				pars=c("counts_rng", "exposure_rate", additional_parameters_to_save),
+				pars=c("counts_rng", "exposure_rate", "alpha_sub_1", additional_parameters_to_save),
 				...
 			)
 			boolFalse <- T
@@ -307,6 +307,7 @@ inits_fx =
 #'
 #' @importFrom purrr pmap
 #' @importFrom purrr map_int
+#' @importFrom purrr when
 #' @import ggplot2
 #'
 #' @param .x A tibble
@@ -362,17 +363,19 @@ produce_plots = function(.x,
 				width = 0,
 				linetype = "dashed",
 				color = "#D3D3D3"
-			) +
-			geom_errorbar(aes(
-				ymin = `.lower_2`,
-				ymax = `.upper_2`,
-				color = `deleterious outliers`
-			),
-			width = 0) +
-			scale_colour_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
-			my_theme
+			)
 		} %>%
+		when(
+			".lower_2" %in% colnames(.x) ~ (.) +
+				geom_errorbar(aes(
+					ymin = `.lower_2`,
+					ymax = `.upper_2`,
+					color = `deleterious outliers`
+				),
+				width = 0),
+			~ (.)
 
+		) %>%
 		ifelse_pipe(
 			covariate %>% is.null %>% `!`,
 			~ .x + geom_point(aes(
@@ -384,6 +387,8 @@ produce_plots = function(.x,
 				fill = "black"
 			)
 		) +
+		scale_colour_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+		my_theme +
 		ggtitle(symbol)
 }
 
@@ -399,9 +404,11 @@ add_deleterious_if_covariate_exists = function(.data, X){
 						select(2) %>%
 						setNames("factor or interest") %>%
 						mutate(S = 1:n()) %>%
-						mutate(`is group high` = `factor or interest` > mean(`factor or interest`)),
+						mutate(`is group right` = `factor or interest` > mean(`factor or interest`)) ,
 					by = "S"
 				) %>%
+
+				mutate(`is group high` = (slope > 0 & `is group right`) |  (slope < 0 & !`is group right`)) %>%
 
 				# Check if outlier might be deleterious for the statistics
 				mutate(`deleterious outliers` = (!ppc) &
@@ -423,6 +430,11 @@ add_deleterious_if_covariate_exists = function(.data, X){
 #'
 #' @export
 merge_results = function(res_discovery, res_test, formula, .transcript, .abundance, .sample, do_check_only_on_detrimental){
+
+	# Prepare column same enquo
+	.sample = enquo(.sample)
+	.transcript = enquo(.transcript)
+	.abundance = enquo(.abundance)
 
 	res_discovery %>%
 		filter(`.variable` == "counts_rng") %>%
@@ -455,14 +467,29 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			by = c("S", "G")
 		) %>%
 
-		# Check if new package is installed with different sintax
-		ifelse_pipe(
-			packageVersion("tidyr") >= "0.8.3.9000",
-			~ .x %>% nest(`sample wise data` = c(-!!.transcript)),
-			~ .x %>%
-				group_by(!!.transcript) %>%
-				nest(`sample wise data` = -!!.transcript)
-		) %>%
+		# format results
+		format_results(formula, !!.transcript, !!.abundance, !!.sample, do_check_only_on_detrimental)
+
+
+}
+
+format_results = function(.data, formula, .transcript, .abundance, .sample, do_check_only_on_detrimental){
+
+	# Prepare column same enquo
+	.sample = enquo(.sample)
+	.transcript = enquo(.transcript)
+	.abundance = enquo(.abundance)
+
+	.data %>%
+
+	# Check if new package is installed with different sintax
+	ifelse_pipe(
+		packageVersion("tidyr") >= "0.8.3.9000",
+		~ .x %>% nest(`sample wise data` = c(-!!.transcript)),
+		~ .x %>%
+			group_by(!!.transcript) %>%
+			nest(`sample wise data` = -!!.transcript)
+	) %>%
 
 		# Create plots for every tested transcript
 		mutate(plot =
@@ -493,6 +520,8 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 				)
 		)
 }
+
+
 
 #' Select only significant genes plus background for efficient normalisation
 #'
@@ -645,18 +674,13 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 				data,
 				~ {
 					.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = T)
-
 					draws = rnbinom(n =how_many_posterior_draws,	mu = exp(.x_supersampled$mu + .x_supersampled$exposure),	size = 1/exp(.x_supersampled$sigma) * truncation_compensation	)
-
 					draws %>%
-
 						# Process quantile
 						quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
-
-					tibble::as_tibble(rownames="prop") %>%
+				  	tibble::as_tibble(rownames="prop") %>%
 						tidyr::spread(prop, value) %>%
 						setNames(c(".lower", ".upper")) %>%
-
 						# Add mean and sd
 						dplyr::mutate(mean = mean(draws), sd = sd(draws))
 				}
@@ -872,5 +896,240 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 			)
 		)
 	)
+
+}
+
+draws_to_tibble_x_y = function(fit, par, x, y) {
+
+	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = T)
+
+	fit %>%
+		rstan::extract(par_names, permuted=F) %>%
+		as.data.frame %>%
+		as_tibble() %>%
+		mutate(.iteration = 1:n()) %>%
+		pivot_longer(names_to = c("dummy", ".chain", ".variable", x, y),  cols = contains(par), names_sep = "\\.|\\[|,|\\]|:", names_ptypes = list(".chain" = integer(), ".variable" = character(), "A" = integer(), "C" = integer()), values_to = ".value") %>%
+		select(-dummy) %>%
+		arrange(.variable, !!as.symbol(x), !!as.symbol(y), .chain) %>%
+		group_by(.variable, !!as.symbol(x), !!as.symbol(y)) %>%
+		mutate(.draw = 1:n()) %>%
+		ungroup() %>%
+		select(!!as.symbol(x), !!as.symbol(y), .chain, .iteration, .draw ,.variable ,     .value)
+
+}
+
+draws_to_tibble_x = function(fit, par, x) {
+
+	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = T)
+
+	fit %>%
+		rstan::extract(par_names, permuted=F) %>%
+		as.data.frame %>%
+		as_tibble() %>%
+		mutate(.iteration = 1:n()) %>%
+		pivot_longer(names_to = c("dummy", ".chain", ".variable", x),  cols = contains(par), names_sep = "\\.|\\[|,|\\]|:", names_ptypes = list(".chain" = integer(), ".variable" = character(), "A" = integer(), "C" = integer()), values_to = ".value") %>%
+		select(-dummy) %>%
+		arrange(.variable, !!as.symbol(x), .chain) %>%
+		group_by(.variable, !!as.symbol(x)) %>%
+		mutate(.draw = 1:n()) %>%
+		ungroup() %>%
+		select(!!as.symbol(x), .chain, .iteration, .draw ,.variable ,     .value)
+
+}
+
+identify_outliers_1_step = function(.data,
+																		formula = ~ 1,
+																		.sample,
+																		.transcript,
+																		.abundance,
+																		.significance,
+																		.do_check,
+																		percent_false_positive_genes = 1,
+																		how_many_negative_controls = 500,
+
+																		approximate_posterior_inference = T,
+																		approximate_posterior_analysis = NULL,
+																		draws_after_tail = 10,
+
+																		save_generated_quantities = F,
+																		additional_parameters_to_save = c(),  # For development purpose
+																		cores = detect_cores(), # For development purpose,
+																		pass_fit = F,
+																		do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
+																		tol_rel_obj = 0.01,
+																		just_discovery = F,
+																		seed = sample(1:99999, size = 1),
+																		adj_prob_theshold_2 = NULL
+) {
+	# Prepare column same enquo
+	.sample = enquo(.sample)
+	.transcript = enquo(.transcript)
+	.abundance = enquo(.abundance)
+	.significance = enquo(.significance)
+	.do_check = enquo(.do_check)
+
+	# Get factor of interest
+	#factor_of_interest = ifelse(parse_formula(formula) %>% length %>% `>` (0), parse_formula(formula)[1], "")
+
+	# Check if columns exist
+	check_columns_exist(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check)
+
+	# Check if any column is NA or null
+	check_if_any_NA(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check, parse_formula(formula))
+
+	# Check is testing environment is supported
+	if (approximate_posterior_inference &	save_generated_quantities)
+		stop("Variational Bayes does not support tidybayes needed for save_generated_quantities, use sampling")
+
+	# Check percent FP input
+	if (percent_false_positive_genes %>% is.na |
+			!(percent_false_positive_genes %>% between(0, 100)))
+		stop("percent_false_positive_genes must be a string from > 0% to < 100%")
+
+	# For reference MPI inference
+	# Check if all trannscripts are non NA
+	if (.data %>% filter(!!.transcript %>% is.na) %>% nrow > 0)
+		stop("There are NAs in the .transcript. Please filter those records")
+
+	# Check if the counts column is an integer
+	if (.data %>% select(!!.abundance) %>% sapply(class) != "integer")
+		stop(
+			sprintf(
+				"The column %s must be of class integer. You can do as mutate(`%s` = `%s` %%>%% as.integer)",
+				quo_name(.abundance),
+				quo_name(.abundance),
+				quo_name(.abundance)
+			)
+		)
+
+	# Calculate the adj_prob_theshold
+	adj_prob_theshold_1  = 0.05
+	if(adj_prob_theshold_2 %>% is.null)
+		adj_prob_theshold_2 =
+		percent_false_positive_genes / 100 /
+		(.data %>% distinct(!!.sample) %>% nrow) *
+		ifelse(do_check_only_on_detrimental, 2, 1)
+
+	print(sprintf("adj_prob_theshold_2 = %s", adj_prob_theshold_2))
+
+	# Calculate adj_prob_theshold
+	how_many_posterior_draws_1 =  draws_after_tail %>% divide_by(adj_prob_theshold_1) %>% max(1000) # I want 5 draws in the tail
+	how_many_posterior_draws_2 =  draws_after_tail %>% divide_by(adj_prob_theshold_2) %>% max(1000) # I want 5 draws in the tail
+
+	print(sprintf("how_many_posterior_draws_2 = %s", how_many_posterior_draws_2))
+
+	# If too many draws required revert to approximation of CI
+	if(approximate_posterior_analysis %>% is.null){
+		if(how_many_posterior_draws_2 > 20000) {
+			writeLines(sprintf("The number of draws needed to calculate the CI from the posterior would be larger than %s. To avoid impractical computation times, the calculation of the CI will be based on the mean, exposure and overdisperison posteriors.", how_many_posterior_draws_2))
+			approximate_posterior_analysis = T
+		} else approximate_posterior_analysis = F
+	}
+
+
+	# Check if enough memory for full draw
+	available_memory = ifelse(
+		.Platform$OS.type == "windows",
+		shell('systeminfo | findstr Memory', intern = TRUE)[1] %>% gsub(",", "", .) %>% gsub(".*?([0-9]+).*", "\\1", .) %>% as.integer %>% divide_by(1000) %>% multiply_by(1e+9),
+		get_ram() %>% as.numeric() %>% multiply_by(1e+9)
+	)
+
+	required_memory = ifelse(
+		approximate_posterior_inference %>% `!`,
+		1.044e+06 + how_many_posterior_draws_2 * 3.777e-02, # Regression taken from performances.R
+		1.554e+06 + how_many_posterior_draws_2 * 7.327e-02  # Regression taken from performances.R
+	)
+	if(required_memory > available_memory & !approximate_posterior_analysis) {
+		warning("
+						You don't have enough memory to model the posterior distribution with MCMC draws.
+						Therefore the parameter approximate_posterior_analysis was set to TRUE
+		")
+		approximate_posterior_analysis = T
+	}
+
+
+	# distinct_at is not released yet for dplyr, thus we have to use this trick
+	my_df <- format_input(
+		.data,
+		formula,
+		!!.sample,
+		!!.transcript,
+		!!.abundance,
+		!!.do_check,
+		!!.significance,
+		how_many_negative_controls
+	)
+
+	# Create design matrix
+	X = create_design_matrix(my_df, formula, !!.sample)
+
+	C = X %>% ncol
+
+	# Prior info
+	lambda_mu_mu = 5.612671
+
+	# Scale dataset
+	my_df_scaled = scale_abundance(my_df, !!.sample,!!.transcript,!!.abundance)
+
+	# Build better scales for the inference
+	exposure_rate_multiplier =
+		my_df_scaled %>%
+		distinct(!!.sample, TMM, multiplier) %>%
+		mutate(l = multiplier %>% log) %>%
+		summarise(l %>% sd) %>%
+		pull(`l %>% sd`)
+
+	# Build better scales for the inference
+	intercept_shift_scale =
+		my_df_scaled %>%
+		mutate(cc =
+					 	!!as.symbol(sprintf(
+					 		"%s_scaled",  quo_name(.abundance)
+					 	)) %>%
+					 	`+` (1) %>% log) %>%
+		summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
+		as.numeric
+
+	# Run the first discovery phase with permissive false discovery rate
+
+	my_df %>%
+		do_inference(
+			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,!!.do_check,
+			approximate_posterior_inference,
+			approximate_posterior_analysis,
+			C,
+			X,
+			lambda_mu_mu,
+			cores,
+			exposure_rate_multiplier,
+			intercept_shift_scale,
+			additional_parameters_to_save,
+			adj_prob_theshold  = adj_prob_theshold_2,
+			how_many_posterior_draws = how_many_posterior_draws_2,
+			pass_fit = pass_fit,
+			tol_rel_obj = tol_rel_obj,
+			write_on_disk = write_on_disk,
+			seed = seed
+		) %>%
+
+		# For building some figure I just need the discovery run, return prematurely
+		filter(`.variable` == "counts_rng") %>%
+		select(
+			S,
+			G,
+			!!.transcript,
+			!!.abundance,
+			!!.sample,
+			mean,
+			`.lower`,
+			`.upper`,
+			ppc,
+			one_of(c("generated quantities", "deleterious outliers")),
+			`exposure rate`,
+			one_of(parse_formula(formula))
+		) %>%
+
+		# format results
+		format_results(formula, !!.transcript, !!.abundance, !!.sample, do_check_only_on_detrimental)
 
 }
