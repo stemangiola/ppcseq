@@ -1,7 +1,7 @@
 
 #' identify_outliers main
 #'
-#' @description This function calls the stan model.
+#' @description This function runs the data modeling and statistical test for the hypothesis that a transcript includes outlier biological replicate.
 #'
 #' @importFrom tibble as_tibble
 #' @import dplyr
@@ -23,22 +23,22 @@
 #' @param .abundance A column name as symbol. The transcript abunace (read count)
 #' @param .significance A column name as symbol. A column with the Pvalue, or other significanc measure (preferred Pvalue over false discovery rate)
 #' @param .do_check A column name as symbol. A column with a booean indicating whether a transcript was identified as differentially abundant
-#' @param percent_false_positive_genes A real
-#' @param approximate_posterior_inference A boolean
-#' @param approximate_posterior_analysis A boolean
-#' @param how_many_negative_controls An integer
-#' @param draws_after_tail An integer. How many draws should on average be after the tail, in a way to inform CI
-#' @param save_generated_quantities A boolean
-#' @param additional_parameters_to_save A character vector
-#' @param cores An integer
-#' @param pass_fit A boolean
-#' @param do_check_only_on_detrimental A boolean
-#' @param tol_rel_obj A real
-#' @param just_discovery A boolean
-#' @param seed an integer
+#' @param percent_false_positive_genes A real between 0 and 100. It is the aimed percent of transcript being a false positive. For example, percent_false_positive_genes = 1 provide 1 percent of the calls for outlier containing transcripts that has actually not outliers.
+#' @param approximate_posterior_inference A boolean. Whether the inference of the joint posterior distribution should be approximated with variational Bayes. It confers execution time advantage.
+#' @param approximate_posterior_analysis A boolean. Whether the calculation of the credible intervals should be done semi-analitically, rather than with pure ampling from the posterior. It confers execution time and memory advantage.
+#' @param how_many_negative_controls An integer. How many transcript from the bottom non-significant should be taken for inferring the mean-overdispersion trend.
+#' @param draws_after_tail An integer. How many draws should on average be after the tail, in a way to inform CI.
+#' @param save_generated_quantities A boolean. Used for development and testing purposes
+#' @param additional_parameters_to_save A character vector. Used for development and testing purposes
+#' @param cores An integer. How many cored to be used with parallel calculations.
+#' @param pass_fit A boolean. Used for development and testing purposes
+#' @param do_check_only_on_detrimental A boolean. Whether to test only for detrimental outliers (same direction as the fold change). It allows to test for less transcript/sample pairs and therefore higher the probability threshold.
+#' @param tol_rel_obj A real. Used for development and testing purposes
+#' @param just_discovery A boolean. Used for development and testing purposes
+#' @param seed An integer. Used for development and testing purposes
 #' @param adj_prob_theshold_2 A boolean. Used for development and testing purposes
 #'
-#' @return A tibble with additional columns
+#' @return A nested tibble `tbl` with transcript-wise information: `sample wise data` | plot | `ppc samples failed` | `tot deleterious outliers`
 #'
 #' @export
 #'
@@ -49,7 +49,7 @@ identify_outliers = function(.data,
 														 .abundance,
 														 .significance,
 														 .do_check,
-														 percent_false_positive_genes = "1%",
+														 percent_false_positive_genes = 1,
 														 how_many_negative_controls = 500,
 
 														 approximate_posterior_inference = T,
@@ -87,9 +87,8 @@ identify_outliers = function(.data,
 		stop("Variational Bayes does not support tidybayes needed for save_generated_quantities, use sampling")
 
 	# Check percent FP input
-	pfpg = percent_false_positive_genes %>% gsub("%$", "", .) %>% as.numeric
-	if (pfpg %>% is.na |
-			!(pfpg %>% between(0, 100)))
+	if (percent_false_positive_genes %>% is.na |
+			!(percent_false_positive_genes %>% between(0, 100)))
 		stop("percent_false_positive_genes must be a string from > 0% to < 100%")
 
 	# For reference MPI inference
@@ -109,12 +108,15 @@ identify_outliers = function(.data,
 		)
 
 	# Calculate the adj_prob_theshold
-	adj_prob_theshold_1  = 0.05
 	if(adj_prob_theshold_2 %>% is.null)
 		adj_prob_theshold_2 =
-		pfpg / 100 /
+		percent_false_positive_genes / 100 /
 		(.data %>% distinct(!!.sample) %>% nrow) *
 		ifelse(do_check_only_on_detrimental, 2, 1)
+
+	# The first pasage is at least 2 times more permissive than the second
+	adj_prob_theshold_1  = 0.05 %>% max(adj_prob_theshold_2*2)
+
 
 	print(sprintf("adj_prob_theshold_2 = %s", adj_prob_theshold_2))
 
@@ -228,7 +230,7 @@ identify_outliers = function(.data,
 		ifelse_pipe(
 			do_check_only_on_detrimental,
 			~ .x %>% filter(`deleterious outliers`),
-			~ .x %>% filter(ppc)
+			~ .x %>% filter(!ppc)
 		) %>%
 		distinct(S, G, .lower, .upper)
 
@@ -276,7 +278,7 @@ identify_outliers = function(.data,
 		)
 
 	# Merge results and return
-	merge_results(res_discovery, res_test, formula, .transcript, .abundance, .sample, do_check_only_on_detrimental) %>%
+	merge_results(res_discovery, res_test, formula, !!.transcript, !!.abundance, !!.sample, do_check_only_on_detrimental) %>%
 
 		# Add fit attribute if any
 		add_attr(res_discovery %>% attr("fit"), "fit 1") %>%
@@ -286,6 +288,7 @@ identify_outliers = function(.data,
 		add_attr(res_test %>% attr("total_draws"), "total_draws")
 
 }
+
 
 
 #' do_inference
@@ -305,6 +308,7 @@ identify_outliers = function(.data,
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
 #' @importFrom tidybulk scale_abundance
+#' @importFrom tidybayes gather_draws
 #'
 #' @param my_df A tibble including a transcript name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -517,6 +521,7 @@ do_inference = function(my_df,
 				pars = c(
 					"counts_rng",
 					"exposure_rate",
+					"alpha_sub_1",
 					additional_parameters_to_save
 				)
 			)
@@ -540,6 +545,9 @@ do_inference = function(my_df,
 		# Check if data is within posterior
 		check_if_within_posterior(my_df, .do_check, .abundance) %>%
 
+		# Attach slope
+		left_join(fit %>% draws_to_tibble_x("alpha_sub_1", "G") %>% group_by(G, .variable) %>% median_qi %>% select(G, .value) %>% ungroup() %>% mutate(G = as.integer(G)) %>% rename(slope=.value)) %>%
+
 		# Add annotation if sample belongs to high or low group
 		add_deleterious_if_covariate_exists(X) %>%
 
@@ -552,6 +560,7 @@ do_inference = function(my_df,
 
 		# needed for the figure article
 		ifelse_pipe(pass_fit,	~ .x %>% add_attr(fit, "fit")	) %>%
+
 
 		# Passing the amout of sampled data
 		add_attr(S * how_many_to_check * how_many_posterior_draws, "total_draws")

@@ -27,11 +27,11 @@ res_1 =
 	mutate(is_significant = FDR < FDR_threshold) %>%
 	identify_outliers(
 		formula = ~ Label,
+		sample, symbol, value,
 		.significance = PValue,
 		.do_check = is_significant,
-		.abundance = value,
 		save_generated_quantities = T,
-		percent_false_positive_genes = "5%",
+		percent_false_positive_genes = 5,
 		approximate_posterior_inference = F,
 		approximate_posterior_analysis = F
 	)
@@ -74,13 +74,14 @@ es =
 		mutate(`data source` = list(input_2)) %>%
 		mutate(
 			`false positive predicted` =
-				future_map2(fp, `data source`, ~
+				map2(fp, `data source`, ~
 						.y %>%
 						identify_outliers(
 							formula = ~ Label,
+							sample, symbol, value,
 							.significance = PValue,
 							.do_check = is_significant,
-							.abundance = value, full_bayes = F, percent_false_positive_genes = sprintf("%s%%", .x)
+							percent_false_positive_genes = .x
 						) %>%
 						filter( `tot deleterious outliers`>0) %>%
 						nrow %>%
