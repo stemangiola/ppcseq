@@ -352,14 +352,16 @@ produce_plots = function(.x,
 			))
 		)
 
+	max_y  = .x %>% summarise(a = max(!!as.symbol(.abundance)), b = max(.upper_2)) %>% as.numeric %>% max
+
 	{
 		ggplot(data = .x, aes(
 			y = !!as.symbol(.abundance),
 			x = !!as.symbol(.sample)
 		)) +
 			geom_errorbar(
-				aes(ymin = `.lower`,
-						ymax = `.upper`),
+				aes(ymin = `.lower_1`,
+						ymax = `.upper_1`),
 				width = 0,
 				linetype = "dashed",
 				color = "#D3D3D3"
@@ -388,6 +390,7 @@ produce_plots = function(.x,
 			)
 		) +
 		scale_colour_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+		coord_cartesian(ylim = c(NA, max_y)) +
 		my_theme +
 		ggtitle(symbol)
 }
@@ -445,9 +448,10 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			!!.abundance,
 			!!.sample,
 			mean,
-			`.lower`,
-			`.upper`,
+			`.lower_1`,
+			`.upper_1`,
 			`exposure rate`,
+			slope_1 = slope,
 			one_of(parse_formula(formula))
 		) %>%
 
@@ -457,13 +461,13 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 				select(
 					S,
 					G,
-					mean,
-					`.lower`,
-					`.upper`,
+					mean_2 = mean,
+					.lower_2 = `.lower`,
+					.upper_2 = `.upper`,
+					slope_2 = slope,
 					ppc,
 					one_of(c("generated quantities", "deleterious outliers"))
-				) %>%
-				rename(mean_2 = mean, `.lower_2` = `.lower`, `.upper_2` = `.upper`),
+				) ,
 			by = c("S", "G")
 		) %>%
 
@@ -666,8 +670,8 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
 
 	draws_mu %>%
-		left_join(draws_sigma) %>%
-		left_join(draws_exposure) %>%
+		left_join(draws_sigma, by = c(".draw", "G")) %>%
+		left_join(draws_exposure, by = c(".draw", "S")) %>%
 		nest(data = -c(S, G)) %>%
 		mutate(
 			CI = map(
@@ -899,6 +903,9 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 
 }
 
+#' draws_to_tibble_x_y
+#'
+#' @importFrom tidyr pivot_longer
 draws_to_tibble_x_y = function(fit, par, x, y) {
 
 	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = T)
@@ -1131,5 +1138,20 @@ identify_outliers_1_step = function(.data,
 
 		# format results
 		format_results(formula, !!.transcript, !!.abundance, !!.sample, do_check_only_on_detrimental)
+
+}
+
+summary_to_tibble = function(fit, par, x, y = NULL) {
+
+	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = T)
+
+	fit %>%
+		rstan::summary(par_names) %$%
+		summary %>%
+		as_tibble(rownames = ".variable") %>%
+		when(
+			is.null(y) ~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x), "(.+)\\[(.+)\\]", convert = T),
+			~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x, y), "(.+)\\[(.+),(.+)\\]", convert = T)
+		)
 
 }
