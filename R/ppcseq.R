@@ -214,7 +214,7 @@ identify_outliers = function(.data,
 			additional_parameters_to_save,
 			adj_prob_theshold  = adj_prob_theshold_1,
 			how_many_posterior_draws = how_many_posterior_draws_1,
-			pass_fit = pass_fit,
+			pass_fit = T,
 			tol_rel_obj = tol_rel_obj,
 			write_on_disk = write_on_disk,
 			seed = seed
@@ -278,7 +278,22 @@ identify_outliers = function(.data,
 		)
 
 	# Merge results and return
-	merge_results(res_discovery, res_test, formula, !!.transcript, !!.abundance, !!.sample, do_check_only_on_detrimental) %>%
+	merge_results(
+
+		# Calculate CI 2 for discovery for plotting
+		res_discovery %>%
+			left_join(
+				(.) %>%
+					attr("fit") %>%
+					fit_to_counts_rng_approximated(adj_prob_theshold_2, how_many_posterior_draws_2, truncation_compensation = 0.7352941, cores) %>%
+					select(S, G, .lower_1 = .lower, .upper_1 = .upper)
+			),
+		res_test, formula,
+		!!.transcript,
+		!!.abundance,
+		!!.sample,
+		do_check_only_on_detrimental
+	) %>%
 
 		# Add fit attribute if any
 		add_attr(res_discovery %>% attr("fit"), "fit 1") %>%
@@ -393,7 +408,7 @@ do_inference = function(my_df,
 	# if analysis approximated
 	# If posterior analysis is approximated I just need enough
 	how_many_posterior_draws_practical = ifelse(approximate_posterior_analysis, 1000, how_many_posterior_draws)
-	if(approximate_posterior_analysis) additional_parameters_to_save = additional_parameters_to_save %>% c("lambda_log_param", "sigma_raw") %>% unique
+	additional_parameters_to_save = additional_parameters_to_save %>% c("lambda_log_param", "sigma_raw") %>% unique
 
 	# Identify the optimal number of chain
 	# based on how many draws we need from the posterior
@@ -546,7 +561,7 @@ do_inference = function(my_df,
 		check_if_within_posterior(my_df, .do_check, .abundance) %>%
 
 		# Attach slope
-		left_join(fit %>% draws_to_tibble_x("alpha_sub_1", "G") %>% group_by(G, .variable) %>% median_qi %>% select(G, .value) %>% ungroup() %>% mutate(G = as.integer(G)) %>% rename(slope=.value)) %>%
+		left_join(summary_to_tibble(fit, "alpha_sub_1", "G") %>% select(G, slope = mean), by = "G") %>%
 
 		# Add annotation if sample belongs to high or low group
 		add_deleterious_if_covariate_exists(X) %>%
@@ -561,9 +576,10 @@ do_inference = function(my_df,
 		# needed for the figure article
 		ifelse_pipe(pass_fit,	~ .x %>% add_attr(fit, "fit")	) %>%
 
-
-		# Passing the amout of sampled data
+		# Passing the amount of sampled data
 		add_attr(S * how_many_to_check * how_many_posterior_draws, "total_draws")
+
+
 }
 
 
