@@ -43,7 +43,7 @@ identify_outliers(
 
 \item{.do_check}{A column name as symbol. A column with a booean indicating whether a transcript was identified as differentially abundant}
 
-\item{percent_false_positive_genes}{A real between 0 and 100. It is the aimed percent of transcript being a false positive. For example, percent_false_positive_genes = 1 provide 1% of the calls for outlier containing transcripts that has actually not outliers.}
+\item{percent_false_positive_genes}{A real between 0 and 100. It is the aimed percent of transcript being a false positive. For example, percent_false_positive_genes = 1 provide 1 percent of the calls for outlier containing transcripts that has actually not outliers.}
 
 \item{how_many_negative_controls}{An integer. How many transcript from the bottom non-significant should be taken for inferring the mean-overdispersion trend.}
 
