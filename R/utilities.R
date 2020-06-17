@@ -677,13 +677,15 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 			CI = map(
 				data,
 				~ {
-					get_CI_semi_analytically_rnbinom(
+					get_CI_semi_analytically_pnbinom(
 						.x,
-						adj_prob_theshold,
-						how_many_posterior_draws
+						adj_prob_theshold
 					) %>%
 						# Add mean and sd
-						dplyr::mutate(mean = mean(draws), sd = sd(draws))
+						dplyr::mutate(
+							mean = mean(exp(.x$mu + .x$exposure)),
+							sd = mean(1/exp(.x$sigma) * truncation_compensation)
+						)
 				}
 			)
 		) %>%
@@ -695,6 +697,46 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		mutate(S = as.integer(S), G = as.integer(G))
 
 
+
+
+	}
+
+get_CI_semi_analytically_pnbinom_core = function(.x, .quantile){
+	ab<-range(
+		qnbinom(
+			.quantile,
+			mu = exp(.x$mu + .x$exposure),
+			size = 1/exp(.x$sigma) * truncation_compensation
+		)
+	);
+
+	if(sum(ab) == 0) return(0);
+
+	opt<-optim(
+		mean(ab),
+		function (x)
+			sapply(
+				x,
+				function(p)
+					((.quantile)-mean(pnbinom(p, 	mu = exp(.x$mu + .x$exposure),
+																		size = 1/exp(.x$sigma) * truncation_compensation )))^2
+			),
+		method='Brent',
+		lower=ab[1],
+		upper=ab[2]
+	)
+	opt$par
+}
+
+get_CI_semi_analytically_pnbinom = function(.x, .quantile){
+
+	tibble(
+		.lower = .x %>% get_CI_semi_analytically_pnbinom_core(.quantile),
+		.upper = .x %>% get_CI_semi_analytically_pnbinom_core(1-.quantile)
+	)
+
+
+}
 
 get_CI_semi_analytically_rnbinom = function(.x, .quantile, how_many_posterior_draws){
 	.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = T)
