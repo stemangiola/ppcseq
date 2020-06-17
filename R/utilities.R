@@ -677,14 +677,11 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 			CI = map(
 				data,
 				~ {
-					.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = T)
-					draws = rnbinom(n =how_many_posterior_draws,	mu = exp(.x_supersampled$mu + .x_supersampled$exposure),	size = 1/exp(.x_supersampled$sigma) * truncation_compensation	)
-					draws %>%
-						# Process quantile
-						quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
-				  	tibble::as_tibble(rownames="prop") %>%
-						tidyr::spread(prop, value) %>%
-						setNames(c(".lower", ".upper")) %>%
+					get_CI_semi_analytically_rnbinom(
+						.x,
+						adj_prob_theshold,
+						how_many_posterior_draws
+					) %>%
 						# Add mean and sd
 						dplyr::mutate(mean = mean(draws), sd = sd(draws))
 				}
@@ -698,6 +695,16 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		mutate(S = as.integer(S), G = as.integer(G))
 
 
+
+get_CI_semi_analytically_rnbinom = function(.x, .quantile, how_many_posterior_draws){
+	.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = T)
+	draws = rnbinom(n =how_many_posterior_draws,	mu = exp(.x_supersampled$mu + .x_supersampled$exposure),	size = 1/exp(.x_supersampled$sigma) * truncation_compensation	)
+	draws %>%
+		# Process quantile
+		quantile(c(.quantile, 1 - .quantile)) %>%
+		tibble::as_tibble(rownames="prop") %>%
+		tidyr::spread(prop, value) %>%
+		setNames(c(".lower", ".upper"))
 }
 
 save_generated_quantities_in_case = function(.data, fit, save_generated_quantities){
