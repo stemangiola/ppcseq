@@ -674,7 +674,7 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		left_join(draws_exposure, by = c(".draw", "S")) %>%
 		nest(data = -c(S, G)) %>%
 		mutate(
-			CI = map(
+			CI = future_map(
 				data,
 				~ {
 					get_CI_semi_analytically_pnbinom(
