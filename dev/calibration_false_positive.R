@@ -89,19 +89,20 @@ es =
 				 	)
 		)
 
+save(list=c("es", "input_2", "res_1"), file="dev/false_positive_study_3_runs.RData")
+
+
 (
 	es %>%
 		mutate(fp = fp %>% divide_by(100)) %>%
 		unnest(`false positive predicted`) %>%
 		ggplot(aes(x=fp, y= `false positive predicted`)) +
-		geom_jitter(width = 0.01) +
+		#geom_jitter(width = 0.01) +
 		geom_smooth(method = "lm") +
+		geom_point() +
 		xlab("false positive") +
 		my_theme
 ) %>%
 	ggsave(plot=., "dev/false_positive_study.pdf", device = cairo_pdf, width=89, height = 90, units = "mm" )
 
-save(list=c("es", "input_2", "res_1"), file="dev/false_positive_study_3_runs.RData")
 
-
-res_2 %>% unnest(`sample wise data`)
