@@ -112,6 +112,7 @@ functions{
   }
 
 matrix merge_coefficients(row_vector intercept, row_vector alpha_sub_1, matrix alpha_2,  int C, int S, int G){
+	// Here I build the coefficient matrix appending the house keeping genes
 	matrix[C,G] my_alpha;
 
 
