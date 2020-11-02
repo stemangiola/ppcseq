@@ -483,7 +483,7 @@ do_inference = function(my_df,
 		as_matrix() %>% t
 
 	# Get the matrix of the idexes of the outlier data points
-	# to explude from the model if it is the second passage
+	# to exclude from the model if it is the second passage
 	to_exclude_MPI = get_outlier_data_to_exlude(counts_MPI, to_exclude, shards)
 
 	# Package data
@@ -547,7 +547,7 @@ do_inference = function(my_df,
 
 		ifelse_pipe(
 			approximate_posterior_analysis,
-			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10, truncation_compensation, cores),
+			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws * 10, truncation_compensation, cores, how_many_to_check),
 			~ .x %>% fit_to_counts_rng(adj_prob_theshold)
 		) %>%
 
