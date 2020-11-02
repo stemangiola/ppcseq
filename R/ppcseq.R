@@ -301,9 +301,13 @@ identify_outliers = function(.data,
 		do_check_only_on_detrimental
 	) %>%
 
-		# Add fit attribute if any
+		# If return_fit
+		when(
+			return_fit ~ (.) %>%
 				add_attr(res_discovery %>% attr("fit"), "fit 1") %>%
-		add_attr(res_test %>% attr("fit"), "fit 2") %>%
+				add_attr(res_test %>% attr("fit"), "fit 2"),
+			~ (.)
+		)	%>%
 
 		# Add total draws
 		add_attr(res_test %>% attr("total_draws"), "total_draws")
