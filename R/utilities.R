@@ -448,8 +448,8 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			!!.abundance,
 			!!.sample,
 			mean,
-			`.lower_1`,
-			`.upper_1`,
+			# `.lower_1`,
+			# `.upper_1`,
 			`exposure rate`,
 			slope_1 = slope,
 			one_of(parse_formula(formula))

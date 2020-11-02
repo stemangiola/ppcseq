@@ -64,7 +64,8 @@ identify_outliers = function(.data,
 														 tol_rel_obj = 0.01,
 														 just_discovery = F,
 														 seed = sample(1:99999, size = 1),
-														 adj_prob_theshold_2 = NULL
+														 adj_prob_theshold_2 = NULL,
+														 return_fit = FALSE
 ) {
 	# Prepare column same enquo
 	.sample = enquo(.sample)
@@ -281,14 +282,19 @@ identify_outliers = function(.data,
 	merge_results(
 
 		# Calculate CI 2 for discovery for plotting
-		res_discovery %>%
-			left_join(
-				(.) %>%
-					attr("fit") %>%
-					fit_to_counts_rng_approximated(adj_prob_theshold_2, how_many_posterior_draws_2, truncation_compensation = 0.7352941, cores) %>%
-					select(S, G, .lower_1 = .lower, .upper_1 = .upper)
-			),
-		res_test, formula,
+		res_discovery,
+
+		# Just used for article comparative analyses between 1 and 2 steps
+		# %>%
+		# 	left_join(
+		# 		(.) %>%
+		# 			attr("fit") %>%
+		# 			fit_to_counts_rng_approximated(adj_prob_theshold_2, how_many_posterior_draws_2, truncation_compensation = 0.7352941, cores) %>%
+		# 			select(S, G, .lower_1 = .lower, .upper_1 = .upper)
+		# 	),
+
+		res_test,
+		formula,
 		!!.transcript,
 		!!.abundance,
 		!!.sample,
@@ -296,7 +302,7 @@ identify_outliers = function(.data,
 	) %>%
 
 		# Add fit attribute if any
-		add_attr(res_discovery %>% attr("fit"), "fit 1") %>%
+				add_attr(res_discovery %>% attr("fit"), "fit 1") %>%
 		add_attr(res_test %>% attr("fit"), "fit 2") %>%
 
 		# Add total draws
