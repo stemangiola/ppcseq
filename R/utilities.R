@@ -366,7 +366,7 @@ produce_plots = function(.x,
 				linetype = "dashed",
 				color = "#D3D3D3"
 			)
-		} %>%
+	} %>%
 		when(
 			".lower_2" %in% colnames(.x) ~ (.) +
 				geom_errorbar(aes(
@@ -448,8 +448,8 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			!!.abundance,
 			!!.sample,
 			mean,
-			`.lower_1`,
-			`.upper_1`,
+			# `.lower_1`,
+			# `.upper_1`,
 			`exposure rate`,
 			slope_1 = slope,
 			one_of(parse_formula(formula))
@@ -457,18 +457,19 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 
 		# Attach results of tests
 		left_join(
-			res_test %>% 		filter(`.variable` == "counts_rng") %>%
-				select(
-					S,
-					G,
-					mean_2 = mean,
-					.lower_2 = `.lower`,
-					.upper_2 = `.upper`,
-					slope_2 = slope,
-					ppc,
-					one_of(c("generated quantities", "deleterious outliers"))
-				) ,
-			by = c("S", "G")
+			res_test %>%
+				filter(`.variable` == "counts_rng") %>%
+					select(
+						S,
+						G,
+						mean_2 = mean,
+						.lower_2 = `.lower`,
+						.upper_2 = `.upper`,
+						slope_2 = slope,
+						ppc,
+						one_of(c("generated quantities", "deleterious outliers"))
+					),
+				by = c("S", "G")
 		) %>%
 
 		# format results
@@ -486,14 +487,14 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 
 	.data %>%
 
-	# Check if new package is installed with different sintax
-	ifelse_pipe(
-		packageVersion("tidyr") >= "0.8.3.9000",
-		~ .x %>% nest(`sample wise data` = c(-!!.transcript)),
-		~ .x %>%
-			group_by(!!.transcript) %>%
-			nest(`sample wise data` = -!!.transcript)
-	) %>%
+		# Check if new package is installed with different sintax
+		ifelse_pipe(
+			packageVersion("tidyr") >= "0.8.3.9000",
+			~ .x %>% nest(`sample wise data` = c(-!!.transcript)),
+			~ .x %>%
+				group_by(!!.transcript) %>%
+				nest(`sample wise data` = -!!.transcript)
+		) %>%
 
 		# Create plots for every tested transcript
 		mutate(plot =
@@ -655,47 +656,92 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #'
 #' @export
 
-fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores){
+fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check){
+
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
-	draws_mu =
-		fit %>% extract("lambda_log_param") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
-		as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
-	draws_sigma =
-		fit %>% extract("sigma_raw") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
-		as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
-	draws_exposure =
-		fit %>% extract("exposure_rate") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
-		as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
+	draws_mu = fit %>% extract("lambda_log_param") %>% .[[1]] %>% .[,,1:how_many_to_check]
 
-	draws_mu %>%
-		left_join(draws_sigma, by = c(".draw", "G")) %>%
-		left_join(draws_exposure, by = c(".draw", "S")) %>%
-		nest(data = -c(S, G)) %>%
+	# %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
+	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
+
+	draws_sigma = fit %>% extract("sigma_raw") %>% .[[1]] %>% .[,1:how_many_to_check]
+
+	# %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
+	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
+
+	draws_exposure = 	fit %>% extract("exposure_rate") %>% .[[1]]
+
+	# %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
+	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
+
+	expand_grid(S = 1:(dim(draws_mu)[2]), G = 1:(dim(draws_mu)[3])) %>%
+		mutate(truncation_compensation = !!truncation_compensation) %>%
 		mutate(
-			CI = map(
-				data,
+			CI = pmap(
+				list(  S,G, truncation_compensation),
 				~ {
-					.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = T)
-					draws = rnbinom(n =how_many_posterior_draws,	mu = exp(.x_supersampled$mu + .x_supersampled$exposure),	size = 1/exp(.x_supersampled$sigma) * truncation_compensation	)
+
+					i_supersampled =	sample(1:length(draws_mu[,..1, ..2]), how_many_posterior_draws, replace = T )
+					draws = rnbinom(
+						n = how_many_posterior_draws,
+						mu = exp(draws_mu[,..1, ..2][i_supersampled] + draws_exposure[,..1][i_supersampled]),
+						size = 1/exp(draws_sigma[,..2][i_supersampled]) * ..3
+					)
 					draws %>%
+
 						# Process quantile
 						quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
-				  	tibble::as_tibble(rownames="prop") %>%
+						tibble::as_tibble(rownames="prop") %>%
 						tidyr::spread(prop, value) %>%
 						setNames(c(".lower", ".upper")) %>%
+
 						# Add mean and sd
 						dplyr::mutate(mean = mean(draws), sd = sd(draws))
 				}
 			)
 		) %>%
-		select(-data) %>%
-		unnest(CI) %>%
-
-		# Adapt to old dataset
 		mutate(.variable = "counts_rng") %>%
-		mutate(S = as.integer(S), G = as.integer(G))
+		unnest(CI)
+
+	# draws_mu =
+	# 	fit %>% extract("lambda_log_param") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
+	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
+	# draws_sigma =
+	# 	fit %>% extract("sigma_raw") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
+	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
+	# draws_exposure =
+	# 	fit %>% extract("exposure_rate") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
+	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
+	#
+	# draws_mu %>%
+	# 	left_join(draws_sigma, by = c(".draw", "G")) %>%
+	# 	left_join(draws_exposure, by = c(".draw", "S")) %>%
+	# 	nest(data = -c(S, G)) %>%
+	# 	mutate(
+	# 		CI = map(
+	# 			data,
+	# 			~ {
+	# 				.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = T)
+	# 				draws = rnbinom(n =how_many_posterior_draws,	mu = exp(.x_supersampled$mu + .x_supersampled$exposure),	size = 1/exp(.x_supersampled$sigma) * truncation_compensation	)
+	# 				draws %>%
+	# 					# Process quantile
+	# 					quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
+	# 					tibble::as_tibble(rownames="prop") %>%
+	# 					tidyr::spread(prop, value) %>%
+	# 					setNames(c(".lower", ".upper")) %>%
+	# 					# Add mean and sd
+	# 					dplyr::mutate(mean = mean(draws), sd = sd(draws))
+	# 			}
+	# 		)
+	# 	) %>%
+	# 	select(-data) %>%
+	# 	unnest(CI) %>%
+	#
+	# 	# Adapt to old dataset
+	# 	mutate(.variable = "counts_rng") %>%
+	# 	mutate(S = as.integer(S), G = as.integer(G))
 
 
 }
