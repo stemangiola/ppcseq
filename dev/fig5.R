@@ -33,6 +33,18 @@ all_df =
 	mutate(source = gsub("dev/|\\.rds", "", source)) %>%
 	mutate(source = gsub("_", " ", source))
 
+all_df_robust =
+	c(
+		"dev/Mangiola_et_adipo_robust.rds",
+		"dev/GSE137631_muscle_robust.rds",
+		"dev/Atkins_et_brain_robust.rds",
+		"dev/GSE141027_lipoma_robust.rds",
+		"dev/GSE99374_CD8_robust.rds",
+		"dev/GSE151005_arabidopsis_robust.rds"
+	) %>%
+	map_dfr(~.x %>% readRDS %>% mutate(source = .x) %>% rename_at(vars(1),function(x) "transcript")) %>%
+	mutate(source = gsub("dev/|\\.rds", "", source)) %>%
+	mutate(source = gsub("_", " ", source))
 
 all_df_deseq2 =
 	c(
@@ -54,6 +66,12 @@ all_df %>%
 	summarise(fraction_genes_includng_out =  sum(includes_outlier)/n(), tot_genes = n()) %>%
 	summarise(median(fraction_genes_includng_out))
 
+all_df_robust %>%
+	mutate(includes_outlier = `tot deleterious outliers` > 0) %>%
+	group_by(source) %>%
+	summarise(fraction_genes_includng_out =  sum(includes_outlier)/n(), tot_genes = n()) %>%
+	summarise(median(fraction_genes_includng_out))
+
 all_df_deseq2 %>%
 	mutate(includes_outlier = `tot deleterious outliers` > 0) %>%
 	group_by(source) %>%
@@ -63,6 +81,7 @@ all_df_deseq2 %>%
 p1 =
 	all_df %>% mutate(algorithm="edgeR") %>%
 	bind_rows(all_df_deseq2 %>% mutate(algorithm="DESeq2")) %>%
+	bind_rows(all_df_robust %>% mutate(algorithm="robust_edgeR")) %>%
 
 	# TEMPORARY
 	bind_rows(
@@ -73,6 +92,7 @@ p1 =
 	) %>%
 
 	mutate(source = str_replace(source, " deseq2", "")) %>%
+	mutate(source = str_replace(source, " robust", "")) %>%
 	mutate(includes_outlier = `tot deleterious outliers` > 0) %>%
 	group_by(source, algorithm) %>%
 	summarise(fraction_genes_includng_out =  sum(includes_outlier)/n(), tot_genes = n()) %>%
@@ -116,13 +136,13 @@ p2 =
 	pull(plot)
 
 
-legend_p2 =
-	all_df %>%
-	filter(`ppc samples failed` == 1) %>%
-	pull(plot) %>%
-	map(~.x + theme(text = element_text(size=6))) %>%
-	.[[1]] %>%
-	cowplot::get_legend()
+# legend_p2 =
+# 	all_df %>%
+# 	filter(`ppc samples failed` == 1) %>%
+# 	dplyr::pull(plot) %>%
+# 	map(~.x + theme(text = element_text(size=6))) %>%
+# 	.[[1]] %>%
+# 	cowplot::get_legend()
 
 p  = (p1 + (p2[[1]] / p2[[4]]) + (p2[[2]] / p2[[5]]) + (p2[[3]] / p2[[6]]) +  plot_layout(nrow = 1))
 	ggsave(
@@ -223,3 +243,9 @@ all_df_deseq2 %>%
 	group_by(source, cohort_size) %>% summarise(mean(ratio))
 
 
+# DESeq2 Cook' distance method
+cd8 = 0
+fat = 3
+lipoma = 0
+arabidopsis = 0
+muscle = 0
