@@ -358,14 +358,15 @@ produce_plots = function(.x,
 		ggplot(data = .x, aes(
 			y = !!as.symbol(.abundance),
 			x = !!as.symbol(.sample)
-		)) +
-			geom_errorbar(
-				aes(ymin = `.lower_1`,
-						ymax = `.upper_1`),
-				width = 0,
-				linetype = "dashed",
-				color = "#D3D3D3"
-			)
+		))
+		# +
+		# 	geom_errorbar(
+		# 		aes(ymin = `.lower_1`,
+		# 				ymax = `.upper_1`),
+		# 		width = 0,
+		# 		linetype = "dashed",
+		# 		color = "#D3D3D3"
+		# 	)
 	} %>%
 		when(
 			".lower_2" %in% colnames(.x) ~ (.) +
@@ -645,7 +646,6 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @importFrom tidyr unnest
 #' @importFrom rstan summary
 #' @importFrom furrr future_map
-#' @importFrom future plan
 #' @importFrom future multiprocess
 #'
 #' @param fit A fit object
