@@ -33,7 +33,8 @@ df =
 	left_join(annot)  %>%
 	filter(treatment %>% is.na %>% `!`) %>%
 	tidybulk(sample, entrez, count) %>%
-	scale_abundance(factor_of_interest = treatment) %>%
+	identify_abundant(factor_of_interest = treatment) %>%
+	scale_abundance() %>%
 	adjust_abundance(~  treatment + cellLine) %>%
 
 	{
@@ -52,9 +53,17 @@ res_dt = df %>%
 
 res_dt %>% saveRDS("dev/Atkins_et_brain_DT.rds", compress = "gzip")
 
+res_dt_robust = df %>%
+	test_differential_abundance(~ treatment + cellLine, method = "edgeR_robust_likelihood_ratio") %>%
+	filter(.abundant) %>%
+	mutate(count = as.integer(count)) %>%
+	mutate(is_significant = FDR < 0.05 )
+
+res_dt_robust %>% saveRDS("dev/Atkins_et_brain_DT_robust.rds", compress = "gzip")
+
 res_dt_deseq2 = df %>%
 	test_differential_abundance(~ treatment + cellLine, method = "deseq2") %>%
-	filter(!lowly_abundant) %>%
+	filter(.abundant) %>%
 	mutate(count = as.integer(count)) %>%
 	mutate(is_significant = !is.na(padj) & padj < 0.05 )
 
@@ -97,6 +106,28 @@ res_deseq2 =
 	)
 
 res_deseq2 %>% saveRDS("dev/Atkins_et_brain_deseq2.rds", compress = "gzip")
+
+
+res_robust =
+	res_dt_robust %>%
+
+	# PPCSEQ
+	ppcseq::identify_outliers(
+		formula = ~ treatment + cellLine,
+		.sample = sample,
+		.transcript = entrez,
+		.significance = PValue,
+		.do_check  = is_significant,
+		.abundance = count,
+		percent_false_positive_genes = 1,
+		cores=30, approximate_posterior_analysis = T
+	)
+
+res_robust %>% select(-plot, -`sample wise data`)  %>% saveRDS("dev/Atkins_et_brain_robust.rds", compress = "gzip")
+
+
+# Best rank outlier
+res_dt_robust %>% filter(is_significant) %>% arrange(FDR) %>% pivot_transcript %>% rowid_to_column() %>% inner_join(res_robust %>% filter( `tot deleterious outliers`> 0) %>% distinct(entrez))
 
 
 res %>%
