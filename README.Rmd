@@ -50,7 +50,7 @@ counts.ppc =
 		.abundance = value,
 		.significance = PValue,
 		.do_check = is_significant,
-		percent_false_positive_genes = "5%"
+		percent_false_positive_genes = 5
 	)
 ```
 

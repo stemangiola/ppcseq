@@ -46,6 +46,10 @@ You can identify anrtefactual calls from your differential transcribt
 anundance analysis, due to outliers.
 
 ``` r
+# Import libraries
+library(dplyr)
+library(magrittr)
+
 counts.ppc = 
     ppcseq::counts %>%
     mutate(is_significant = FDR < 0.01) %>%
@@ -56,7 +60,7 @@ counts.ppc =
         .abundance = value,
         .significance = PValue,
         .do_check = is_significant,
-        percent_false_positive_genes = "5%"
+        percent_false_positive_genes = 5
     )
 ```
 
@@ -69,22 +73,22 @@ counts.ppc
 
     ## # A tibble: 15 x 5
     ##    symbol   `sample wise data` plot   `ppc samples fail… `tot deleterious outli…
-    ##    <chr>       <list<df[,14]>> <list>              <int>                   <int>
-    ##  1 SLC16A12          [21 × 14] <gg>                    0                       0
-    ##  2 CYP1A1            [21 × 14] <gg>                    1                       1
-    ##  3 ART3              [21 × 14] <gg>                    1                       1
-    ##  4 DIO2              [21 × 14] <gg>                    0                       0
-    ##  5 OR51E2            [21 × 14] <gg>                    0                       0
-    ##  6 MUC16             [21 × 14] <gg>                    0                       0
-    ##  7 CCNA1             [21 × 14] <gg>                    0                       0
-    ##  8 LYZ               [21 × 14] <gg>                    1                       1
-    ##  9 PPM1H             [21 × 14] <gg>                    0                       0
-    ## 10 SUSD5             [21 × 14] <gg>                    0                       0
-    ## 11 TPRG1             [21 × 14] <gg>                    0                       0
-    ## 12 EPB42             [21 × 14] <gg>                    0                       0
-    ## 13 LRRC38            [21 × 14] <gg>                    0                       0
-    ## 14 SUSD4             [21 × 14] <gg>                    0                       0
-    ## 15 MMP8              [21 × 14] <gg>                    1                       1
+    ##    <chr>    <list>             <list>              <int>                   <int>
+    ##  1 SLC16A12 <tibble [21 × 14]> <gg>                    0                       0
+    ##  2 CYP1A1   <tibble [21 × 14]> <gg>                    1                       1
+    ##  3 ART3     <tibble [21 × 14]> <gg>                    0                       0
+    ##  4 DIO2     <tibble [21 × 14]> <gg>                    0                       0
+    ##  5 OR51E2   <tibble [21 × 14]> <gg>                    0                       0
+    ##  6 MUC16    <tibble [21 × 14]> <gg>                    0                       0
+    ##  7 CCNA1    <tibble [21 × 14]> <gg>                    0                       0
+    ##  8 LYZ      <tibble [21 × 14]> <gg>                    1                       1
+    ##  9 PPM1H    <tibble [21 × 14]> <gg>                    0                       0
+    ## 10 SUSD5    <tibble [21 × 14]> <gg>                    0                       0
+    ## 11 TPRG1    <tibble [21 × 14]> <gg>                    0                       0
+    ## 12 EPB42    <tibble [21 × 14]> <gg>                    0                       0
+    ## 13 LRRC38   <tibble [21 × 14]> <gg>                    0                       0
+    ## 14 SUSD4    <tibble [21 × 14]> <gg>                    0                       0
+    ## 15 MMP8     <tibble [21 × 14]> <gg>                    0                       0
 
 The new data frame contains plots for each gene
 
