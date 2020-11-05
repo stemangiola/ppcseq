@@ -1,0 +1,91 @@
+---
+title: "Overview of the tidySingleCellExperiment package"
+author: "Stefano Mangiola"
+date: "`r Sys.Date()`"
+package: tidySingleCellExperiment
+output:
+  BiocStyle::html_document:
+    toc_float: true
+bibliography: tidySingleCellExperiment.bib
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Overview of the tidySingleCellExperiment package}
+  %\usepackage[UTF-8]{inputenc}
+---
+
+```{r, echo=FALSE, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(
+    cache=TRUE, warning=FALSE,
+    message=FALSE, cache.lazy=FALSE
+)
+```
+
+
+The input data set is a tidy representation of a differential gene transcript abundance analysis
+
+```{r echo=FALSE, include=FALSE}
+library(tidyverse)
+library(ppcseq)
+```
+
+To install:
+
+Before install, for linux systems, in order to exploit multi-threading, from R write:
+
+```{r eval=FALSE}
+fileConn<-file("~/.R/Makevars")
+writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
+close(fileConn)
+```
+
+Then, install with
+
+```{r eval=FALSE}
+devtools::install_github("stemangiola/ppcseq")
+```
+
+You can get the test dataset with
+
+```{r}
+ppcseq::counts 
+```
+
+You can identify anrtefactual calls from your differential transcribt anundance analysis, due to outliers.
+
+```{r warning=FALSE, message=FALSE,results='hide'}
+# Import libraries
+library(dplyr)
+library(magrittr)
+
+counts.ppc = 
+	ppcseq::counts %>%
+	mutate(is_significant = FDR < 0.01) %>%
+	identify_outliers(
+		formula = ~ Label,
+		.sample = sample, 
+		.transcript = symbol,
+		.abundance = value,
+		.significance = PValue,
+		.do_check = is_significant,
+		percent_false_positive_genes = 5
+	)
+```
+
+The new posterior predictive check has been added to the original data frame
+
+```{r }
+counts.ppc 
+```
+
+The new data frame contains plots for each gene
+
+We can visualise the top five differentially transcribed genes
+
+```{r }
+counts.ppc %>% 
+	slice(1:2) %>% 
+	pull(plot) %>% 
+	cowplot::plot_grid(plotlist = ., align = "v", ncol = 1, axis="b", rel_widths = 1 )
+
+```
