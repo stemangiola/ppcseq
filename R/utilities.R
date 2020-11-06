@@ -497,22 +497,6 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 				nest(`sample wise data` = -!!.transcript)
 		) %>%
 
-		# Create plots for every tested transcript
-		mutate(plot =
-					 	pmap(
-					 		list(
-					 			`sample wise data`,
-					 			!!.transcript,
-					 			# nested data for plot
-					 			quo_name(.abundance),
-					 			# name of value column
-					 			quo_name(.sample),
-					 			# name of sample column
-					 			parse_formula(formula)[1] # main covariate
-					 		),
-					 		~ produce_plots(..1, ..2, ..3, ..4, ..5)
-					 	)) %>%
-
 		# Add summary statistics
 		mutate(`ppc samples failed` = map_int(`sample wise data`, ~ .x %>% pull(ppc) %>% `!` %>% sum)) %>%
 
@@ -526,8 +510,6 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 				)
 		)
 }
-
-
 
 #' Select only significant genes plus background for efficient normalisation
 #'
@@ -644,6 +626,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @importFrom tidyr separate
 #' @importFrom tidyr nest
 #' @importFrom tidyr unnest
+#' @importFrom tidyr expand_grid
 #' @importFrom rstan summary
 #' @importFrom furrr future_map
 #' @importFrom future multiprocess
@@ -1201,3 +1184,281 @@ summary_to_tibble = function(fit, par, x, y = NULL) {
 		)
 
 }
+
+#' do_inference
+#'
+#' @description This function calls the stan model.
+#'
+#' @importFrom tibble tibble
+#' @import rstan
+#' @import dplyr
+#' @importFrom tidyr spread
+#' @import tidybayes
+#' @importFrom foreach foreach
+#' @importFrom foreach %do%
+#' @importFrom magrittr %$%
+#' @importFrom magrittr divide_by
+#' @importFrom magrittr multiply_by
+#' @importFrom purrr map2
+#' @importFrom purrr map_int
+#' @importFrom tidybulk scale_abundance
+#' @importFrom tidybayes gather_draws
+#'
+#' @param my_df A tibble including a transcript name column | sample name column | read counts column | covariates column
+#' @param formula A formula
+#' @param .sample A column name as symbol
+#' @param .transcript A column name as symbol
+#' @param .abundance A column name as symbol
+#' @param .significance A column name as symbol
+#' @param .do_check A column name as symbol
+#' @param approximate_posterior_inference A boolean
+#' @param approximate_posterior_analysis A boolean
+#' @param C An integer
+#' @param X A tibble
+#' @param lambda_mu_mu A real
+#' @param cores An integer
+#' @param exposure_rate_multiplier A real
+#' @param intercept_shift_scale A real
+#' @param additional_parameters_to_save A character vector
+#' @param adj_prob_theshold A real
+#' @param how_many_posterior_draws A real number of posterior draws needed
+#' @param to_exclude A boolean
+#' @param truncation_compensation A real
+#' @param save_generated_quantities A boolean
+#' @param inits_fx A function
+#' @param prior_from_discovery A tibble
+#' @param pass_fit A fit
+#' @param tol_rel_obj A real
+#' @param write_on_disk A boolean
+#' @param seed an integer
+#'
+#' @return A tibble with additional columns
+#'
+do_inference = function(my_df,
+												formula,
+												.sample ,
+												.transcript ,
+												.abundance,
+												.significance ,
+												.do_check,
+												approximate_posterior_inference = F,
+												approximate_posterior_analysis = F,
+												C,
+												X,
+												lambda_mu_mu,
+												cores,
+												exposure_rate_multiplier,
+												intercept_shift_scale,
+												additional_parameters_to_save,
+												adj_prob_theshold,
+												how_many_posterior_draws,
+												to_exclude = tibble(S = integer(), G = integer()),
+												truncation_compensation = 1,
+												save_generated_quantities = F,
+												inits_fx = "random",
+												prior_from_discovery = tibble(`.variable` = character(),
+																											mean = numeric(),
+																											sd = numeric()),
+												pass_fit = F,
+												tol_rel_obj = 0.01,
+												write_on_disk = F,
+												seed) {
+
+	writeLines(sprintf("executing %s", "do_inference"))
+
+	# Prepare column names
+	.sample = enquo(.sample)
+	.transcript = enquo(.transcript)
+	.abundance = enquo(.abundance)
+	.significance = enquo(.significance)
+	.do_check = enquo(.do_check)
+
+	# Check that the dataset is squared
+	if(my_df %>% distinct(!!.sample, !!.transcript) %>% count(!!.transcript) %>% count(n) %>% nrow %>% `>` (1))
+		stop("The input data frame does not represent a rectangular structure. Each transcript must be present in all samples.")
+
+	# Get the number of transcripts to check
+	how_many_to_check =
+		my_df %>%
+		filter(!!.do_check) %>%
+		distinct(!!.transcript) %>%
+		nrow
+
+	# if analysis approximated
+	# If posterior analysis is approximated I just need enough
+	how_many_posterior_draws_practical = ifelse(approximate_posterior_analysis, 1000, how_many_posterior_draws)
+	additional_parameters_to_save = additional_parameters_to_save %>% c("lambda_log_param", "sigma_raw") %>% unique
+
+	# Identify the optimal number of chain
+	# based on how many draws we need from the posterior
+	chains =
+		find_optimal_number_of_chains(how_many_posterior_draws_practical) %>%
+		min(cores) %>%
+		max(3)
+
+	# Find how many cores per chain, minimum 1 of course
+	my_cores = cores %>% divide_by(chains) %>% floor %>% max(1)
+
+	# Set the number of data partition = to the number of cores per chain
+	shards = my_cores
+
+	# Setup the data shards
+	counts_MPI =
+		my_df %>%
+		select(!!.transcript,!!.sample,!!.abundance, S, G) %>%
+		format_for_MPI(shards,!!.sample)
+
+	# Setup dimensions of variables for the model
+	G = counts_MPI %>% distinct(G) %>% nrow()
+	S = counts_MPI %>% distinct(!!.sample) %>% nrow()
+	N = counts_MPI %>% distinct(idx_MPI,!!.abundance, `read count MPI row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
+	M = counts_MPI %>% distinct(start, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% max
+	G_per_shard = counts_MPI %>% distinct(!!.transcript, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% as.array
+	n_shards = min(shards, counts_MPI %>% distinct(idx_MPI) %>% nrow)
+	G_per_shard_idx = c(
+		0,
+		counts_MPI %>% distinct(!!.transcript, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% cumsum
+	)
+
+	# Read count object
+	counts =
+		counts_MPI %>%
+		distinct(idx_MPI,!!.abundance, `read count MPI row`)  %>%
+		spread(idx_MPI,!!.abundance) %>%
+		select(-`read count MPI row`) %>%
+		replace(is.na(.), 0 %>% as.integer) %>%
+		as_matrix() %>% t
+
+	# Indexes of the samples
+	sample_idx =
+		counts_MPI %>%
+		distinct(idx_MPI, S, `read count MPI row`)  %>%
+		spread(idx_MPI, S) %>%
+		select(-`read count MPI row`) %>%
+		replace(is.na(.), 0 %>% as.integer) %>%
+		as_matrix() %>% t
+
+	# In the data structure when data for a transcript starts and ends
+	symbol_end =
+		counts_MPI %>%
+		distinct(idx_MPI, end, `symbol MPI row`)  %>%
+		spread(idx_MPI, end) %>%
+		bind_rows((.) %>% head(n = 1) %>%  mutate_all(function(x) {
+			0
+		})) %>%
+		arrange(`symbol MPI row`) %>%
+		select(-`symbol MPI row`) %>%
+		replace(is.na(.), 0 %>% as.integer) %>%
+		as_matrix() %>% t
+
+	# Indexes of the transcripts
+	G_ind =
+		counts_MPI %>%
+		distinct(idx_MPI, G, `symbol MPI row`)  %>%
+		spread(idx_MPI, G) %>%
+		arrange(`symbol MPI row`) %>%
+		select(-`symbol MPI row`) %>%
+		replace(is.na(.), 0 %>% as.integer) %>%
+		as_matrix() %>% t
+
+	# Get the matrix of the idexes of the outlier data points
+	# to explude from the model if it is the second passage
+	to_exclude_MPI = get_outlier_data_to_exlude(counts_MPI, to_exclude, shards)
+
+	# Package data
+	counts_package =
+
+		# Dimensions data sets
+		rep(c(M, N, S), shards) %>%
+		matrix(nrow = shards, byrow = T) %>%
+		cbind(G_per_shard) %>%
+		cbind(symbol_end) %>%
+		cbind(sample_idx) %>%
+		cbind(counts) %>%
+		cbind(to_exclude_MPI)
+
+	# Dimension od the data package to pass to Stan
+	CP = ncol(counts_package)
+
+	# Run model
+	#writeLines(sprintf("- Roughly the memory allocation for the fit object is %s Gb", object.size(1:(S * how_many_to_check * how_many_posterior_draws))/1e9))
+
+	# Set up environmental variable for threading
+	Sys.setenv("STAN_NUM_THREADS" = my_cores)
+
+	# Run Stan
+	fit =
+		switch(
+			approximate_posterior_inference %>% `!` %>% as.integer %>% sum(1),
+
+			# VB Repeat strategy for failures of vb
+			vb_iterative(
+				stanmodels$negBinomial_MPI,
+				#pcc_seq_model, #
+				output_samples = how_many_posterior_draws_practical,
+				iter = 50000,
+				tol_rel_obj = 0.005,
+				additional_parameters_to_save = additional_parameters_to_save
+			),
+
+			# MCMC
+			sampling(
+				stanmodels$negBinomial_MPI,
+				#pcc_seq_model, #
+				chains = chains,
+				cores = cores,
+				iter = (how_many_posterior_draws_practical / chains) %>% ceiling %>% sum(150),
+				warmup = 150,
+				save_warmup = FALSE,
+				seed = seed,
+				init = inits_fx,
+				pars = c(
+					"counts_rng",
+					"exposure_rate",
+					"alpha_sub_1",
+					additional_parameters_to_save
+				)
+			)
+		)
+
+	# Parse and return
+	fit %>%
+
+		ifelse_pipe(
+			approximate_posterior_analysis,
+			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check),
+			~ .x %>% fit_to_counts_rng(adj_prob_theshold)
+		) %>%
+
+		# If generated quantities are saved
+		save_generated_quantities_in_case(fit, save_generated_quantities) %>%
+
+		# Add exposure rate
+		#add_exposure_rate(fit) %>%
+
+		# Check if data is within posterior
+		check_if_within_posterior(my_df, .do_check, .abundance) %>%
+
+		# Attach slope
+		left_join(summary_to_tibble(fit, "alpha_sub_1", "G") %>% select(G, slope = mean), by = "G") %>%
+
+		# Add annotation if sample belongs to high or low group
+		add_deleterious_if_covariate_exists(X) %>%
+
+		# Add position in MPI package for next inference
+		left_join(counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`),
+							by = c("S", "G")) %>%
+
+		# Add exposure rate
+		add_exposure_rate(fit) %>%
+
+		# needed for the figure article
+		ifelse_pipe(pass_fit,	~ .x %>% add_attr(fit, "fit")	) %>%
+
+		# Passing the amount of sampled data
+		add_attr(S * how_many_to_check * how_many_posterior_draws, "total_draws")
+
+
+}
+
+
