@@ -47,8 +47,7 @@ anundance analysis, due to outliers.
 
 ``` r
 # Import libraries
-library(dplyr)
-library(magrittr)
+
 
 counts.ppc = 
     ppcseq::counts %>%
@@ -71,34 +70,46 @@ frame
 counts.ppc 
 ```
 
-    ## # A tibble: 15 x 5
-    ##    symbol   `sample wise data` plot   `ppc samples fail… `tot deleterious outli…
-    ##    <chr>    <list>             <list>              <int>                   <int>
-    ##  1 SLC16A12 <tibble [21 × 14]> <gg>                    0                       0
-    ##  2 CYP1A1   <tibble [21 × 14]> <gg>                    1                       1
-    ##  3 ART3     <tibble [21 × 14]> <gg>                    0                       0
-    ##  4 DIO2     <tibble [21 × 14]> <gg>                    0                       0
-    ##  5 OR51E2   <tibble [21 × 14]> <gg>                    0                       0
-    ##  6 MUC16    <tibble [21 × 14]> <gg>                    0                       0
-    ##  7 CCNA1    <tibble [21 × 14]> <gg>                    0                       0
-    ##  8 LYZ      <tibble [21 × 14]> <gg>                    1                       1
-    ##  9 PPM1H    <tibble [21 × 14]> <gg>                    0                       0
-    ## 10 SUSD5    <tibble [21 × 14]> <gg>                    0                       0
-    ## 11 TPRG1    <tibble [21 × 14]> <gg>                    0                       0
-    ## 12 EPB42    <tibble [21 × 14]> <gg>                    0                       0
-    ## 13 LRRC38   <tibble [21 × 14]> <gg>                    0                       0
-    ## 14 SUSD4    <tibble [21 × 14]> <gg>                    0                       0
-    ## 15 MMP8     <tibble [21 × 14]> <gg>                    0                       0
+    ## # A tibble: 15 x 4
+    ##    symbol   `sample wise data` `ppc samples failed` `tot deleterious outliers`
+    ##    <chr>    <list>                            <int>                      <int>
+    ##  1 SLC16A12 <tibble [21 × 14]>                    0                          0
+    ##  2 CYP1A1   <tibble [21 × 14]>                    1                          1
+    ##  3 ART3     <tibble [21 × 14]>                    0                          0
+    ##  4 DIO2     <tibble [21 × 14]>                    0                          0
+    ##  5 OR51E2   <tibble [21 × 14]>                    0                          0
+    ##  6 MUC16    <tibble [21 × 14]>                    0                          0
+    ##  7 CCNA1    <tibble [21 × 14]>                    0                          0
+    ##  8 LYZ      <tibble [21 × 14]>                    1                          1
+    ##  9 PPM1H    <tibble [21 × 14]>                    0                          0
+    ## 10 SUSD5    <tibble [21 × 14]>                    0                          0
+    ## 11 TPRG1    <tibble [21 × 14]>                    0                          0
+    ## 12 EPB42    <tibble [21 × 14]>                    0                          0
+    ## 13 LRRC38   <tibble [21 × 14]>                    0                          0
+    ## 14 SUSD4    <tibble [21 × 14]>                    0                          0
+    ## 15 MMP8     <tibble [21 × 14]>                    0                          0
 
 The new data frame contains plots for each gene
 
 We can visualise the top five differentially transcribed genes
 
 ``` r
-counts.ppc %>% 
-    slice(1:2) %>% 
-    pull(plot) %>% 
-    cowplot::plot_grid(plotlist = ., align = "v", ncol = 1, axis="b", rel_widths = 1 )
+counts.ppc_plots = 
+    counts.ppc %>% 
+    plot_credible_intervals() 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+``` r
+counts.ppc_plots %>%
+    pull(plot) %>% 
+    .[1:2]
+```
+
+    ## [[1]]
+
+![](man/figures/unnamed-chunk-9-1.png)<!-- -->
+
+    ## 
+    ## [[2]]
+
+![](man/figures/unnamed-chunk-9-2.png)<!-- -->
