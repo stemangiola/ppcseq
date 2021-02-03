@@ -16,6 +16,10 @@ dev/*rda
 dev/*csv
 dev/*xlsx
 dev/*RData
+dev/*Rmd
+dev/example*
+dev/*pdf
 dev/*txt
 dev/approximation_bias_correction_cache*
+dev.GSE*
 temp*
