@@ -87,7 +87,14 @@ identify_outliers = function(.data,
 	# Check if I have any genes to check
 	if(.data %>%	filter(!!.do_check) %>% nrow %>% equals(0)){
 		warning("ppcseq says: There are not transcripts with the category .to_check. NULL is returned.")
-		return(NULL)
+		return(tibble(
+			a = "a",
+			b = list(),
+			c = 1L,
+			d = 1L
+		) %>%
+			slice(0) %>%
+			setNames(c(quo_name(.transcript), "sample wise data", "ppc samples failed", "tot deleterious outliers")))
 	}
 
 
@@ -188,7 +195,7 @@ identify_outliers = function(.data,
 	# Scale dataset
 	my_df_scaled =
 		my_df %>%
-		identify_abundant() %>%
+		identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
 		scale_abundance(!!.sample,!!.transcript,!!.abundance)
 
 	# Build better scales for the inference
