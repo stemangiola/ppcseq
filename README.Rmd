@@ -3,12 +3,17 @@ title: "Posterior predictive check for bulk RNA sequencing data"
 output: github_document
 ---
 
+```{r echo=FALSE}
+knitr::opts_chunk$set( fig.path = "man/figures/")
+```
 
 The input data set is a tidy representation of a differential gene transcript abundance analysis
 
 ```{r echo=FALSE, include=FALSE}
 library(tidyverse)
 library(ppcseq)
+library(dplyr)
+library(magrittr)
 ```
 
 To install:
@@ -37,8 +42,7 @@ You can identify anrtefactual calls from your differential transcribt anundance 
 
 ```{r warning=FALSE, message=FALSE,results='hide'}
 # Import libraries
-library(dplyr)
-library(magrittr)
+
 
 counts.ppc = 
 	ppcseq::counts %>%
@@ -65,9 +69,13 @@ The new data frame contains plots for each gene
 We can visualise the top five differentially transcribed genes
 
 ```{r }
-counts.ppc %>% 
-	slice(1:2) %>% 
-	pull(plot) %>% 
-	cowplot::plot_grid(plotlist = ., align = "v", ncol = 1, axis="b", rel_widths = 1 )
+counts.ppc_plots = 
+	counts.ppc %>% 
+	plot_credible_intervals() 
+```
 
+```{r}
+counts.ppc_plots %>%
+	pull(plot) %>% 
+	.[1:2]
 ```
