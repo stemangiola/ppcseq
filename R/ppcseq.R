@@ -186,7 +186,10 @@ identify_outliers = function(.data,
 	lambda_mu_mu = 5.612671
 
 	# Scale dataset
-	my_df_scaled = scale_abundance(my_df, !!.sample,!!.transcript,!!.abundance)
+	my_df_scaled =
+		my_df %>%
+		identify_abundant() %>%
+		scale_abundance(!!.sample,!!.transcript,!!.abundance)
 
 	# Build better scales for the inference
 	exposure_rate_multiplier =
