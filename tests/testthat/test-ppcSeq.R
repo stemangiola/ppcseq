@@ -19,7 +19,7 @@ test_that("VB post approx no correction",{
 
   expect_equal(
 
-    as.integer(unlist(res[,5])),
+    as.integer(unlist(res[,4])),
     c(0,1,0)
   )
 
@@ -44,7 +44,7 @@ test_that("VB post approx yes correction",{
 
   expect_equal(
 
-    as.integer(unlist(res[,5])),
+    as.integer(unlist(res[,4])),
     c(0,1,0)
   )
 
@@ -69,7 +69,7 @@ test_that("VB post full",{
 
   expect_equal(
 
-    as.integer(unlist(res[,5])),
+    as.integer(unlist(res[,4])),
     c(0,1,0)
   )
 
@@ -94,7 +94,7 @@ test_that("bayes post approx",{
 
   expect_equal(
 
-    as.integer(unlist(res[,5])),
+    as.integer(unlist(res[,4])),
     c(0,1,0)
   )
 
@@ -119,7 +119,7 @@ test_that("bayes full",{
 
   expect_equal(
 
-    as.integer(unlist(res[,5])),
+    as.integer(unlist(res[,4])),
     c(0,1,0)
   )
 
