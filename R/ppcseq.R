@@ -15,6 +15,7 @@
 #' @importFrom tidybulk scale_abundance
 #' @importFrom benchmarkme get_ram
 #' @importFrom magrittr multiply_by
+#' @importFrom magrittr equals
 #'
 #' @param .data A tibble including a transcript name column | sample name column | read counts column | covariate columns | Pvaue column | a significance column
 #' @param formula A formula. The sample formula used to perform the differential transcript abundance analysis
@@ -82,6 +83,13 @@ identify_outliers = function(.data,
 
 	# Check if any column is NA or null
 	check_if_any_NA(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check, parse_formula(formula))
+
+	# Check if I have any genes to check
+	if(.data %>%	filter(!!.do_check) %>% nrow %>% equals(0)){
+		warning("ppcseq says: There are not transcripts with the category .to_check. NULL is returned.")
+		return(NULL)
+	}
+
 
 	# Check is testing environment is supported
 	if (approximate_posterior_inference &	save_generated_quantities)
@@ -178,7 +186,10 @@ identify_outliers = function(.data,
 	lambda_mu_mu = 5.612671
 
 	# Scale dataset
-	my_df_scaled = scale_abundance(my_df, !!.sample,!!.transcript,!!.abundance)
+	my_df_scaled =
+		my_df %>%
+		identify_abundant() %>%
+		scale_abundance(!!.sample,!!.transcript,!!.abundance)
 
 	# Build better scales for the inference
 	exposure_rate_multiplier =
