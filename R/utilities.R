@@ -644,12 +644,12 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
-	draws_mu = fit %>% extract("lambda_log_param") %>% .[[1]] %>% .[,,1:how_many_to_check]
+	draws_mu = fit %>% extract("lambda_log_param") %>% .[[1]] %>% .[,,1:how_many_to_check, drop=FALSE]
 
 	# %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
 
-	draws_sigma = fit %>% extract("sigma_raw") %>% .[[1]] %>% .[,1:how_many_to_check]
+	draws_sigma = fit %>% extract("sigma_raw") %>% .[[1]] %>% .[,1:how_many_to_check, drop=FALSE]
 
 	# %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
