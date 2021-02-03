@@ -15,7 +15,7 @@ identify_outliers(
   percent_false_positive_genes = 1,
   how_many_negative_controls = 500,
   approximate_posterior_inference = T,
-  approximate_posterior_analysis = NULL,
+  approximate_posterior_analysis = T,
   draws_after_tail = 10,
   save_generated_quantities = F,
   additional_parameters_to_save = c(),
@@ -25,7 +25,8 @@ identify_outliers(
   tol_rel_obj = 0.01,
   just_discovery = F,
   seed = sample(1:99999, size = 1),
-  adj_prob_theshold_2 = NULL
+  adj_prob_theshold_2 = NULL,
+  return_fit = FALSE
 )
 }
 \arguments{
