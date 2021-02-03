@@ -9,7 +9,8 @@ fit_to_counts_rng_approximated(
   adj_prob_theshold,
   how_many_posterior_draws,
   truncation_compensation,
-  cores
+  cores,
+  how_many_to_check
 )
 }
 \arguments{
