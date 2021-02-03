@@ -32,12 +32,11 @@ Imports:
     tidybulk,
     testthat,
     benchmarkme,
-    multidplyr,
     KernSmooth,
     cluster,
     survival
 Remotes: 
-    github::stemangiola/tidybulk, github::stan-dev/rstantools, github::tidyverse/multidplyr
+    github::stemangiola/tidybulk, github::stan-dev/rstantools
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
@@ -45,4 +44,4 @@ LinkingTo:
     rstan (>= 2.18.1),
     StanHeaders (>= 2.18.0)
 SystemRequirements: GNU make
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
