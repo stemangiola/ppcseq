@@ -13,6 +13,7 @@
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
 #' @importFrom tidybulk scale_abundance
+#' @importFrom tidybulk identify_abundant
 #' @importFrom benchmarkme get_ram
 #' @importFrom magrittr multiply_by
 #' @importFrom magrittr equals
