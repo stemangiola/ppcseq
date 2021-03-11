@@ -399,10 +399,8 @@ produce_plots = function(.x,
 # Add annotation if sample belongs to high or low group
 add_deleterious_if_covariate_exists = function(.data, X){
 	.data %>%
-		ifelse_pipe(
-			X %>% ncol %>% `>` (1),
-			~ .x %>%
-				left_join(
+		when(
+			X %>% ncol %>% `>` (1) ~ left_join(.,
 					X %>%
 						as_tibble %>%
 						select(2) %>%
@@ -416,7 +414,8 @@ add_deleterious_if_covariate_exists = function(.data, X){
 
 				# Check if outlier might be deleterious for the statistics
 				mutate(`deleterious outliers` = (!ppc) &
-							 	(`is higher than mean` == `is group high`))
+							 	(`is higher than mean` == `is group high`)),
+			~ (.)
 		)
 }
 
