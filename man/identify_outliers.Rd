@@ -14,23 +14,23 @@ identify_outliers(
   .do_check,
   percent_false_positive_genes = 1,
   how_many_negative_controls = 500,
-  approximate_posterior_inference = T,
-  approximate_posterior_analysis = T,
+  approximate_posterior_inference = TRUE,
+  approximate_posterior_analysis = TRUE,
   draws_after_tail = 10,
-  save_generated_quantities = F,
+  save_generated_quantities = FALSE,
   additional_parameters_to_save = c(),
   cores = detect_cores(),
-  pass_fit = F,
+  pass_fit = FALSE,
   do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
   tol_rel_obj = 0.01,
-  just_discovery = F,
+  just_discovery = FALSE,
   seed = sample(1:99999, size = 1),
   adj_prob_theshold_2 = NULL,
   return_fit = FALSE
 )
 }
 \arguments{
-\item{.data}{A tibble including a transcript name column | sample name column | read counts column | covariate columns | Pvaue column | a significance column}
+\item{.data}{A tibble including a transcript name column | sample name column | read counts column | covariate columns | Pvalue column | a significance column}
 
 \item{formula}{A formula. The sample formula used to perform the differential transcript abundance analysis}
 
@@ -38,19 +38,19 @@ identify_outliers(
 
 \item{.transcript}{A column name as symbol. The transcript identifier}
 
-\item{.abundance}{A column name as symbol. The transcript abunace (read count)}
+\item{.abundance}{A column name as symbol. The transcript abundance (read count)}
 
-\item{.significance}{A column name as symbol. A column with the Pvalue, or other significanc measure (preferred Pvalue over false discovery rate)}
+\item{.significance}{A column name as symbol. A column with the Pvalue, or other significance measure (preferred Pvalue over false discovery rate)}
 
-\item{.do_check}{A column name as symbol. A column with a booean indicating whether a transcript was identified as differentially abundant}
+\item{.do_check}{A column name as symbol. A column with a boolean indicating whether a transcript was identified as differentially abundant}
 
 \item{percent_false_positive_genes}{A real between 0 and 100. It is the aimed percent of transcript being a false positive. For example, percent_false_positive_genes = 1 provide 1 percent of the calls for outlier containing transcripts that has actually not outliers.}
 
 \item{how_many_negative_controls}{An integer. How many transcript from the bottom non-significant should be taken for inferring the mean-overdispersion trend.}
 
-\item{approximate_posterior_inference}{A boolean. Whether the inference of the joint posterior distribution should be approximated with variational Bayes. It confers execution time advantage.}
+\item{approximate_posterior_inference}{A boolean. Whether the inference of the joint posterior distribution should be approximated with variational Bayes It confers execution time advantage.}
 
-\item{approximate_posterior_analysis}{A boolean. Whether the calculation of the credible intervals should be done semi-analitically, rather than with pure ampling from the posterior. It confers execution time and memory advantage.}
+\item{approximate_posterior_analysis}{A boolean. Whether the calculation of the credible intervals should be done semi-analytically, rather than with pure sampling from the posterior. It confers execution time and memory advantage.}
 
 \item{draws_after_tail}{An integer. How many draws should on average be after the tail, in a way to inform CI.}
 
@@ -71,10 +71,14 @@ identify_outliers(
 \item{seed}{An integer. Used for development and testing purposes}
 
 \item{adj_prob_theshold_2}{A boolean. Used for development and testing purposes}
+
+\item{return_fit}{A boolean}
 }
 \value{
-A nested tibble `tbl` with transcript-wise information: `sample wise data` | plot | `ppc samples failed` | `tot deleterious outliers`
+A nested tibble \code{tbl} with transcript-wise information: \verb{sample wise data} | plot | \verb{ppc samples failed} | \verb{tot deleterious outliers}
 }
 \description{
 This function runs the data modeling and statistical test for the hypothesis that a transcript includes outlier biological replicate.
+
+\lifecycle{maturing}
 }

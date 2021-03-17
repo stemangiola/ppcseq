@@ -1,8 +1,13 @@
 #' Add attribute
 #'
+#' @keywords internal
+#'
 #' @param var A character
 #' @param attribute An object
 #' @param name A character
+#'
+#' @return Same object
+#'
 #' @export
 add_attr = function(var, attribute, name){
 	attr(var, name) <- attribute
@@ -10,6 +15,9 @@ add_attr = function(var, attribute, name){
 }
 
 #' This is a generalisation of ifelse that acceots an object and return an objects
+#'
+#' @keywords internal
+#'
 #'
 #' @import dplyr
 #' @importFrom purrr as_mapper
@@ -33,11 +41,16 @@ ifelse_pipe = function(.x, .p, .f1, .f2 = NULL) {
 
 #' format_for_MPI
 #'
+#' @keywords internal
+#'
+#'
 #' @description Format reference data frame for MPI
 #'
 #' @param df A tibble
 #' @param shards A integer
 #' @param .sample A symbol
+#'
+#' @return A `tbl`
 #'
 format_for_MPI = function(df, shards, .sample) {
 	.sample = enquo(.sample)
@@ -92,11 +105,17 @@ format_for_MPI = function(df, shards, .sample) {
 
 #' add_partition
 #'
+#' @keywords internal
+#'
+#'
 #' @description Add partition column dto data frame
 #'
 #' @param df.input A tibble
 #' @param partition_by A symbol. Column we want to partition by
 #' @param n_partitions An integer number of partition
+#'
+#' @return A `tbl`
+#'
 add_partition = function(df.input, partition_by, n_partitions) {
 	df.input %>%
 		left_join(
@@ -115,6 +134,9 @@ add_partition = function(df.input, partition_by, n_partitions) {
 
 #' Formula parser
 #'
+#' @keywords internal
+#'
+#'
 #' @param fm A formula
 #'
 #' @return A character vector
@@ -128,6 +150,9 @@ parse_formula <- function(fm) {
 }
 
 #' Get matrix from tibble
+#'
+#' @keywords internal
+#'
 #'
 #' @import dplyr
 #' @importFrom tidyr gather
@@ -167,6 +192,9 @@ as_matrix <- function(tbl, rownames = NULL) {
 
 #' vb_iterative
 #'
+#' @keywords internal
+#'
+#'
 #' @description Runs iteratively variational bayes until it suceeds
 #'
 #' @importFrom rstan vb
@@ -199,7 +227,7 @@ vb_iterative = function(model,
 				pars=c("counts_rng", "exposure_rate", "alpha_sub_1", additional_parameters_to_save),
 				...
 			)
-			boolFalse <- T
+			boolFalse <- TRUE
 			return(my_res)
 		},
 		error = function(e) {
@@ -220,6 +248,9 @@ vb_iterative = function(model,
 #' @param how_many_posterior_draws A real number of posterior draws needed
 #' @param max_number_to_check A sane upper plateau
 #'
+#' @keywords internal
+#'
+#'
 #' @return A Stan fit object
 find_optimal_number_of_chains = function(how_many_posterior_draws,
 																				 max_number_to_check = 100) {
@@ -234,6 +265,9 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 
 #' Identify the optimal number of chain
 #' based on how many draws we need from the posterior
+#'
+#' @keywords internal
+#'
 #'
 #' @importFrom tibble rowid_to_column
 #' @importFrom purrr map
@@ -280,6 +314,9 @@ get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
 
 #' function to pass initialisation values
 #'
+#' @keywords internal
+#'
+#'
 #' @return A list
 inits_fx =
 	function () {
@@ -304,6 +341,9 @@ inits_fx =
 	}
 
 #' Produce generated quantities plots with marked uotliers
+#'
+#' @keywords internal
+#'
 #'
 #' @importFrom purrr pmap
 #' @importFrom purrr map_int
@@ -421,6 +461,9 @@ add_deleterious_if_covariate_exists = function(.data, X){
 
 #' merge_results
 #'
+#' @keywords internal
+#'
+#'
 #' @importFrom tidyr nest
 #'
 #' @param res_discovery A tibble
@@ -430,6 +473,8 @@ add_deleterious_if_covariate_exists = function(.data, X){
 #' @param .transcript A column name
 #' @param .abundance A column name
 #' @param do_check_only_on_detrimental A boolean
+#'
+#' @return A `tbl`
 #'
 #' @export
 merge_results = function(res_discovery, res_test, formula, .transcript, .abundance, .sample, do_check_only_on_detrimental){
@@ -512,6 +557,9 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 
 #' Select only significant genes plus background for efficient normalisation
 #'
+#' @keywords internal
+#'
+#'
 #' @importFrom rstan sampling
 #' @importFrom rstan vb
 #' @importFrom tidybulk bind_rows
@@ -523,6 +571,8 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 #' @param .significance A symbol
 #' @param .transcript A column name
 #' @param how_many_negative_controls An integer
+#'
+#' @return A `tbl`
 #'
 select_to_check_and_house_keeping = function(.data, .do_check, .significance, .transcript, how_many_negative_controls  = 500){
 	.data %>%
@@ -550,10 +600,15 @@ select_to_check_and_house_keeping = function(.data, .do_check, .significance, .t
 
 #' add_exposure_rate
 #'
+#' @keywords internal
+#'
+#'
 #' @importFrom tidyr separate
 #'
 #' @param .data A data frame
 #' @param fit A fit object
+#'
+#' @return A `tbl`
 #'
 add_exposure_rate = function(.data, fit){
 
@@ -594,6 +649,9 @@ check_if_within_posterior = function(.data, my_df, .do_check, .abundance){
 
 #' fit_to_counts_rng
 #'
+#' @keywords internal
+#'
+#'
 #' @importFrom tidyr separate
 #' @importFrom tidyr nest
 #' @importFrom rstan summary
@@ -601,6 +659,7 @@ check_if_within_posterior = function(.data, my_df, .do_check, .abundance){
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
 #'
+#' @return A `tbl`
 fit_to_counts_rng = function(fit, adj_prob_theshold){
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng"))
@@ -622,6 +681,9 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 
 #' fit_to_counts_rng_approximated
 #'
+#' @keywords internal
+#'
+#'
 #' @importFrom tidyr separate
 #' @importFrom tidyr nest
 #' @importFrom tidyr unnest
@@ -635,6 +697,8 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @param how_many_posterior_draws An integer
 #' @param truncation_compensation A real
 #' @param cores An integer
+#'
+#' @return A `tbl`
 #'
 #' @export
 
@@ -665,7 +729,7 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 				list(  S,G, truncation_compensation),
 				~ {
 
-					i_supersampled =	sample(1:length(draws_mu[,..1, ..2]), how_many_posterior_draws, replace = T )
+					i_supersampled =	sample(1:length(draws_mu[,..1, ..2]), how_many_posterior_draws, replace = TRUE )
 					draws = rnbinom(
 						n = how_many_posterior_draws,
 						mu = exp(draws_mu[,..1, ..2][i_supersampled] + draws_exposure[,..1][i_supersampled]),
@@ -705,7 +769,7 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 	# 		CI = map(
 	# 			data,
 	# 			~ {
-	# 				.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = T)
+	# 				.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = TRUE)
 	# 				draws = rnbinom(n =how_many_posterior_draws,	mu = exp(.x_supersampled$mu + .x_supersampled$exposure),	size = 1/exp(.x_supersampled$sigma) * truncation_compensation	)
 	# 				draws %>%
 	# 					# Process quantile
@@ -768,6 +832,9 @@ check_columns_exist = function(.data, .sample, .transcript, .abundance, .signifi
 
 #' Check if NA
 #'
+#' @keywords internal
+#'
+#'
 #' @importFrom tidyr drop_na
 #' @importFrom dplyr enquo
 #'
@@ -778,6 +845,8 @@ check_columns_exist = function(.data, .sample, .transcript, .abundance, .signifi
 #' @param .significance A column name
 #' @param .do_check A column name
 #' @param formula_columns A symbol vector
+#'
+#' @return A `tbl`
 #'
 check_if_any_NA = function(.data, .sample, .transcript, .abundance, .significance, .do_check, formula_columns){
 
@@ -813,9 +882,15 @@ detect_cores = function(){
 
 #' Create the design matrix
 #'
+#' @keywords internal
+#'
+#'
 #' @param .data A tibble
 #' @param formula A formula
 #' @param .sample A symbol
+#'
+#' @return A `matrix`
+#'
 #' @export
 create_design_matrix = function(.data, formula, .sample){
 
@@ -834,6 +909,9 @@ create_design_matrix = function(.data, formula, .sample){
 
 #' Format the input
 #'
+#' @keywords internal
+#'
+#'
 #' @importFrom tidybulk distinct
 #' @importFrom tidybulk left_join
 #' @importFrom tidybulk mutate
@@ -846,6 +924,8 @@ create_design_matrix = function(.data, formula, .sample){
 #' @param .do_check A symbol
 #' @param .significance A column name
 #' @param how_many_negative_controls An integer
+#'
+#' @return A `tbl`
 #'
 #' @export
 format_input = function(.data, formula, .sample, .transcript, .abundance, .do_check, .significance, how_many_negative_controls = 500){
@@ -933,13 +1013,17 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 
 #' draws_to_tibble_x_y
 #'
+#' @keywords internal
+#'
+#'
+#' @return A `tbl`
 #' @importFrom tidyr pivot_longer
 draws_to_tibble_x_y = function(fit, par, x, y) {
 
-	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = T)
+	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = TRUE)
 
 	fit %>%
-		rstan::extract(par_names, permuted=F) %>%
+		rstan::extract(par_names, permuted=FALSE) %>%
 		as.data.frame %>%
 		as_tibble() %>%
 		mutate(.iteration = 1:n()) %>%
@@ -955,10 +1039,10 @@ draws_to_tibble_x_y = function(fit, par, x, y) {
 
 draws_to_tibble_x = function(fit, par, x) {
 
-	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = T)
+	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = TRUE)
 
 	fit %>%
-		rstan::extract(par_names, permuted=F) %>%
+		rstan::extract(par_names, permuted=FALSE) %>%
 		as.data.frame %>%
 		as_tibble() %>%
 		mutate(.iteration = 1:n()) %>%
@@ -982,17 +1066,17 @@ identify_outliers_1_step = function(.data,
 																		percent_false_positive_genes = 1,
 																		how_many_negative_controls = 500,
 
-																		approximate_posterior_inference = T,
+																		approximate_posterior_inference = TRUE,
 																		approximate_posterior_analysis = NULL,
 																		draws_after_tail = 10,
 
-																		save_generated_quantities = F,
+																		save_generated_quantities = FALSE,
 																		additional_parameters_to_save = c(),  # For development purpose
 																		cores = detect_cores(), # For development purpose,
-																		pass_fit = F,
+																		pass_fit = FALSE,
 																		do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
 																		tol_rel_obj = 0.01,
-																		just_discovery = F,
+																		just_discovery = FALSE,
 																		seed = sample(1:99999, size = 1),
 																		adj_prob_theshold_2 = NULL
 ) {
@@ -1057,8 +1141,8 @@ identify_outliers_1_step = function(.data,
 	if(approximate_posterior_analysis %>% is.null){
 		if(how_many_posterior_draws_2 > 20000) {
 			writeLines(sprintf("The number of draws needed to calculate the CI from the posterior would be larger than %s. To avoid impractical computation times, the calculation of the CI will be based on the mean, exposure and overdisperison posteriors.", how_many_posterior_draws_2))
-			approximate_posterior_analysis = T
-		} else approximate_posterior_analysis = F
+			approximate_posterior_analysis = TRUE
+		} else approximate_posterior_analysis = FALSE
 	}
 
 
@@ -1079,7 +1163,7 @@ identify_outliers_1_step = function(.data,
 						You don't have enough memory to model the posterior distribution with MCMC draws.
 						Therefore the parameter approximate_posterior_analysis was set to TRUE
 		")
-		approximate_posterior_analysis = T
+		approximate_posterior_analysis = TRUE
 	}
 
 
@@ -1171,20 +1255,23 @@ identify_outliers_1_step = function(.data,
 
 summary_to_tibble = function(fit, par, x, y = NULL) {
 
-	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = T)
+	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = TRUE)
 
 	fit %>%
 		rstan::summary(par_names) %$%
 		summary %>%
 		as_tibble(rownames = ".variable") %>%
 		when(
-			is.null(y) ~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x), "(.+)\\[(.+)\\]", convert = T),
-			~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x, y), "(.+)\\[(.+),(.+)\\]", convert = T)
+			is.null(y) ~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x), "(.+)\\[(.+)\\]", convert = TRUE),
+			~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x, y), "(.+)\\[(.+),(.+)\\]", convert = TRUE)
 		)
 
 }
 
 #' do_inference
+#'
+#' @keywords internal
+#'
 #'
 #' @description This function calls the stan model.
 #'
@@ -1240,8 +1327,8 @@ do_inference = function(my_df,
 												.abundance,
 												.significance ,
 												.do_check,
-												approximate_posterior_inference = F,
-												approximate_posterior_analysis = F,
+												approximate_posterior_inference = FALSE,
+												approximate_posterior_analysis = FALSE,
 												C,
 												X,
 												lambda_mu_mu,
@@ -1253,14 +1340,14 @@ do_inference = function(my_df,
 												how_many_posterior_draws,
 												to_exclude = tibble(S = integer(), G = integer()),
 												truncation_compensation = 1,
-												save_generated_quantities = F,
+												save_generated_quantities = FALSE,
 												inits_fx = "random",
 												prior_from_discovery = tibble(`.variable` = character(),
 																											mean = numeric(),
 																											sd = numeric()),
-												pass_fit = F,
+												pass_fit = FALSE,
 												tol_rel_obj = 0.01,
-												write_on_disk = F,
+												write_on_disk = FALSE,
 												seed) {
 
 	writeLines(sprintf("executing %s", "do_inference"))
@@ -1369,7 +1456,7 @@ do_inference = function(my_df,
 
 		# Dimensions data sets
 		rep(c(M, N, S), shards) %>%
-		matrix(nrow = shards, byrow = T) %>%
+		matrix(nrow = shards, byrow = TRUE) %>%
 		cbind(G_per_shard) %>%
 		cbind(symbol_end) %>%
 		cbind(sample_idx) %>%

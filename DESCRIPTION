@@ -1,5 +1,5 @@
 Package: ppcseq
-Title: What the Package Does (One Line, Title Case)
+Title: Probabilistic Outlier Identification for RNA Sequencing Generalized Linear Models
 Version: 0.1.0
 Authors@R: 
     person(given = "Stefano",
@@ -7,7 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "mangiolastefano@gmail.com",
            comment = c(ORCID = "0000-0001-7474-836X"))
-Description: Posterior predictive check for bulk RNA sequencing data.
+Description: Posterior predictive check for bulk RNA sequencing data. Quality-control tool for identifying transcripts that include outlier data points in differential expression analysis, which do not follow a negative binomial distribution. 
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
@@ -26,22 +26,28 @@ Imports:
     future,
     furrr,
     tidyr (>= 0.8.3.9000), 
+    lifecycle,
     ggplot2,
     foreach,
     tidybayes,
+    edgeR,
     tidybulk,
-    testthat,
-    benchmarkme,
-    KernSmooth,
-    cluster,
-    survival
-Remotes: 
-    github::stemangiola/tidybulk, github::stan-dev/rstantools
+    benchmarkme
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
     RcppEigen (>= 0.3.3.3.0),
     rstan (>= 2.18.1),
     StanHeaders (>= 2.18.0)
+Suggests: 
+    testthat,
+    knitr
+VignetteBuilder: 
+    knitr
+RdMacros:
+    lifecycle
+biocViews: RNASeq, DifferentialExpression, GeneExpression, Normalization, Clustering, QualityControl, Sequencing, Transcription, Transcriptomics
 SystemRequirements: GNU make
 RoxygenNote: 7.1.1
+Roxygen: list(markdown = TRUE)
+Config/testthat/edition: 3

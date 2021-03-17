@@ -13,6 +13,10 @@ create_design_matrix(.data, formula, .sample)
 
 \item{.sample}{A symbol}
 }
+\value{
+A \code{matrix}
+}
 \description{
 Create the design matrix
 }
+\keyword{internal}

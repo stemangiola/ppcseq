@@ -32,3 +32,4 @@ A Stan fit object
 \description{
 Runs iteratively variational bayes until it suceeds
 }
+\keyword{internal}
