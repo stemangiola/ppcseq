@@ -13,6 +13,10 @@ format_for_MPI(df, shards, .sample)
 
 \item{.sample}{A symbol}
 }
+\value{
+A \code{tbl}
+}
 \description{
 Format reference data frame for MPI
 }
+\keyword{internal}

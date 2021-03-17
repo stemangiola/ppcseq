@@ -13,6 +13,10 @@ add_partition(df.input, partition_by, n_partitions)
 
 \item{n_partitions}{An integer number of partition}
 }
+\value{
+A \code{tbl}
+}
 \description{
 Add partition column dto data frame
 }
+\keyword{internal}

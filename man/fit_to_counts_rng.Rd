@@ -11,6 +11,10 @@ fit_to_counts_rng(fit, adj_prob_theshold)
 
 \item{adj_prob_theshold}{fit real}
 }
+\value{
+A \code{tbl}
+}
 \description{
 fit_to_counts_rng
 }
+\keyword{internal}

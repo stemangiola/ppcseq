@@ -10,7 +10,7 @@ plot_credible_intervals(.data)
 \item{.data}{The tibble returned by identify_outliers}
 }
 \value{
-A tibble with an additional `plot` column
+A tibble with an additional \code{plot} column
 }
 \description{
 Plot the data along the theoretical data distribution.

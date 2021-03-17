@@ -9,6 +9,7 @@
 #' @import methods
 #' @import Rcpp
 #' @importFrom rstan sampling
+#' @import rstantools
 #'
 #'
 #' @references

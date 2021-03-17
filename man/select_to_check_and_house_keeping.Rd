@@ -23,6 +23,10 @@ select_to_check_and_house_keeping(
 
 \item{how_many_negative_controls}{An integer}
 }
+\value{
+A \code{tbl}
+}
 \description{
 Select only significant genes plus background for efficient normalisation
 }
+\keyword{internal}

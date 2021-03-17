@@ -29,6 +29,10 @@ check_if_any_NA(
 
 \item{formula_columns}{A symbol vector}
 }
+\value{
+A \code{tbl}
+}
 \description{
 Check if NA
 }
+\keyword{internal}

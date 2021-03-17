@@ -12,8 +12,8 @@ do_inference(
   .abundance,
   .significance,
   .do_check,
-  approximate_posterior_inference = F,
-  approximate_posterior_analysis = F,
+  approximate_posterior_inference = FALSE,
+  approximate_posterior_analysis = FALSE,
   C,
   X,
   lambda_mu_mu,
@@ -25,13 +25,13 @@ do_inference(
   how_many_posterior_draws,
   to_exclude = tibble(S = integer(), G = integer()),
   truncation_compensation = 1,
-  save_generated_quantities = F,
+  save_generated_quantities = FALSE,
   inits_fx = "random",
   prior_from_discovery = tibble(.variable = character(), mean = numeric(), sd =
     numeric()),
-  pass_fit = F,
+  pass_fit = FALSE,
   tol_rel_obj = 0.01,
-  write_on_disk = F,
+  write_on_disk = FALSE,
   seed
 )
 }
@@ -96,3 +96,4 @@ A tibble with additional columns
 \description{
 This function calls the stan model.
 }
+\keyword{internal}

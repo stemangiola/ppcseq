@@ -13,6 +13,10 @@ add_attr(var, attribute, name)
 
 \item{name}{A character}
 }
+\value{
+Same object
+}
 \description{
 Add attribute
 }
+\keyword{internal}
