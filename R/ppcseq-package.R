@@ -10,6 +10,8 @@
 #' @import Rcpp
 #' @importFrom rstan sampling
 #' @import rstantools
+#' @import lifecycle
+#' @import testthat
 #'
 #'
 #' @references
