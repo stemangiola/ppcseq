@@ -24,6 +24,10 @@ fit_to_counts_rng_approximated(
 
 \item{cores}{An integer}
 }
+\value{
+A \code{tbl}
+}
 \description{
 fit_to_counts_rng_approximated
 }
+\keyword{internal}

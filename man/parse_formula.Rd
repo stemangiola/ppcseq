@@ -15,3 +15,4 @@ A character vector
 \description{
 Formula parser
 }
+\keyword{internal}

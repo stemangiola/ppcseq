@@ -6,6 +6,10 @@
 \usage{
 draws_to_tibble_x_y(fit, par, x, y)
 }
+\value{
+A \code{tbl}
+}
 \description{
 draws_to_tibble_x_y
 }
+\keyword{internal}

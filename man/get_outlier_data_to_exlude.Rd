@@ -21,3 +21,4 @@ A matrix
 Identify the optimal number of chain
 based on how many draws we need from the posterior
 }
+\keyword{internal}

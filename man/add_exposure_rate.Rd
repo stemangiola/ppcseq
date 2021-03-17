@@ -11,6 +11,10 @@ add_exposure_rate(.data, fit)
 
 \item{fit}{A fit object}
 }
+\value{
+A \code{tbl}
+}
 \description{
 add_exposure_rate
 }
+\keyword{internal}
