@@ -32,6 +32,10 @@ format_input(
 
 \item{how_many_negative_controls}{An integer}
 }
+\value{
+A \code{tbl}
+}
 \description{
 Format the input
 }
+\keyword{internal}

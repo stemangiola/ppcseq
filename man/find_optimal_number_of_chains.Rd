@@ -24,3 +24,4 @@ Choose the number of chains baed on how many draws we need from the posterior di
 Because there is a fix cost (warmup) to starting a new chain,
 we need to use the minimum amount that we can parallelise
 }
+\keyword{internal}

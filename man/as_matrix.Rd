@@ -17,3 +17,4 @@ A matrix
 \description{
 Get matrix from tibble
 }
+\keyword{internal}

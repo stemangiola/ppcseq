@@ -12,3 +12,4 @@ A list
 \description{
 function to pass initialisation values
 }
+\keyword{internal}

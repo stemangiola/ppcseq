@@ -23,3 +23,4 @@ A ggplot
 \description{
 Produce generated quantities plots with marked uotliers
 }
+\keyword{internal}

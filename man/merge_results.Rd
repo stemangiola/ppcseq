@@ -29,6 +29,10 @@ merge_results(
 
 \item{do_check_only_on_detrimental}{A boolean}
 }
+\value{
+A \code{tbl}
+}
 \description{
 merge_results
 }
+\keyword{internal}
