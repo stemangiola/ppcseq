@@ -6,9 +6,13 @@
 #' @param attribute An object
 #' @param name A character
 #'
-#' @return Same object
+#' @example
 #'
-#' @export
+#' # Not needed because internal
+#'
+#' TRUE
+#'
+#' @return Same object
 add_attr = function(var, attribute, name){
 	attr(var, name) <- attribute
 	var
@@ -474,9 +478,14 @@ add_deleterious_if_covariate_exists = function(.data, X){
 #' @param .abundance A column name
 #' @param do_check_only_on_detrimental A boolean
 #'
+#' @example
+#'
+#' # Not needed because internal
+#'
+#' TRUE
+#'
 #' @return A `tbl`
 #'
-#' @export
 merge_results = function(res_discovery, res_test, formula, .transcript, .abundance, .sample, do_check_only_on_detrimental){
 
 	# Prepare column same enquo
@@ -659,6 +668,12 @@ check_if_within_posterior = function(.data, my_df, .do_check, .abundance){
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
 #'
+#' @example
+#'
+#' # Not needed because internal
+#'
+#' TRUE
+#'
 #' @return A `tbl`
 fit_to_counts_rng = function(fit, adj_prob_theshold){
 
@@ -698,10 +713,14 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @param truncation_compensation A real
 #' @param cores An integer
 #'
+#' @example
+#'
+#' # Not needed because internal
+#'
+#' TRUE
+#'
 #' @return A `tbl`
 #'
-#' @export
-
 fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check){
 
 
@@ -889,9 +908,14 @@ detect_cores = function(){
 #' @param formula A formula
 #' @param .sample A symbol
 #'
+#' @example
+#'
+#' # Not needed because internal
+#'
+#' TRUE
+#'
 #' @return A `matrix`
 #'
-#' @export
 create_design_matrix = function(.data, formula, .sample){
 
 	.sample = enquo(.sample)
@@ -925,9 +949,14 @@ create_design_matrix = function(.data, formula, .sample){
 #' @param .significance A column name
 #' @param how_many_negative_controls An integer
 #'
+#' @example
+#'
+#' # Not needed because internal
+#'
+#' TRUE
+#'
 #' @return A `tbl`
 #'
-#' @export
 format_input = function(.data, formula, .sample, .transcript, .abundance, .do_check, .significance, how_many_negative_controls = 500){
 
 	# Prepare column same enquo
