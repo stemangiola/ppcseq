@@ -19,6 +19,7 @@
 #' @importFrom benchmarkme get_ram
 #' @importFrom magrittr multiply_by
 #' @importFrom magrittr equals
+#' @import edgeR
 #'
 #' @param .data A tibble including a transcript name column | sample name column | read counts column | covariate columns | Pvalue column | a significance column
 #' @param formula A formula. The sample formula used to perform the differential transcript abundance analysis
@@ -44,6 +45,26 @@
 #' @param return_fit A boolean
 #'
 #' @return A nested tibble `tbl` with transcript-wise information: `sample wise data` | plot | `ppc samples failed` | `tot deleterious outliers`
+#'
+#' @example
+#'
+#' library(dplyr)
+#'
+#' result =
+#'   ppcseq::counts %>%
+#'   dplyr::mutate(  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) %>%
+#'	 ppcseq::identify_outliers(
+#'		formula = ~ Label,
+#'		sample, symbol, value,
+#'		.significance = PValue,
+#'		.do_check  = is_significant,
+#'		percent_false_positive_genes = 1,
+#'		tol_rel_obj = 0.01,
+#'		approximate_posterior_inference =TRUE,
+#'		approximate_posterior_analysis =TRUE,
+#'		how_many_negative_controls = 50,
+#'		cores=1
+#'	)
 #'
 #' @export
 #'
@@ -348,6 +369,28 @@ identify_outliers = function(.data,
 #' @param .data The tibble returned by identify_outliers
 #'
 #' @return A tibble with an additional `plot` column
+#'
+#' @example
+#'
+#' library(dplyr)
+#'
+#' result =
+#'   ppcseq::counts %>%
+#'   dplyr::mutate(  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) %>%
+#'	 ppcseq::identify_outliers(
+#'		formula = ~ Label,
+#'		sample, symbol, value,
+#'		.significance = PValue,
+#'		.do_check  = is_significant,
+#'		percent_false_positive_genes = 1,
+#'		tol_rel_obj = 0.01,
+#'		approximate_posterior_inference =TRUE,
+#'		approximate_posterior_analysis =TRUE,
+#'		how_many_negative_controls = 50,
+#'		cores=1
+#'	)
+#'
+#' result_plot = result %>% plot_credible_intervals()
 #'
 #' @export
 #'
