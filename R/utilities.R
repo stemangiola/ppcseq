@@ -13,6 +13,8 @@
 #' TRUE
 #'
 #' @return Same object
+#'
+#' @noRd
 add_attr = function(var, attribute, name){
 	attr(var, name) <- attribute
 	var
@@ -33,6 +35,7 @@ add_attr = function(var, attribute, name){
 #'
 #'
 #' @return A tibble
+#' @noRd
 ifelse_pipe = function(.x, .p, .f1, .f2 = NULL) {
 	switch(.p %>% `!` %>% sum(1),
 				 as_mapper(.f1)(.x),
@@ -56,6 +59,7 @@ ifelse_pipe = function(.x, .p, .f1, .f2 = NULL) {
 #'
 #' @return A `tbl`
 #'
+#' @noRd
 format_for_MPI = function(df, shards, .sample) {
 	.sample = enquo(.sample)
 
@@ -120,6 +124,7 @@ format_for_MPI = function(df, shards, .sample) {
 #'
 #' @return A `tbl`
 #'
+#' @noRd
 add_partition = function(df.input, partition_by, n_partitions) {
 	df.input %>%
 		left_join(
@@ -146,6 +151,7 @@ add_partition = function(df.input, partition_by, n_partitions) {
 #' @return A character vector
 #'
 #'
+#' @noRd
 parse_formula <- function(fm) {
 	if (attr(terms(fm), "response") == 1)
 		stop("The formula must be of the kind \"~ covariates\" ")
@@ -166,6 +172,7 @@ parse_formula <- function(fm) {
 #' @param rownames A character string of the rownames
 #'
 #' @return A matrix
+#' @noRd
 as_matrix <- function(tbl, rownames = NULL) {
 	tbl %>%
 
@@ -212,6 +219,7 @@ as_matrix <- function(tbl, rownames = NULL) {
 #'
 #' @return A Stan fit object
 #'
+#' @noRd
 vb_iterative = function(model,
 												output_samples,
 												iter,
@@ -256,6 +264,7 @@ vb_iterative = function(model,
 #'
 #'
 #' @return A Stan fit object
+#' @noRd
 find_optimal_number_of_chains = function(how_many_posterior_draws,
 																				 max_number_to_check = 100) {
 	foreach(cc = 2:max_number_to_check, .combine = bind_rows) %do%
@@ -281,6 +290,7 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 #' @param shards An integer
 #'
 #' @return A matrix
+#' @noRd
 get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
 	# If there are genes to exclude
 	switch(
@@ -322,8 +332,8 @@ get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
 #'
 #'
 #' @return A list
-inits_fx =
-	function () {
+#' @noRd
+inits_fx =	function () {
 		pars =
 			res_discovery %>%
 			filter(`.variable` != "counts_rng") %>%
@@ -361,6 +371,7 @@ inits_fx =
 #' @param covariate A character string
 #'
 #' @return A ggplot
+#' @noRd
 produce_plots = function(.x,
 												 symbol,
 												 .abundance,
@@ -486,6 +497,7 @@ add_deleterious_if_covariate_exists = function(.data, X){
 #'
 #' @return A `tbl`
 #'
+#' @noRd
 merge_results = function(res_discovery, res_test, formula, .transcript, .abundance, .sample, do_check_only_on_detrimental){
 
 	# Prepare column same enquo
@@ -583,6 +595,7 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 #'
 #' @return A `tbl`
 #'
+#' @noRd
 select_to_check_and_house_keeping = function(.data, .do_check, .significance, .transcript, how_many_negative_controls  = 500){
 	.data %>%
 		{
@@ -619,6 +632,7 @@ select_to_check_and_house_keeping = function(.data, .do_check, .significance, .t
 #'
 #' @return A `tbl`
 #'
+#' @noRd
 add_exposure_rate = function(.data, fit){
 
 	writeLines(sprintf("executing %s", "add_exposure_rate"))
@@ -675,6 +689,7 @@ check_if_within_posterior = function(.data, my_df, .do_check, .abundance){
 #' TRUE
 #'
 #' @return A `tbl`
+#' @noRd
 fit_to_counts_rng = function(fit, adj_prob_theshold){
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng"))
@@ -721,6 +736,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #'
 #' @return A `tbl`
 #'
+#' @noRd
 fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check){
 
 
@@ -867,6 +883,7 @@ check_columns_exist = function(.data, .sample, .transcript, .abundance, .signifi
 #'
 #' @return A `tbl`
 #'
+#' @noRd
 check_if_any_NA = function(.data, .sample, .transcript, .abundance, .significance, .do_check, formula_columns){
 
 	# Prepare column same enquo
@@ -916,6 +933,7 @@ detect_cores = function(){
 #'
 #' @return A `matrix`
 #'
+#' @noRd
 create_design_matrix = function(.data, formula, .sample){
 
 	.sample = enquo(.sample)
@@ -957,6 +975,7 @@ create_design_matrix = function(.data, formula, .sample){
 #'
 #' @return A `tbl`
 #'
+#' @noRd
 format_input = function(.data, formula, .sample, .transcript, .abundance, .do_check, .significance, how_many_negative_controls = 500){
 
 	# Prepare column same enquo
@@ -1047,6 +1066,7 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 #'
 #' @return A `tbl`
 #' @importFrom tidyr pivot_longer
+#' @noRd
 draws_to_tibble_x_y = function(fit, par, x, y) {
 
 	par_names = names(fit) %>% grep(sprintf("%s", par), ., value = TRUE)
@@ -1349,6 +1369,7 @@ summary_to_tibble = function(fit, par, x, y = NULL) {
 #'
 #' @return A tibble with additional columns
 #'
+#' @noRd
 do_inference = function(my_df,
 												formula,
 												.sample ,
