@@ -1,6 +1,6 @@
 Package: ppcseq
 Title: Probabilistic Outlier Identification for RNA Sequencing Generalized Linear Models
-Version: 0.1.0
+Version: 0.99.1
 Authors@R: 
     person(given = "Stefano",
            family = "Mangiola",
