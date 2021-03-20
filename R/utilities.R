@@ -906,13 +906,16 @@ check_if_any_NA = function(.data, .sample, .transcript, .abundance, .significanc
 		stop(sprintf("There are NA values in you tibble for any of the column %s", paste(columns, collapse=", ")))
 }
 
+#' @importFrom parallel detectCores
 detect_cores = function(){
 
-	if(.Platform$OS.type == "unix")
-		system("nproc", intern = TRUE) %>% as.integer %>% sum(-1)
-	else if(.Platform$OS.type == "windows")
-		parallel::detectCores()  %>% as.integer %>% sum(-1)
-	else stop("Your platform type is not recognised")
+	detectCores()  %>% as.integer
+
+	# if(.Platform$OS.type == "unix")
+	# 	system("nproc", intern = TRUE) %>% as.integer %>% sum(-1)
+	# else if(.Platform$OS.type == "windows")
+	# 	parallel::detectCores()  %>% as.integer %>% sum(-1)
+	# else stop("Your platform type is not recognised")
 
 }
 
