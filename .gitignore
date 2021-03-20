@@ -23,3 +23,4 @@ dev/*txt
 dev/approximation_bias_correction_cache*
 dev.GSE*
 temp*
+ppcSeq.Rproj
