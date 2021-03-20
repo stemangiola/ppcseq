@@ -82,3 +82,24 @@ This function runs the data modeling and statistical test for the hypothesis tha
 
 \lifecycle{maturing}
 }
+\examples{
+
+library(dplyr)
+
+result =
+  ppcseq::counts \%>\%
+  dplyr::mutate(  is_significant = ifelse(symbol \%in\% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) \%>\%
+ ppcseq::identify_outliers(
+	formula = ~ Label,
+	sample, symbol, value,
+	.significance = PValue,
+	.do_check  = is_significant,
+	percent_false_positive_genes = 1,
+	tol_rel_obj = 0.01,
+	approximate_posterior_inference =TRUE,
+	approximate_posterior_analysis =TRUE,
+	how_many_negative_controls = 50,
+	cores=1
+)
+
+}

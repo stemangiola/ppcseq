@@ -46,7 +46,7 @@
 #'
 #' @return A nested tibble `tbl` with transcript-wise information: `sample wise data` | plot | `ppc samples failed` | `tot deleterious outliers`
 #'
-#' @example
+#' @examples
 #'
 #' library(dplyr)
 #'
@@ -370,7 +370,7 @@ identify_outliers = function(.data,
 #'
 #' @return A tibble with an additional `plot` column
 #'
-#' @example
+#' @examples
 #'
 #' library(dplyr)
 #'
