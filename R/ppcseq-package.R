@@ -11,7 +11,7 @@
 #' @importFrom rstan sampling
 #' @import rstantools
 #' @import lifecycle
-#' @import testthat
+#' @importFrom testthat expect_equal
 #'
 #'
 #' @references
