@@ -14,12 +14,11 @@
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidybulk scale_abundance
-#' @importFrom tidybulk identify_abundant
 #' @importFrom benchmarkme get_ram
 #' @importFrom magrittr multiply_by
 #' @importFrom magrittr equals
 #' @import edgeR
+#' @importFrom stats sd
 #'
 #' @param .data A tibble including a transcript name column | sample name column | read counts column | covariate columns | Pvalue column | a significance column
 #' @param formula A formula. The sample formula used to perform the differential transcript abundance analysis
@@ -133,7 +132,7 @@ identify_outliers = function(.data,
 		stop("percent_false_positive_genes must be a string from > 0% to < 100%")
 
 	# For reference MPI inference
-	# Check if all trannscripts are non NA
+	# Check if all transcripts are non NA
 	if (.data %>% filter(!!.transcript %>% is.na) %>% nrow > 0)
 		stop("There are NAs in the .transcript. Please filter those records")
 
@@ -158,14 +157,9 @@ identify_outliers = function(.data,
 	# The first pasage is at least 2 times more permissive than the second
 	adj_prob_theshold_1  = 0.05 %>% max(adj_prob_theshold_2*2)
 
-
-	print(sprintf("adj_prob_theshold_2 = %s", adj_prob_theshold_2))
-
 	# Calculate adj_prob_theshold
 	how_many_posterior_draws_1 =  draws_after_tail %>% divide_by(adj_prob_theshold_1) %>% max(1000) # I want 5 draws in the tail
 	how_many_posterior_draws_2 =  draws_after_tail %>% divide_by(adj_prob_theshold_2) %>% max(1000) # I want 5 draws in the tail
-
-	print(sprintf("how_many_posterior_draws_2 = %s", how_many_posterior_draws_2))
 
 	# If too many draws required revert to approximation of CI
 	if(approximate_posterior_analysis %>% is.null){
@@ -174,7 +168,6 @@ identify_outliers = function(.data,
 			approximate_posterior_analysis = TRUE
 		} else approximate_posterior_analysis = FALSE
 	}
-
 
 	# Check if enough memory for full draw
 	available_memory = ifelse(
@@ -220,8 +213,10 @@ identify_outliers = function(.data,
 	# Scale dataset
 	my_df_scaled =
 		my_df %>%
-		identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
-		scale_abundance(!!.sample,!!.transcript,!!.abundance)
+		.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
+		get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance) %>%
+		left_join(my_df, by=quo_name(.sample)) %>%
+		dplyr::mutate(!!as.symbol(sprintf("%s_scaled",  quo_name(.abundance))) := !!.abundance * multiplier)
 
 	# Build better scales for the inference
 	exposure_rate_multiplier =
@@ -365,6 +360,7 @@ identify_outliers = function(.data,
 #' @description Plot the data along the theoretical data distribution.
 #'
 #' @importFrom tibble as_tibble
+#' @importFrom stats as.formula
 #'
 #' @param .data The tibble returned by identify_outliers
 #'

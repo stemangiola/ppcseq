@@ -1,3 +1,64 @@
+# Greater than
+gt = function(a, b){	a > b }
+
+# Smaller than
+st = function(a, b){	a < b }
+
+# Negation
+not = function(is){	!is }
+
+#' Get matrix from tibble
+#'
+#' @keywords internal
+#'
+#' @import dplyr
+#' @importFrom tidyr gather
+#' @importFrom magrittr set_rownames
+#' @importFrom rlang quo_is_null
+#'
+#' @param tbl A tibble
+#' @param rownames A character string of the rownames
+#' @param do_check A boolean
+#'
+#' @return A matrix
+#'
+#' @noRd
+as_matrix <- function(tbl,
+											rownames = NULL,
+											do_check = TRUE) {
+	rownames = enquo(rownames)
+	tbl %>%
+
+		# Through warning if data frame is not numerical beside the rownames column (if present)
+		when(
+			do_check &&
+				(.) %>%
+				# If rownames defined eliminate it from the data frame
+				when(!quo_is_null(rownames) ~ (.)[,-1], ~ (.)) %>%
+				dplyr::summarise_all(class) %>%
+				tidyr::gather(variable, class) %>%
+				pull(class) %>%
+				unique() %>%
+				`%in%`(c("numeric", "integer")) %>% not() %>% any() ~ {
+					warning("ppcseq says: there are NON-numerical columns, the matrix will NOT be numerical")
+					(.)
+				},
+			~ (.)
+		) %>%
+		as.data.frame() %>%
+
+		# Deal with rownames column if present
+		when(
+			!quo_is_null(rownames) ~ (.) %>%
+				magrittr::set_rownames(tbl %>% pull(!!rownames)) %>%
+				select(-1),
+			~ (.)
+		) %>%
+
+		# Convert to matrix
+		as.matrix()
+}
+
 #' Add attribute
 #'
 #' @keywords internal
@@ -6,7 +67,7 @@
 #' @param attribute An object
 #' @param name A character
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -83,8 +144,8 @@ format_for_MPI = function(df, shards, .sample) {
 						distinct(!!.sample, G) %>%
 						arrange(G) %>%
 						count(G) %>%
-						mutate(end = cumsum(n)) %>%
-						mutate(start = c(
+						mutate(`end` = cumsum(n)) %>%
+						mutate(`start` = c(
 							1, .$end %>% rev() %>% `[` (-1) %>% rev %>% `+` (1)
 						)),
 					by = "G"
@@ -143,6 +204,8 @@ add_partition = function(df.input, partition_by, n_partitions) {
 
 #' Formula parser
 #'
+#' @importFrom stats terms
+#'
 #' @keywords internal
 #'
 #'
@@ -157,48 +220,6 @@ parse_formula <- function(fm) {
 		stop("The formula must be of the kind \"~ covariates\" ")
 	else
 		as.character(attr(terms(fm), "variables"))[-1]
-}
-
-#' Get matrix from tibble
-#'
-#' @keywords internal
-#'
-#'
-#' @import dplyr
-#' @importFrom tidyr gather
-#' @importFrom magrittr set_rownames
-#'
-#' @param tbl A tibble
-#' @param rownames A character string of the rownames
-#'
-#' @return A matrix
-#' @noRd
-as_matrix <- function(tbl, rownames = NULL) {
-	tbl %>%
-
-		ifelse_pipe(
-			tbl %>%
-				ifelse_pipe(!is.null(rownames),		~ .x %>% dplyr::select(-contains(rownames))) %>%
-				summarise_all(class) %>%
-				gather(variable, class) %>%
-				pull(class) %>%
-				unique() %>%
-				`%in%`(c("numeric", "integer")) %>% `!`() %>% any(),
-			~ {
-				warning("to_matrix says: there are NON-numerical columns, the matrix will NOT be numerical")
-				.x
-			}
-		) %>%
-		as.data.frame() %>%
-
-		# Deal with rownames column if present
-		ifelse_pipe(!is.null(rownames),
-								~ .x  %>%
-									set_rownames(tbl %>% pull(!!rownames)) %>%
-									select(-!!rownames)) %>%
-
-		# Convert to matrix
-		as.matrix()
 }
 
 #' vb_iterative
@@ -294,7 +315,7 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
 	# If there are genes to exclude
 	switch(
-		to_exclude %>% nrow %>% `>` (0) %>% `!` %>% sum(1),
+		to_exclude %>% nrow %>% gt(0) %>% `!` %>% sum(1),
 		foreach(s = 1:shards, .combine = full_join) %do% {
 			counts_MPI %>%
 				inner_join(to_exclude, by = c("S", "G")) %>%
@@ -329,6 +350,7 @@ get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
 #' function to pass initialisation values
 #'
 #' @keywords internal
+#' @importFrom stats rnorm
 #'
 #'
 #' @return A list
@@ -455,7 +477,7 @@ produce_plots = function(.x,
 add_deleterious_if_covariate_exists = function(.data, X){
 	.data %>%
 		when(
-			X %>% ncol %>% `>` (1) ~ left_join(.,
+			X %>% ncol %>% gt(1) ~ left_join(.,
 					X %>%
 						as_tibble %>%
 						select(2) %>%
@@ -489,7 +511,7 @@ add_deleterious_if_covariate_exists = function(.data, X){
 #' @param .abundance A column name
 #' @param do_check_only_on_detrimental A boolean
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -583,8 +605,6 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 #'
 #' @importFrom rstan sampling
 #' @importFrom rstan vb
-#' @importFrom tidybulk bind_rows
-#' @importFrom tidybulk filter
 #'
 #'
 #' @param .data A tibble
@@ -599,10 +619,10 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 select_to_check_and_house_keeping = function(.data, .do_check, .significance, .transcript, how_many_negative_controls  = 500){
 	.data %>%
 		{
-			tidybulk::bind_rows(
+			bind_rows(
 				# Genes to check
 				(.) %>%
-					tidybulk::filter((!!.do_check)),
+					filter((!!.do_check)),
 
 				# Least changing genes, negative controls
 				(.) %>%
@@ -682,7 +702,7 @@ check_if_within_posterior = function(.data, my_df, .do_check, .abundance){
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -721,6 +741,8 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @importFrom rstan summary
 #' @importFrom furrr future_map
 #' @importFrom future multiprocess
+#' @importFrom rstan extract
+#' @importFrom stats sd
 #'
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
@@ -728,7 +750,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @param truncation_compensation A real
 #' @param cores An integer
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -742,17 +764,17 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
-	draws_mu = fit %>% extract("lambda_log_param") %>% .[[1]] %>% .[,,1:how_many_to_check, drop=FALSE]
+	draws_mu = fit %>% rstan::extract("lambda_log_param") %>% .[[1]] %>% .[,,1:how_many_to_check, drop=FALSE]
 
 	# %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
 
-	draws_sigma = fit %>% extract("sigma_raw") %>% .[[1]] %>% .[,1:how_many_to_check, drop=FALSE]
+	draws_sigma = fit %>% rstan::extract("sigma_raw") %>% .[[1]] %>% .[,1:how_many_to_check, drop=FALSE]
 
 	# %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
 
-	draws_exposure = 	fit %>% extract("exposure_rate") %>% .[[1]]
+	draws_exposure = 	fit %>% rstan::extract("exposure_rate") %>% .[[1]]
 
 	# %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
@@ -898,10 +920,7 @@ check_if_any_NA = function(.data, .sample, .transcript, .abundance, .significanc
 	if(
 		.data %>%
 		drop_na(columns) %>%
-		nrow %>% `<`
-		(
-			.data %>% nrow
-		)
+		nrow %>% st(	.data %>% nrow	)
 	)
 		stop(sprintf("There are NA values in you tibble for any of the column %s", paste(columns, collapse=", ")))
 }
@@ -921,6 +940,8 @@ detect_cores = function(){
 
 #' Create the design matrix
 #'
+#' @importFrom stats model.matrix
+#'
 #' @keywords internal
 #'
 #'
@@ -928,7 +949,7 @@ detect_cores = function(){
 #' @param formula A formula
 #' @param .sample A symbol
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -956,11 +977,6 @@ create_design_matrix = function(.data, formula, .sample){
 #'
 #' @keywords internal
 #'
-#'
-#' @importFrom tidybulk distinct
-#' @importFrom tidybulk left_join
-#' @importFrom tidybulk mutate
-#'
 #' @param .data A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
 #' @param .sample A column name
@@ -970,7 +986,7 @@ create_design_matrix = function(.data, formula, .sample){
 #' @param .significance A column name
 #' @param how_many_negative_controls An integer
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -1108,6 +1124,7 @@ draws_to_tibble_x = function(fit, par, x) {
 
 }
 
+#' @importFrom stats sd
 identify_outliers_1_step = function(.data,
 																		formula = ~ 1,
 																		.sample,
@@ -1314,8 +1331,8 @@ summary_to_tibble = function(fit, par, x, y = NULL) {
 		summary %>%
 		as_tibble(rownames = ".variable") %>%
 		when(
-			is.null(y) ~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x), "(.+)\\[(.+)\\]", convert = TRUE),
-			~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x, y), "(.+)\\[(.+),(.+)\\]", convert = TRUE)
+			is.null(y) ~ (.) %>% tidyr::separate(.variable, c(".variable", x), sep="\\[|\\]", extra = "drop", convert=TRUE),
+			~ (.) %>% tidyr::separate(.variable, c(".variable", x, y), sep="\\[|\\]|,", extra = "drop", convert=TRUE)
 		)
 
 }
@@ -1339,8 +1356,10 @@ summary_to_tibble = function(fit, par, x, y = NULL) {
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidybulk scale_abundance
 #' @importFrom tidybayes gather_draws
+#' @importFrom stats sd
+#' @importFrom stats start
+#' @importFrom stats end
 #'
 #' @param my_df A tibble including a transcript name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -1413,7 +1432,7 @@ do_inference = function(my_df,
 	.do_check = enquo(.do_check)
 
 	# Check that the dataset is squared
-	if(my_df %>% distinct(!!.sample, !!.transcript) %>% count(!!.transcript) %>% count(n) %>% nrow %>% `>` (1))
+	if(my_df %>% distinct(!!.sample, !!.transcript) %>% count(!!.transcript) %>% count(n) %>% nrow %>% gt(1))
 		stop("The input data frame does not represent a rectangular structure. Each transcript must be present in all samples.")
 
 	# Get the number of transcripts to check
@@ -1451,7 +1470,7 @@ do_inference = function(my_df,
 	G = counts_MPI %>% distinct(G) %>% nrow()
 	S = counts_MPI %>% distinct(!!.sample) %>% nrow()
 	N = counts_MPI %>% distinct(idx_MPI,!!.abundance, `read count MPI row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
-	M = counts_MPI %>% distinct(start, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% max
+	M = counts_MPI %>% distinct(`start`, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% max
 	G_per_shard = counts_MPI %>% distinct(!!.transcript, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% as.array
 	n_shards = min(shards, counts_MPI %>% distinct(idx_MPI) %>% nrow)
 	G_per_shard_idx = c(
@@ -1480,8 +1499,8 @@ do_inference = function(my_df,
 	# In the data structure when data for a transcript starts and ends
 	symbol_end =
 		counts_MPI %>%
-		distinct(idx_MPI, end, `symbol MPI row`)  %>%
-		spread(idx_MPI, end) %>%
+		distinct(idx_MPI, `end`, `symbol MPI row`)  %>%
+		spread(idx_MPI, `end`) %>%
 		bind_rows((.) %>% head(n = 1) %>%  mutate_all(function(x) {
 			0
 		})) %>%
