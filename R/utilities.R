@@ -1,3 +1,58 @@
+# Negation
+not = function(is){	!is }
+
+#' Get matrix from tibble
+#'
+#' @keywords internal
+#'
+#' @import dplyr
+#' @import tidyr
+#' @importFrom magrittr set_rownames
+#' @importFrom rlang quo_is_null
+#'
+#' @param tbl A tibble
+#' @param rownames A character string of the rownames
+#' @param do_check A boolean
+#'
+#' @return A matrix
+#'
+#' @noRd
+as_matrix <- function(tbl,
+											rownames = NULL,
+											do_check = TRUE) {
+	rownames = enquo(rownames)
+	tbl %>%
+
+		# Through warning if data frame is not numerical beside the rownames column (if present)
+		when(
+			do_check &&
+				(.) %>%
+				# If rownames defined eliminate it from the data frame
+				when(!quo_is_null(rownames) ~ (.)[,-1], ~ (.)) %>%
+				dplyr::summarise_all(class) %>%
+				tidyr::gather(variable, class) %>%
+				pull(class) %>%
+				unique() %>%
+				`%in%`(c("numeric", "integer")) %>% not() %>% any() ~ {
+					warning("ppcseq says: there are NON-numerical columns, the matrix will NOT be numerical")
+					(.)
+				},
+			~ (.)
+		) %>%
+		as.data.frame() %>%
+
+		# Deal with rownames column if present
+		when(
+			!quo_is_null(rownames) ~ (.) %>%
+				magrittr::set_rownames(tbl %>% pull(!!rownames)) %>%
+				select(-1),
+			~ (.)
+		) %>%
+
+		# Convert to matrix
+		as.matrix()
+}
+
 #' Add attribute
 #'
 #' @keywords internal
@@ -157,48 +212,6 @@ parse_formula <- function(fm) {
 		stop("The formula must be of the kind \"~ covariates\" ")
 	else
 		as.character(attr(terms(fm), "variables"))[-1]
-}
-
-#' Get matrix from tibble
-#'
-#' @keywords internal
-#'
-#'
-#' @import dplyr
-#' @importFrom tidyr gather
-#' @importFrom magrittr set_rownames
-#'
-#' @param tbl A tibble
-#' @param rownames A character string of the rownames
-#'
-#' @return A matrix
-#' @noRd
-as_matrix <- function(tbl, rownames = NULL) {
-	tbl %>%
-
-		ifelse_pipe(
-			tbl %>%
-				ifelse_pipe(!is.null(rownames),		~ .x %>% dplyr::select(-contains(rownames))) %>%
-				summarise_all(class) %>%
-				gather(variable, class) %>%
-				pull(class) %>%
-				unique() %>%
-				`%in%`(c("numeric", "integer")) %>% `!`() %>% any(),
-			~ {
-				warning("to_matrix says: there are NON-numerical columns, the matrix will NOT be numerical")
-				.x
-			}
-		) %>%
-		as.data.frame() %>%
-
-		# Deal with rownames column if present
-		ifelse_pipe(!is.null(rownames),
-								~ .x  %>%
-									set_rownames(tbl %>% pull(!!rownames)) %>%
-									select(-!!rownames)) %>%
-
-		# Convert to matrix
-		as.matrix()
 }
 
 #' vb_iterative
@@ -583,8 +596,6 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 #'
 #' @importFrom rstan sampling
 #' @importFrom rstan vb
-#' @importFrom tidybulk bind_rows
-#' @importFrom tidybulk filter
 #'
 #'
 #' @param .data A tibble
@@ -599,10 +610,10 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 select_to_check_and_house_keeping = function(.data, .do_check, .significance, .transcript, how_many_negative_controls  = 500){
 	.data %>%
 		{
-			tidybulk::bind_rows(
+			bind_rows(
 				# Genes to check
 				(.) %>%
-					tidybulk::filter((!!.do_check)),
+					filter((!!.do_check)),
 
 				# Least changing genes, negative controls
 				(.) %>%
@@ -721,6 +732,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @importFrom rstan summary
 #' @importFrom furrr future_map
 #' @importFrom future multiprocess
+#' @importFrom rstan extract
 #'
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
@@ -742,17 +754,17 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
-	draws_mu = fit %>% extract("lambda_log_param") %>% .[[1]] %>% .[,,1:how_many_to_check, drop=FALSE]
+	draws_mu = fit %>% rstan::extract("lambda_log_param") %>% .[[1]] %>% .[,,1:how_many_to_check, drop=FALSE]
 
 	# %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
 
-	draws_sigma = fit %>% extract("sigma_raw") %>% .[[1]] %>% .[,1:how_many_to_check, drop=FALSE]
+	draws_sigma = fit %>% rstan::extract("sigma_raw") %>% .[[1]] %>% .[,1:how_many_to_check, drop=FALSE]
 
 	# %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
 
-	draws_exposure = 	fit %>% extract("exposure_rate") %>% .[[1]]
+	draws_exposure = 	fit %>% rstan::extract("exposure_rate") %>% .[[1]]
 
 	# %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
@@ -955,11 +967,6 @@ create_design_matrix = function(.data, formula, .sample){
 #' Format the input
 #'
 #' @keywords internal
-#'
-#'
-#' @importFrom tidybulk distinct
-#' @importFrom tidybulk left_join
-#' @importFrom tidybulk mutate
 #'
 #' @param .data A tibble including a gene name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -1339,7 +1346,6 @@ summary_to_tibble = function(fit, par, x, y = NULL) {
 #' @importFrom magrittr multiply_by
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
-#' @importFrom tidybulk scale_abundance
 #' @importFrom tidybayes gather_draws
 #'
 #' @param my_df A tibble including a transcript name column | sample name column | read counts column | covariates column
