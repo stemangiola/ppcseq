@@ -1,0 +1,16 @@
+citHeader("To cite ppcseq in publications use:")
+
+citEntry(
+	entry    = "Article",
+	title    = "Probabilistic outlier identification for RNA sequencing generalized linear models",
+	author   = "Stefano Mangiola, Evan A Thomas, Martin Modrák, Aki Vehtari, Anthony T Papenfuss",
+	journal  = "NAR Genomics and Bioinformatics",
+	year     = "2021",
+	volume   = "3",
+	number   = "1",
+	pages    = "lqab005",
+	url      = "https://doi.org/10.1093/nargab/lqab005",
+	textVersion = paste(
+		"Stefano Mangiola, Evan A Thomas, Martin Modrák, Aki Vehtari, Anthony T Papenfuss, Probabilistic outlier identification for RNA sequencing generalized linear models, NAR Genomics and Bioinformatics, Volume 3, Issue 1, March 2021, lqab005, https://doi.org/10.1093/nargab/lqab005"
+	)
+)
