@@ -144,8 +144,8 @@ format_for_MPI = function(df, shards, .sample) {
 						distinct(!!.sample, G) %>%
 						arrange(G) %>%
 						count(G) %>%
-						mutate(end = cumsum(n)) %>%
-						mutate(start = c(
+						mutate(`end` = cumsum(n)) %>%
+						mutate(`start` = c(
 							1, .$end %>% rev() %>% `[` (-1) %>% rev %>% `+` (1)
 						)),
 					by = "G"
@@ -203,6 +203,8 @@ add_partition = function(df.input, partition_by, n_partitions) {
 }
 
 #' Formula parser
+#'
+#' @importFrom stats terms
 #'
 #' @keywords internal
 #'
@@ -348,6 +350,7 @@ get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
 #' function to pass initialisation values
 #'
 #' @keywords internal
+#' @importFrom stats rnorm
 #'
 #'
 #' @return A list
@@ -739,6 +742,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @importFrom furrr future_map
 #' @importFrom future multiprocess
 #' @importFrom rstan extract
+#' @importFrom stats sd
 #'
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
@@ -936,6 +940,8 @@ detect_cores = function(){
 
 #' Create the design matrix
 #'
+#' @importFrom stats model.matrix
+#'
 #' @keywords internal
 #'
 #'
@@ -1118,6 +1124,7 @@ draws_to_tibble_x = function(fit, par, x) {
 
 }
 
+#' @importFrom stats sd
 identify_outliers_1_step = function(.data,
 																		formula = ~ 1,
 																		.sample,
@@ -1350,6 +1357,9 @@ summary_to_tibble = function(fit, par, x, y = NULL) {
 #' @importFrom purrr map2
 #' @importFrom purrr map_int
 #' @importFrom tidybayes gather_draws
+#' @importFrom stats sd
+#' @importFrom stats start
+#' @importFrom stats end
 #'
 #' @param my_df A tibble including a transcript name column | sample name column | read counts column | covariates column
 #' @param formula A formula
@@ -1460,7 +1470,7 @@ do_inference = function(my_df,
 	G = counts_MPI %>% distinct(G) %>% nrow()
 	S = counts_MPI %>% distinct(!!.sample) %>% nrow()
 	N = counts_MPI %>% distinct(idx_MPI,!!.abundance, `read count MPI row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
-	M = counts_MPI %>% distinct(start, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% max
+	M = counts_MPI %>% distinct(`start`, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% max
 	G_per_shard = counts_MPI %>% distinct(!!.transcript, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% as.array
 	n_shards = min(shards, counts_MPI %>% distinct(idx_MPI) %>% nrow)
 	G_per_shard_idx = c(
@@ -1489,8 +1499,8 @@ do_inference = function(my_df,
 	# In the data structure when data for a transcript starts and ends
 	symbol_end =
 		counts_MPI %>%
-		distinct(idx_MPI, end, `symbol MPI row`)  %>%
-		spread(idx_MPI, end) %>%
+		distinct(idx_MPI, `end`, `symbol MPI row`)  %>%
+		spread(idx_MPI, `end`) %>%
 		bind_rows((.) %>% head(n = 1) %>%  mutate_all(function(x) {
 			0
 		})) %>%

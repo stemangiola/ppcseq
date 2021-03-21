@@ -18,6 +18,7 @@
 #' @importFrom magrittr multiply_by
 #' @importFrom magrittr equals
 #' @import edgeR
+#' @importFrom stats sd
 #'
 #' @param .data A tibble including a transcript name column | sample name column | read counts column | covariate columns | Pvalue column | a significance column
 #' @param formula A formula. The sample formula used to perform the differential transcript abundance analysis
@@ -359,6 +360,7 @@ identify_outliers = function(.data,
 #' @description Plot the data along the theoretical data distribution.
 #'
 #' @importFrom tibble as_tibble
+#' @importFrom stats as.formula
 #'
 #' @param .data The tibble returned by identify_outliers
 #'

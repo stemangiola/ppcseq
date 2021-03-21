@@ -33,7 +33,9 @@ Imports:
     edgeR,
     benchmarkme,
     testthat,
-    parallel 
+    parallel,
+    rlang,
+    stats 
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
