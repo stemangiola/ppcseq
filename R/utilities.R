@@ -1,3 +1,9 @@
+# Greater than
+gt = function(a, b){	a > b }
+
+# Smaller than
+st = function(a, b){	a < b }
+
 # Negation
 not = function(is){	!is }
 
@@ -6,7 +12,7 @@ not = function(is){	!is }
 #' @keywords internal
 #'
 #' @import dplyr
-#' @import tidyr
+#' @importFrom tidyr gather
 #' @importFrom magrittr set_rownames
 #' @importFrom rlang quo_is_null
 #'
@@ -61,7 +67,7 @@ as_matrix <- function(tbl,
 #' @param attribute An object
 #' @param name A character
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -307,7 +313,7 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
 	# If there are genes to exclude
 	switch(
-		to_exclude %>% nrow %>% `>` (0) %>% `!` %>% sum(1),
+		to_exclude %>% nrow %>% gt(0) %>% `!` %>% sum(1),
 		foreach(s = 1:shards, .combine = full_join) %do% {
 			counts_MPI %>%
 				inner_join(to_exclude, by = c("S", "G")) %>%
@@ -468,7 +474,7 @@ produce_plots = function(.x,
 add_deleterious_if_covariate_exists = function(.data, X){
 	.data %>%
 		when(
-			X %>% ncol %>% `>` (1) ~ left_join(.,
+			X %>% ncol %>% gt(1) ~ left_join(.,
 					X %>%
 						as_tibble %>%
 						select(2) %>%
@@ -502,7 +508,7 @@ add_deleterious_if_covariate_exists = function(.data, X){
 #' @param .abundance A column name
 #' @param do_check_only_on_detrimental A boolean
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -693,7 +699,7 @@ check_if_within_posterior = function(.data, my_df, .do_check, .abundance){
 #' @param fit A fit object
 #' @param adj_prob_theshold fit real
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -740,7 +746,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @param truncation_compensation A real
 #' @param cores An integer
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -910,10 +916,7 @@ check_if_any_NA = function(.data, .sample, .transcript, .abundance, .significanc
 	if(
 		.data %>%
 		drop_na(columns) %>%
-		nrow %>% `<`
-		(
-			.data %>% nrow
-		)
+		nrow %>% st(	.data %>% nrow	)
 	)
 		stop(sprintf("There are NA values in you tibble for any of the column %s", paste(columns, collapse=", ")))
 }
@@ -940,7 +943,7 @@ detect_cores = function(){
 #' @param formula A formula
 #' @param .sample A symbol
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -977,7 +980,7 @@ create_design_matrix = function(.data, formula, .sample){
 #' @param .significance A column name
 #' @param how_many_negative_controls An integer
 #'
-#' @example
+#' @examples
 #'
 #' # Not needed because internal
 #'
@@ -1321,8 +1324,8 @@ summary_to_tibble = function(fit, par, x, y = NULL) {
 		summary %>%
 		as_tibble(rownames = ".variable") %>%
 		when(
-			is.null(y) ~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x), "(.+)\\[(.+)\\]", convert = TRUE),
-			~ (.) %>% tidyr::extract(col = .variable, into = c(".variable", x, y), "(.+)\\[(.+),(.+)\\]", convert = TRUE)
+			is.null(y) ~ (.) %>% tidyr::separate(.variable, c(".variable", x), sep="\\[|\\]", extra = "drop", convert=TRUE),
+			~ (.) %>% tidyr::separate(.variable, c(".variable", x, y), sep="\\[|\\]|,", extra = "drop", convert=TRUE)
 		)
 
 }
@@ -1419,7 +1422,7 @@ do_inference = function(my_df,
 	.do_check = enquo(.do_check)
 
 	# Check that the dataset is squared
-	if(my_df %>% distinct(!!.sample, !!.transcript) %>% count(!!.transcript) %>% count(n) %>% nrow %>% `>` (1))
+	if(my_df %>% distinct(!!.sample, !!.transcript) %>% count(!!.transcript) %>% count(n) %>% nrow %>% gt(1))
 		stop("The input data frame does not represent a rectangular structure. Each transcript must be present in all samples.")
 
 	# Get the number of transcripts to check
