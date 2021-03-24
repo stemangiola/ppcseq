@@ -404,7 +404,7 @@ plot_credible_intervals = function(.data){
 					 	pmap(
 					 		list(
 					 			`sample wise data`,
-					 			.transcript,
+					 			!!as.symbol(.transcript),
 					 			# nested data for plot
 					 			.abundance,
 					 			# name of value column
