@@ -35,7 +35,8 @@ devtools::install_github("stemangiola/ppcseq")
 You can get the test dataset with
 
 ```{r}
-ppcseq::counts 
+data("counts")
+counts 
 ```
 
 You can identify anrtefactual calls from your differential transcribt anundance analysis, due to outliers.
@@ -45,7 +46,7 @@ You can identify anrtefactual calls from your differential transcribt anundance 
 
 
 counts.ppc = 
-	ppcseq::counts %>%
+	counts %>%
 	mutate(is_significant = FDR < 0.01) %>%
 	identify_outliers(
 		formula = ~ Label,
@@ -77,5 +78,5 @@ counts.ppc_plots =
 ```{r}
 counts.ppc_plots %>%
 	pull(plot) %>% 
-	.[1:2]
+	.[seq_len(length.out=2)]
 ```

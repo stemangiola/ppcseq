@@ -19,6 +19,7 @@
 #' @importFrom magrittr equals
 #' @import edgeR
 #' @importFrom stats sd
+#' @importFrom purrr map_chr
 #'
 #' @param .data A tibble including a transcript name column | sample name column | read counts column | covariate columns | Pvalue column | a significance column
 #' @param formula A formula. The sample formula used to perform the differential transcript abundance analysis
@@ -49,8 +50,10 @@
 #'
 #' library(dplyr)
 #'
+#' data("counts")
+#'
 #' result =
-#'   ppcseq::counts %>%
+#'   counts %>%
 #'   dplyr::mutate(  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) %>%
 #'	 ppcseq::identify_outliers(
 #'		formula = ~ Label,
@@ -88,7 +91,7 @@ identify_outliers = function(.data,
 														 do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
 														 tol_rel_obj = 0.01,
 														 just_discovery = FALSE,
-														 seed = sample(1:99999, size = 1),
+														 seed = sample(seq_len(length.out=999999), size = 1),
 														 adj_prob_theshold_2 = NULL,
 														 return_fit = FALSE
 ) {
@@ -137,7 +140,7 @@ identify_outliers = function(.data,
 		stop("There are NAs in the .transcript. Please filter those records")
 
 	# Check if the counts column is an integer
-	if (.data %>% select(!!.abundance) %>% sapply(class) != "integer")
+	if (.data %>% select(!!.abundance) %>% map_chr(~ class(.x)) != "integer")
 		stop(
 			sprintf(
 				"The column %s must be of class integer. You can do as mutate(`%s` = `%s` %%>%% as.integer)",
@@ -370,8 +373,10 @@ identify_outliers = function(.data,
 #'
 #' library(dplyr)
 #'
+#' data("counts")
+#'
 #' result =
-#'   ppcseq::counts %>%
+#'   counts %>%
 #'   dplyr::mutate(  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) %>%
 #'	 ppcseq::identify_outliers(
 #'		formula = ~ Label,

@@ -19,8 +19,10 @@ Plot the data along the theoretical data distribution.
 
 library(dplyr)
 
+data("counts")
+
 result =
-  ppcseq::counts \%>\%
+  counts \%>\%
   dplyr::mutate(  is_significant = ifelse(symbol \%in\% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) \%>\%
  ppcseq::identify_outliers(
 	formula = ~ Label,

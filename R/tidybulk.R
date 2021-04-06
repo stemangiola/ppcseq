@@ -133,6 +133,7 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 #' @importFrom rlang :=
 #' @importFrom stats median
 #' @importFrom purrr when
+#' @importFrom utils head
 #'
 #' @param .data A tibble
 #' @param .sample The name of the sample column
