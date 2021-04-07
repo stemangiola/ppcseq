@@ -1184,7 +1184,7 @@ identify_outliers_1_step = function(.data,
 		stop("There are NAs in the .transcript. Please filter those records")
 
 	# Check if the counts column is an integer
-	if (.data %>% select(!!.abundance) %>% map_chr(~ class(.x)) != "integer")
+	if (.data %>% pull(!!.abundance) %>% is("integer") %>% not())
 		stop(
 			sprintf(
 				"The column %s must be of class integer. You can do as mutate(`%s` = `%s` %%>%% as.integer)",
