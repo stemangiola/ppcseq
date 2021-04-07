@@ -111,6 +111,7 @@ ifelse_pipe = function(.x, .p, .f1, .f2 = NULL) {
 #'
 #' @keywords internal
 #'
+#' @importFrom utils head
 #'
 #' @description Format reference data frame for MPI
 #'
@@ -130,7 +131,7 @@ format_for_MPI = function(df, shards, .sample) {
 								distinct(G) %>%
 								arrange(G) %>%
 								mutate(idx_MPI = head(
-									rep(1:shards, (.) %>% nrow %>% `/` (shards) %>% ceiling), n = (.) %>% nrow
+									rep(seq_len(length.out=shards), (.) %>% nrow %>% `/` (shards) %>% ceiling), n = (.) %>% nrow
 								)),
 							by = "G") %>%
 		arrange(idx_MPI, G) %>%
@@ -159,7 +160,7 @@ format_for_MPI = function(df, shards, .sample) {
 				group_by(idx_MPI) %>%
 				distinct(G) %>%
 				arrange(G) %>%
-				mutate(`symbol MPI row` = 1:n()) %>%
+				mutate(`symbol MPI row` = seq_len(length.out=n())) %>%
 				ungroup,
 			by = c("G", "idx_MPI")
 		) %>%
@@ -167,7 +168,7 @@ format_for_MPI = function(df, shards, .sample) {
 		# Add counts MPI rows indexes
 		group_by(idx_MPI) %>%
 		arrange(G) %>%
-		mutate(`read count MPI row` = 1:n()) %>%
+		mutate(`read count MPI row` = seq_len(length.out=n())) %>%
 		ungroup
 
 }
@@ -193,7 +194,8 @@ add_partition = function(df.input, partition_by, n_partitions) {
 				select(!!partition_by) %>%
 				distinct %>%
 				mutate(
-					partition = 1:n() %>%
+					partition =
+						seq_len(length.out=n() ) %>%
 						divide_by(length((.))) %>%
 						#	multiply_by(min(n_partitions, df.input %>% distinct(symbol) %>% nrow)) %>%
 						multiply_by(n_partitions) %>%
@@ -316,7 +318,7 @@ get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
 	# If there are genes to exclude
 	switch(
 		to_exclude %>% nrow %>% gt(0) %>% `!` %>% sum(1),
-		foreach(s = 1:shards, .combine = full_join) %do% {
+		foreach(s =  seq_len(length.out=shards), .combine = full_join) %do% {
 			counts_MPI %>%
 				inner_join(to_exclude, by = c("S", "G")) %>%
 				filter(idx_MPI == s) %>%
@@ -482,7 +484,7 @@ add_deleterious_if_covariate_exists = function(.data, X){
 						as_tibble %>%
 						select(2) %>%
 						setNames("factor or interest") %>%
-						mutate(S = 1:n()) %>%
+						mutate(S = seq_len(length.out=n())) %>%
 						mutate(`is group right` = `factor or interest` > mean(`factor or interest`)) ,
 					by = "S"
 				) %>%
@@ -566,6 +568,7 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 
 }
 
+#' @importFrom utils packageVersion
 format_results = function(.data, formula, .transcript, .abundance, .sample, do_check_only_on_detrimental){
 
 	# Prepare column same enquo
@@ -605,7 +608,7 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 #'
 #' @importFrom rstan sampling
 #' @importFrom rstan vb
-#'
+#' @importFrom utils tail
 #'
 #' @param .data A tibble
 #' @param .do_check A boolean
@@ -764,12 +767,12 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
 
-	draws_mu = fit %>% rstan::extract("lambda_log_param") %>% .[[1]] %>% .[,,1:how_many_to_check, drop=FALSE]
+	draws_mu = fit %>% rstan::extract("lambda_log_param") %>% .[[1]] %>% .[,,seq_len(length.out=how_many_to_check), drop=FALSE]
 
 	# %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
 
-	draws_sigma = fit %>% rstan::extract("sigma_raw") %>% .[[1]] %>% .[,1:how_many_to_check, drop=FALSE]
+	draws_sigma = fit %>% rstan::extract("sigma_raw") %>% .[[1]] %>% .[,seq_len(length.out=how_many_to_check), drop=FALSE]
 
 	# %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
@@ -779,14 +782,14 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 	# %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
 
-	expand_grid(S = 1:(dim(draws_mu)[2]), G = 1:(dim(draws_mu)[3])) %>%
+	expand_grid(S =seq_len(length.out=dim(draws_mu)[2]), G = seq_len(length.out=dim(draws_mu)[3])) %>%
 		mutate(truncation_compensation = !!truncation_compensation) %>%
 		mutate(
 			CI = pmap(
 				list(  S,G, truncation_compensation),
 				~ {
 
-					i_supersampled =	sample(1:length(draws_mu[,..1, ..2]), how_many_posterior_draws, replace = TRUE )
+					i_supersampled =	seq_len(length.out=sample(length(draws_mu[,..1, ..2]), how_many_posterior_draws, replace = TRUE ))
 					draws = rnbinom(
 						n = how_many_posterior_draws,
 						mu = exp(draws_mu[,..1, ..2][i_supersampled] + draws_exposure[,..1][i_supersampled]),
@@ -1022,7 +1025,7 @@ format_input = function(.data, formula, .sample, .transcript, .abundance, .do_ch
 		# Add symbol idx
 		left_join((.) %>%
 								distinct(!!.transcript) %>%
-								mutate(G = 1:n()),
+								mutate(G = seq_len(length.out=n())),
 							by = quo_name(.transcript)) %>%
 
 		# Add sample indeces
@@ -1094,12 +1097,12 @@ draws_to_tibble_x_y = function(fit, par, x, y) {
 		rstan::extract(par_names, permuted=FALSE) %>%
 		as.data.frame %>%
 		as_tibble() %>%
-		mutate(.iteration = 1:n()) %>%
+		mutate(.iteration = seq_len(length.out=n())) %>%
 		pivot_longer(names_to = c("dummy", ".chain", ".variable", x, y),  cols = contains(par), names_sep = "\\.|\\[|,|\\]|:", names_ptypes = list(".chain" = integer(), ".variable" = character(), "A" = integer(), "C" = integer()), values_to = ".value") %>%
 		select(-dummy) %>%
 		arrange(.variable, !!as.symbol(x), !!as.symbol(y), .chain) %>%
 		group_by(.variable, !!as.symbol(x), !!as.symbol(y)) %>%
-		mutate(.draw = 1:n()) %>%
+		mutate(.draw = seq_len(length.out=n())) %>%
 		ungroup() %>%
 		select(!!as.symbol(x), !!as.symbol(y), .chain, .iteration, .draw ,.variable ,     .value)
 
@@ -1113,18 +1116,19 @@ draws_to_tibble_x = function(fit, par, x) {
 		rstan::extract(par_names, permuted=FALSE) %>%
 		as.data.frame %>%
 		as_tibble() %>%
-		mutate(.iteration = 1:n()) %>%
+		mutate(.iteration = seq_len(length.out=n())) %>%
 		pivot_longer(names_to = c("dummy", ".chain", ".variable", x),  cols = contains(par), names_sep = "\\.|\\[|,|\\]|:", names_ptypes = list(".chain" = integer(), ".variable" = character(), "A" = integer(), "C" = integer()), values_to = ".value") %>%
 		select(-dummy) %>%
 		arrange(.variable, !!as.symbol(x), .chain) %>%
 		group_by(.variable, !!as.symbol(x)) %>%
-		mutate(.draw = 1:n()) %>%
+		mutate(.draw = seq_len(length.out=n())) %>%
 		ungroup() %>%
 		select(!!as.symbol(x), .chain, .iteration, .draw ,.variable ,     .value)
 
 }
 
 #' @importFrom stats sd
+#' @importFrom purrr map_chr
 identify_outliers_1_step = function(.data,
 																		formula = ~ 1,
 																		.sample,
@@ -1146,7 +1150,7 @@ identify_outliers_1_step = function(.data,
 																		do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
 																		tol_rel_obj = 0.01,
 																		just_discovery = FALSE,
-																		seed = sample(1:99999, size = 1),
+																		seed = sample(seq_len(length.out=999999), size = 1),
 																		adj_prob_theshold_2 = NULL
 ) {
 	# Prepare column same enquo
@@ -1180,7 +1184,7 @@ identify_outliers_1_step = function(.data,
 		stop("There are NAs in the .transcript. Please filter those records")
 
 	# Check if the counts column is an integer
-	if (.data %>% select(!!.abundance) %>% sapply(class) != "integer")
+	if (.data %>% select(!!.abundance) %>% map_chr(~ class(.x)) != "integer")
 		stop(
 			sprintf(
 				"The column %s must be of class integer. You can do as mutate(`%s` = `%s` %%>%% as.integer)",
@@ -1360,6 +1364,7 @@ summary_to_tibble = function(fit, par, x, y = NULL) {
 #' @importFrom stats sd
 #' @importFrom stats start
 #' @importFrom stats end
+#' @importFrom utils head
 #'
 #' @param my_df A tibble including a transcript name column | sample name column | read counts column | covariates column
 #' @param formula A formula

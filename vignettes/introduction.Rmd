@@ -1,33 +1,36 @@
 ---
-title: "Overview of the tidySingleCellExperiment package"
+title: "Probabilistic Outlier Identification for RNA Sequencing Generalized Linear Models"
 author: "Stefano Mangiola"
 date: "`r Sys.Date()`"
-package: tidySingleCellExperiment
+package: ppcseq
 output:
   BiocStyle::html_document:
     toc_float: true
-bibliography: tidySingleCellExperiment.bib
 vignette: >
-  %\VignetteEngine{knitr::knitr}
-  %\VignetteIndexEntry{Overview of the tidySingleCellExperiment package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Overview of the ppcseq package}
   %\usepackage[UTF-8]{inputenc}
 ---
 
 ```{r, echo=FALSE, include=FALSE}
 library(knitr)
 knitr::opts_chunk$set(
-    cache=TRUE, warning=FALSE,
-    message=FALSE, cache.lazy=FALSE
+    warning=FALSE,
+    message=FALSE
 )
 ```
 
+# Introduction
+
+Relative transcript abundance has proven to be a valuable tool for understanding the function of genes in biological systems. For the differential analysis of transcript abundance using RNA sequencing data, the negative binomial model is by far the most frequently adopted. However, common methods that are based on a negative binomial model are not robust to extreme outliers, which we found to be abundant in public datasets. So far, no rigorous and probabilistic methods for detection of outliers have been developed for RNA sequencing data, leaving the identification mostly to visual inspection. Recent advances in Bayesian computation allow large-scale comparison of observed data against its theoretical distribution given in a statistical model. Here we propose ppcseq, a key quality-control tool for identifying transcripts that include outlier data points in differential expression analysis, which do not follow a negative binomial distribution. Applying ppcseq to analyse several publicly available datasets using popular tools, we show that from 3 to 10 percent of differentially abundant transcripts across algorithms and datasets had statistics inflated by the presence of outliers.
+
+# Installation and use
+
 The input data set is a tidy representation of a differential gene transcript abundance analysis
 
-```{r echo=FALSE, include=FALSE}
+```{r}
 library(dplyr)
 library(ppcseq)
-library(dplyr)
-library(magrittr)
 ```
 
 To install:
@@ -40,16 +43,21 @@ writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS +=
 close(fileConn)
 ```
 
+Multi-threading allows the sampling or variational bayes to share the computation on multiple cores.
+
 Then, install with
 
 ```{r eval=FALSE}
-devtools::install_github("stemangiola/ppcseq")
+if(!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install("ppcseq")
 ```
 
 You can get the test dataset with
 
 ```{r}
-ppcseq::counts 
+data("counts")
+counts 
 ```
 
 You can identify anrtefactual calls from your differential transcribt anundance analysis, due to outliers.
@@ -59,7 +67,7 @@ You can identify anrtefactual calls from your differential transcribt anundance 
 
 
 counts.ppc = 
-	ppcseq::counts %>%
+	counts %>%
 	mutate(is_significant = FDR < 0.01) %>%
 	identify_outliers(
 		formula = ~ Label,
@@ -91,7 +99,7 @@ counts.ppc_plots =
 ```{r}
 counts.ppc_plots %>%
 	pull(plot) %>% 
-	.[1:2]
+	.[seq_len(2)]
 ```
 
 ```{r softwareinfo}

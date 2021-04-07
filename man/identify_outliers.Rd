@@ -24,7 +24,7 @@ identify_outliers(
   do_check_only_on_detrimental = length(parse_formula(formula)) > 0,
   tol_rel_obj = 0.01,
   just_discovery = FALSE,
-  seed = sample(1:99999, size = 1),
+  seed = sample(seq_len(length.out = 999999), size = 1),
   adj_prob_theshold_2 = NULL,
   return_fit = FALSE
 )
@@ -86,8 +86,10 @@ This function runs the data modeling and statistical test for the hypothesis tha
 
 library(dplyr)
 
+data("counts")
+
 result =
-  ppcseq::counts \%>\%
+  counts \%>\%
   dplyr::mutate(  is_significant = ifelse(symbol \%in\% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) \%>\%
  ppcseq::identify_outliers(
 	formula = ~ Label,

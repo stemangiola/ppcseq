@@ -1,9 +1,11 @@
 context('ppcseq')
 
+data("counts")
+
 test_that("VB post approx no correction",{
 
   res =
-    ppcseq::counts %>%
+    counts %>%
     dplyr::mutate(  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) %>%
     ppcseq::identify_outliers(
       formula = ~ Label,
@@ -30,7 +32,7 @@ test_that("VB post approx yes correction",{
 
   res =
     ppcseq::identify_outliers(
-      dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ),
+      dplyr::mutate(counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ),
       formula = ~ Label,
       sample, symbol, value,
       .significance = PValue,
@@ -55,7 +57,7 @@ test_that("VB post full",{
 
   res =
     ppcseq::identify_outliers(
-      dplyr::mutate(ppcseq::counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ),
+      dplyr::mutate(counts,  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ),
       formula = ~ Label,
       sample, symbol, value,
       .significance = PValue,

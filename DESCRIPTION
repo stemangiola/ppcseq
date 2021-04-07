@@ -7,13 +7,28 @@ Authors@R:
            role = c("aut", "cre"),
            email = "mangiolastefano@gmail.com",
            comment = c(ORCID = "0000-0001-7474-836X"))
-Description: Posterior predictive check for bulk RNA sequencing data. Quality-control tool for identifying transcripts that include outlier data points in differential expression analysis, which do not follow a negative binomial distribution. 
+Description: 
+    Relative transcript abundance has proven to be a valuable tool for understanding 
+    the function of genes in biological systems. For the differential analysis of 
+    transcript abundance using RNA sequencing data, the negative binomial model is
+    by far the most frequently adopted. However, common methods that are based on a 
+    negative binomial model are not robust to extreme outliers, which we found to be
+    abundant in public datasets. So far, no rigorous and probabilistic methods for 
+    detection of outliers have been developed for RNA sequencing data, leaving the
+    identification mostly to visual inspection. Recent advances in Bayesian computation 
+    allow large-scale comparison of observed data against its theoretical distribution
+    given in a statistical model. Here we propose ppcseq, a key quality-control tool 
+    for identifying transcripts that include outlier data points in differential expression 
+    analysis, which do not follow a negative binomial distribution. Applying ppcseq to 
+    analyse several publicly available datasets using popular tools, we show that from 3 
+    to 10 percent of differentially abundant transcripts across algorithms and datasets 
+    had statistics inflated by the presence of outliers.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Biarch: true
 Depends: 
-    R (>= 4.1.0)
+    R (>= 4.0.0)
 Imports: 
     methods,
     Rcpp (>= 0.12.0),
@@ -32,7 +47,6 @@ Imports:
     tidybayes,
     edgeR,
     benchmarkme,
-    testthat,
     parallel,
     rlang,
     stats 
@@ -43,7 +57,9 @@ LinkingTo:
     rstan (>= 2.18.1),
     StanHeaders (>= 2.18.0)
 Suggests: 
-    knitr
+    knitr,
+    testthat,
+    BiocStyle
 VignetteBuilder: 
     knitr
 RdMacros:
@@ -52,4 +68,5 @@ biocViews: RNASeq, DifferentialExpression, GeneExpression, Normalization, Cluste
 SystemRequirements: GNU make
 RoxygenNote: 7.1.1
 Roxygen: list(markdown = TRUE)
+BugReports: https://github.com/stemangiola/ppcseq/issues
 Config/testthat/edition: 3
