@@ -88,6 +88,7 @@ library(dplyr)
 
 data("counts")
 
+if(Sys.info()[['sysname']] == "Windows")
 result =
   counts \%>\%
   dplyr::mutate(  is_significant = ifelse(symbol \%in\% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) \%>\%
