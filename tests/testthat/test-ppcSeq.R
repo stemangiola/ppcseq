@@ -2,7 +2,7 @@ context('ppcseq')
 
 data("counts")
 
-if(Sys.info()[['sysname']] == "Windows"){
+if(Sys.info()[['sysname']] != "Windows"){
 
 test_that("VB post approx no correction",{
 
