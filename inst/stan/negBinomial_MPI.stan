@@ -81,12 +81,12 @@ functions{
 		//vector[symbol_end[G_per_shard+1]] lambda_MPI_c;
 		vector[symbol_end[G_per_shard+1]] sigma_MPI_c;
 
-		print(rows(local_parameters));
-		print(local_parameters);
-		print("----");
-		print(lambda_MPI);
-		print(sigma_MPI);
-		print(exposure_rate);
+		// print(rows(local_parameters));
+		// print(local_parameters);
+		// print("----");
+		// print(lambda_MPI);
+		// print(sigma_MPI);
+		// print(exposure_rate);
 
 		for(g in 1:G_per_shard){
 			int how_many = symbol_end[g+1] - (symbol_end[g]);
