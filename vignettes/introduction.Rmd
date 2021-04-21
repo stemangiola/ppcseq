@@ -97,11 +97,19 @@ counts.ppc_plots =
 	plot_credible_intervals() 
 ```
 
-```{r, eval=FALSE}
+```{r, eval=FALSE }
 counts.ppc_plots %>%
 	pull(plot) %>% 
 	.[seq_len(1)]
 ```
+
+```{r}
+data("ppcseq_plot") 
+
+ppcseq_plot
+```
+
+
 
 ```{r softwareinfo}
 sessionInfo()
