@@ -62,7 +62,7 @@ counts
 
 You can identify anrtefactual calls from your differential transcribt anundance analysis, due to outliers.
 
-```{r warning=FALSE, message=FALSE,results='hide'}
+```{r warning=FALSE, message=FALSE,results='hide', eval = FALSE}
 # Import libraries
 
 
@@ -77,13 +77,14 @@ counts.ppc =
 		.significance = PValue,
 		.do_check = is_significant,
 		percent_false_positive_genes = 5, 
-		approximate_posterior_inference = T
+		approximate_posterior_inference = TRUE
 	)
 ```
 
 The new posterior predictive check has been added to the original data frame
 
 ```{r }
+data("counts.ppc")
 counts.ppc 
 ```
 
@@ -100,7 +101,7 @@ counts.ppc_plots =
 ```{r}
 counts.ppc_plots %>%
 	pull(plot) %>% 
-	.[seq_len(2)]
+	.[seq_len(1)]
 ```
 
 ```{r softwareinfo}
