@@ -68,7 +68,7 @@ You can identify anrtefactual calls from your differential transcribt anundance 
 
 counts.ppc = 
 	counts %>%
-	mutate(is_significant = FDR < 0.01) %>%
+	mutate(is_significant = FDR < 0.0001) %>%
 	identify_outliers(
 		formula = ~ Label,
 		.sample = sample, 
@@ -76,7 +76,8 @@ counts.ppc =
 		.abundance = value,
 		.significance = PValue,
 		.do_check = is_significant,
-		percent_false_positive_genes = 5
+		percent_false_positive_genes = 5, 
+		approximate_posterior_inference = T
 	)
 ```
 
