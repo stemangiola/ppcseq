@@ -103,13 +103,6 @@ counts.ppc_plots %>%
 	.[seq_len(1)]
 ```
 
-```{r}
-data("ppcseq_plot") 
-
-ppcseq_plot
-```
-
-
 
 ```{r softwareinfo}
 sessionInfo()
