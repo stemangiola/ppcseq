@@ -55,14 +55,14 @@ BiocManager::install("ppcseq")
 
 You can get the test dataset with
 
-```{r}
+```{r, eval=FALSE}
 data("counts")
 counts 
 ```
 
 You can identify anrtefactual calls from your differential transcribt anundance analysis, due to outliers.
 
-```{r warning=FALSE, message=FALSE,results='hide', eval = FALSE}
+```{r warning=FALSE, message=FALSE,results='hide', eval=FALSE}
 # Import libraries
 
 
@@ -77,14 +77,13 @@ counts.ppc =
 		.significance = PValue,
 		.do_check = is_significant,
 		percent_false_positive_genes = 5, 
-		approximate_posterior_inference = TRUE
+		approximate_posterior_inference = FALSE
 	)
 ```
 
 The new posterior predictive check has been added to the original data frame
 
-```{r }
-data("counts.ppc")
+```{r , eval=FALSE}
 counts.ppc 
 ```
 
@@ -92,13 +91,13 @@ The new data frame contains plots for each gene
 
 We can visualise the top five differentially transcribed genes
 
-```{r }
+```{r, eval=FALSE }
 counts.ppc_plots = 
 	counts.ppc %>% 
 	plot_credible_intervals() 
 ```
 
-```{r}
+```{r, eval=FALSE}
 counts.ppc_plots %>%
 	pull(plot) %>% 
 	.[seq_len(1)]
