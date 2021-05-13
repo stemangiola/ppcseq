@@ -1,6 +1,6 @@
 Package: ppcseq
 Title: Probabilistic Outlier Identification for RNA Sequencing Generalized Linear Models
-Version: 0.99.26
+Version: 0.99.27
 Authors@R: 
     person(given = "Stefano",
            family = "Mangiola",
@@ -71,5 +71,6 @@ biocViews: RNASeq, DifferentialExpression, GeneExpression, Normalization, Cluste
 SystemRequirements: GNU make
 RoxygenNote: 7.1.1
 Roxygen: list(markdown = TRUE)
+URL: https://github.com/stemangiola/ppcseq
 BugReports: https://github.com/stemangiola/ppcseq/issues
 Config/testthat/edition: 3
