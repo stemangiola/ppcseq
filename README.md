@@ -15,7 +15,7 @@ writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS +=
 close(fileConn)
 ```
 
-Then, install with
+Then, install with 
 
 ``` r
 devtools::install_github("stemangiola/ppcseq")
