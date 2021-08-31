@@ -52,6 +52,7 @@
 #'
 #' data("counts")
 #'
+#' if(Sys.info()[['sysname']] != "Windows")
 #' result =
 #'   counts %>%
 #'   dplyr::mutate(  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) %>%
@@ -140,7 +141,7 @@ identify_outliers = function(.data,
 		stop("There are NAs in the .transcript. Please filter those records")
 
 	# Check if the counts column is an integer
-	if (.data %>% select(!!.abundance) %>% map_chr(~ class(.x)) != "integer")
+	if (.data %>% pull(!!.abundance) %>% is("integer") %>% not())
 		stop(
 			sprintf(
 				"The column %s must be of class integer. You can do as mutate(`%s` = `%s` %%>%% as.integer)",
@@ -375,6 +376,7 @@ identify_outliers = function(.data,
 #'
 #' data("counts")
 #'
+#' if(Sys.info()[['sysname']] != "Windows"){
 #' result =
 #'   counts %>%
 #'   dplyr::mutate(  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) %>%
@@ -392,6 +394,7 @@ identify_outliers = function(.data,
 #'	)
 #'
 #' result_plot = result %>% plot_credible_intervals()
+#' }
 #'
 #' @export
 #'
