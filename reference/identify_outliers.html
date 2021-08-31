@@ -59,9 +59,6 @@
 
 
 
-<!-- dependencies from examples -->
-
-
   
 
   
@@ -84,7 +81,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ppcseq</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.99.7</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.99.16</span>
       </span>
     </div>
 
@@ -136,7 +133,7 @@
 <p><a href='https://lifecycle.r-lib.org/articles/stages.html#maturing'><img src='figures/lifecycle-maturing.svg' alt='[Maturing]' /></a></p>
     </div>
 
-    <pre class="usage"><span class='fu'>identify_outliers</span><span class='op'>(</span>
+    <div class="ref-usage sourceCode"><pre class='sourceCode r'><code><span class='fu'>identify_outliers</span><span class='op'>(</span>
   <span class='va'>.data</span>,
   formula <span class='op'>=</span> <span class='op'>~</span><span class='fl'>1</span>,
   <span class='va'>.sample</span>,
@@ -159,7 +156,7 @@
   seed <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sample.html'>sample</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/seq.html'>seq_len</a></span><span class='op'>(</span>length.out <span class='op'>=</span> <span class='fl'>999999</span><span class='op'>)</span>, size <span class='op'>=</span> <span class='fl'>1</span><span class='op'>)</span>,
   adj_prob_theshold_2 <span class='op'>=</span> <span class='cn'>NULL</span>,
   return_fit <span class='op'>=</span> <span class='cn'>FALSE</span>
-<span class='op'>)</span></pre>
+<span class='op'>)</span></code></pre></div>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -259,162 +256,242 @@
     <p>A nested tibble <code>tbl</code> with transcript-wise information: <code>sample wise data</code> | plot | <code>ppc samples failed</code> | <code>tot deleterious outliers</code></p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'>
-<span class='kw'><a href='https://rdrr.io/r/base/library.html'>library</a></span><span class='op'>(</span><span class='va'><a href='https://dplyr.tidyverse.org'>dplyr</a></span><span class='op'>)</span>
-</div><div class='output co'>#&gt; <span class='message'></span>
-#&gt; <span class='message'>Attaching package: ‘dplyr’</span></div><div class='output co'>#&gt; <span class='message'>The following objects are masked from ‘package:stats’:</span>
-#&gt; <span class='message'></span>
-#&gt; <span class='message'>    filter, lag</span></div><div class='output co'>#&gt; <span class='message'>The following objects are masked from ‘package:base’:</span>
-#&gt; <span class='message'></span>
-#&gt; <span class='message'>    intersect, setdiff, setequal, union</span></div><div class='input'>
-<span class='fu'><a href='https://rdrr.io/r/utils/data.html'>data</a></span><span class='op'>(</span><span class='st'>"counts"</span><span class='op'>)</span>
-
-<span class='va'>result</span> <span class='op'>=</span>
-  <span class='va'>counts</span> <span class='op'>%&gt;%</span>
-  <span class='fu'>dplyr</span><span class='fu'>::</span><span class='fu'><a href='https://dplyr.tidyverse.org/reference/mutate.html'>mutate</a></span><span class='op'>(</span>  is_significant <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/ifelse.html'>ifelse</a></span><span class='op'>(</span><span class='va'>symbol</span> <span class='op'>%in%</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"SLC16A12"</span>, <span class='st'>"CYP1A1"</span>, <span class='st'>"ART3"</span><span class='op'>)</span>, <span class='cn'>TRUE</span>, <span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>)</span> <span class='op'>%&gt;%</span>
- <span class='fu'>ppcseq</span><span class='fu'>::</span><span class='fu'>identify_outliers</span><span class='op'>(</span>
-  formula <span class='op'>=</span> <span class='op'>~</span> <span class='va'>Label</span>,
-  <span class='va'>sample</span>, <span class='va'>symbol</span>, <span class='va'>value</span>,
-  .significance <span class='op'>=</span> <span class='va'>PValue</span>,
-  .do_check  <span class='op'>=</span> <span class='va'>is_significant</span>,
-  percent_false_positive_genes <span class='op'>=</span> <span class='fl'>1</span>,
-  tol_rel_obj <span class='op'>=</span> <span class='fl'>0.01</span>,
-  approximate_posterior_inference <span class='op'>=</span><span class='cn'>TRUE</span>,
-  approximate_posterior_analysis <span class='op'>=</span><span class='cn'>TRUE</span>,
-  how_many_negative_controls <span class='op'>=</span> <span class='fl'>50</span>,
-  cores<span class='op'>=</span><span class='fl'>1</span>
-<span class='op'>)</span>
-</div><div class='output co'>#&gt; <span class='message'>No group or design set. Assuming all samples belong to one group.</span></div><div class='output co'>#&gt; executing do_inference</div><div class='output co'>#&gt; <span class='message'>Storing counts in `nn`, as `n` already present in input</span>
-#&gt; <span class='message'><span style='color: #0000BB;'>ℹ</span><span> Use `name = "new_name"` to pick a new name.</span></div><div class='output co'>#&gt; Chain 1: ------------------------------------------------------------
-#&gt; Chain 1: EXPERIMENTAL ALGORITHM:
-#&gt; Chain 1:   This procedure has not been thoroughly tested and may be unstable
-#&gt; Chain 1:   or buggy. The interface is subject to change.
-#&gt; Chain 1: ------------------------------------------------------------
-#&gt; Chain 1: 
-#&gt; Chain 1: 
-#&gt; Chain 1: 
-#&gt; Chain 1: Gradient evaluation took 0.00055 seconds
-#&gt; Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.5 seconds.
-#&gt; Chain 1: Adjust your expectations accordingly!
-#&gt; Chain 1: 
-#&gt; Chain 1: 
-#&gt; Chain 1: Begin eta adaptation.
-#&gt; Chain 1: Iteration:   1 / 250 [  0%]  (Adaptation)
-#&gt; Chain 1: Iteration:  50 / 250 [ 20%]  (Adaptation)
-#&gt; Chain 1: Iteration: 100 / 250 [ 40%]  (Adaptation)
-#&gt; Chain 1: Iteration: 150 / 250 [ 60%]  (Adaptation)
-#&gt; Chain 1: Iteration: 200 / 250 [ 80%]  (Adaptation)
-#&gt; Chain 1: Iteration: 250 / 250 [100%]  (Adaptation)
-#&gt; Chain 1: Success! Found best value [eta = 0.1].
-#&gt; Chain 1: 
-#&gt; Chain 1: Begin stochastic gradient ascent.
-#&gt; Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes 
-#&gt; Chain 1:    100      -452505.296             1.000            1.000
-#&gt; Chain 1:    200      -157418.505             1.437            1.875
-#&gt; Chain 1:    300       -70222.774             1.372            1.242
-#&gt; Chain 1:    400       -35745.989             1.270            1.242
-#&gt; Chain 1:    500       -22618.086             1.132            1.000
-#&gt; Chain 1:    600       -16658.317             1.003            1.000
-#&gt; Chain 1:    700       -13837.206             0.889            0.964
-#&gt; Chain 1:    800       -12322.431             0.793            0.964
-#&gt; Chain 1:    900       -11506.892             0.713            0.580
-#&gt; Chain 1:   1000       -11028.449             0.646            0.580
-#&gt; Chain 1:   1100       -10717.003             0.590            0.358   MAY BE DIVERGING... INSPECT ELBO
-#&gt; Chain 1:   1200       -10464.457             0.543            0.358   MAY BE DIVERGING... INSPECT ELBO
-#&gt; Chain 1:   1300       -10245.313             0.503            0.204   MAY BE DIVERGING... INSPECT ELBO
-#&gt; Chain 1:   1400       -10072.091             0.468            0.204
-#&gt; Chain 1:   1500        -9894.544             0.438            0.123
-#&gt; Chain 1:   1600        -9736.109             0.412            0.123
-#&gt; Chain 1:   1700        -9594.897             0.388            0.071
-#&gt; Chain 1:   1800        -9446.112             0.368            0.071
-#&gt; Chain 1:   1900        -9342.712             0.349            0.043
-#&gt; Chain 1:   2000        -9209.518             0.332            0.043
-#&gt; Chain 1:   2100        -9088.416             0.317            0.029
-#&gt; Chain 1:   2200        -8987.869             0.303            0.029
-#&gt; Chain 1:   2300        -8886.049             0.290            0.024
-#&gt; Chain 1:   2400        -8791.583             0.279            0.024
-#&gt; Chain 1:   2500        -8716.956             0.268            0.021
-#&gt; Chain 1:   2600        -8635.481             0.258            0.021
-#&gt; Chain 1:   2700        -8552.895             0.249            0.018
-#&gt; Chain 1:   2800        -8494.802             0.240            0.018
-#&gt; Chain 1:   2900        -8427.819             0.232            0.017
-#&gt; Chain 1:   3000        -8362.447             0.225            0.017
-#&gt; Chain 1:   3100        -8310.672             0.218            0.016
-#&gt; Chain 1:   3200        -8256.785             0.211            0.016
-#&gt; Chain 1:   3300        -8208.731             0.205            0.016
-#&gt; Chain 1:   3400        -8155.343             0.199            0.016
-#&gt; Chain 1:   3500        -8128.213             0.193            0.015
-#&gt; Chain 1:   3600        -8080.613             0.188            0.015
-#&gt; Chain 1:   3700        -8043.241             0.183            0.014
-#&gt; Chain 1:   3800        -8009.696             0.178            0.014
-#&gt; Chain 1:   3900        -7978.113             0.174            0.013
-#&gt; Chain 1:   4000        -7947.499             0.170            0.013
-#&gt; Chain 1:   4100        -7916.283             0.166            0.011
-#&gt; Chain 1:   4200        -7889.169             0.162            0.011
-#&gt; Chain 1:   4300        -7860.121             0.158            0.011
-#&gt; Chain 1:   4400        -7838.884             0.155            0.011
-#&gt; Chain 1:   4500        -7818.803             0.151            0.011
-#&gt; Chain 1:   4600        -7794.792             0.148            0.011
-#&gt; Chain 1:   4700        -7772.819             0.145            0.011
-#&gt; Chain 1:   4800        -7750.911             0.142            0.011
-#&gt; Chain 1:   4900        -7728.804             0.139            0.010
-#&gt; Chain 1:   5000        -7712.898             0.136            0.010
-#&gt; Chain 1:   5100        -7701.366             0.116            0.009
-#&gt; Chain 1:   5200        -7678.364             0.079            0.009
-#&gt; Chain 1:   5300        -7663.574             0.054            0.008
-#&gt; Chain 1:   5400        -7655.062             0.035            0.008
-#&gt; Chain 1:   5500        -7640.610             0.023            0.007
-#&gt; Chain 1:   5600        -7627.211             0.016            0.007
-#&gt; Chain 1:   5700        -7620.446             0.012            0.007
-#&gt; Chain 1:   5800        -7605.334             0.010            0.006
-#&gt; Chain 1:   5900        -7594.515             0.008            0.006
-#&gt; Chain 1:   6000        -7586.622             0.008            0.006
-#&gt; Chain 1:   6100        -7578.763             0.007            0.005   MEDIAN ELBO CONVERGED
-#&gt; Chain 1: 
-#&gt; Chain 1: Drawing a sample of size 1000 from the approximate posterior... 
-#&gt; Chain 1: COMPLETED.</div><div class='output co'>#&gt; <span class='warning'>Warning: Pareto k diagnostic value is 5.08. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span></div><div class='output co'>#&gt; executing add_exposure_rate
-#&gt; executing check_if_within_posterior
-#&gt; executing save_generated_quantities_in_case
-#&gt; executing fit_to_counts_rng</div><div class='output co'>#&gt; <span class='warning'>Warning: Unknown columns: `Rhat`</span></div><div class='output co'>#&gt; executing do_inference</div><div class='output co'>#&gt; <span class='message'>Storing counts in `nn`, as `n` already present in input</span>
-#&gt; <span class='message'></span><span style='color: #0000BB;'>ℹ</span><span> Use `name = "new_name"` to pick a new name.</span></div><div class='output co'>#&gt; Chain 1: ------------------------------------------------------------
-#&gt; Chain 1: EXPERIMENTAL ALGORITHM:
-#&gt; Chain 1:   This procedure has not been thoroughly tested and may be unstable
-#&gt; Chain 1:   or buggy. The interface is subject to change.
-#&gt; Chain 1: ------------------------------------------------------------
-#&gt; Chain 1: 
-#&gt; Chain 1: 
-#&gt; Chain 1: 
-#&gt; Chain 1: Gradient evaluation took 0.000581 seconds
-#&gt; Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.81 seconds.
-#&gt; Chain 1: Adjust your expectations accordingly!
-#&gt; Chain 1: 
-#&gt; Chain 1: 
-#&gt; Chain 1: Begin eta adaptation.
-#&gt; Chain 1: Iteration:   1 / 250 [  0%]  (Adaptation)
-#&gt; Chain 1: Iteration:  50 / 250 [ 20%]  (Adaptation)
-#&gt; Chain 1: Iteration: 100 / 250 [ 40%]  (Adaptation)
-#&gt; Chain 1: Iteration: 150 / 250 [ 60%]  (Adaptation)
-#&gt; Chain 1: Iteration: 200 / 250 [ 80%]  (Adaptation)
-#&gt; Chain 1: Success! Found best value [eta = 1] earlier than expected.
-#&gt; Chain 1: 
-#&gt; Chain 1: Begin stochastic gradient ascent.
-#&gt; Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes 
-#&gt; Chain 1:    100       -12030.210             1.000            1.000
-#&gt; Chain 1:    200        -8451.246             0.712            1.000
-#&gt; Chain 1:    300        -7581.437             0.513            0.423
-#&gt; Chain 1:    400        -7565.731             0.385            0.423
-#&gt; Chain 1:    500        -7520.117             0.309            0.115
-#&gt; Chain 1:    600        -7510.318             0.258            0.115
-#&gt; Chain 1:    700        -7523.554             0.221            0.006
-#&gt; Chain 1:    800        -7499.543             0.194            0.006
-#&gt; Chain 1:    900        -7498.006             0.173            0.003   MEDIAN ELBO CONVERGED
-#&gt; Chain 1: 
-#&gt; Chain 1: Drawing a sample of size 1000 from the approximate posterior... 
-#&gt; Chain 1: COMPLETED.</div><div class='output co'>#&gt; <span class='warning'>Warning: Pareto k diagnostic value is 2.54. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span></div><div class='output co'>#&gt; executing add_exposure_rate
-#&gt; executing check_if_within_posterior
-#&gt; executing save_generated_quantities_in_case
-#&gt; executing fit_to_counts_rng_approximated</div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: first element used of 'length.out' argument</span></div><div class='output co'>#&gt; <span class='warning'>Warning: Unknown columns: `generated quantities`</span></div><div class='input'>
-</div></span></pre>
+    <div class="ref-examples sourceCode"><pre class='sourceCode r'><code><span class='r-in'></span>
+<span class='r-in'><span class='kw'><a href='https://rdrr.io/r/base/library.html'>library</a></span><span class='op'>(</span><span class='va'><a href='https://dplyr.tidyverse.org'>dplyr</a></span><span class='op'>)</span></span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> Attaching package: ‘dplyr’</span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> The following objects are masked from ‘package:stats’:</span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span>     filter, lag</span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> The following objects are masked from ‘package:base’:</span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span>     intersect, setdiff, setequal, union</span>
+<span class='r-in'></span>
+<span class='r-in'><span class='fu'><a href='https://rdrr.io/r/utils/data.html'>data</a></span><span class='op'>(</span><span class='st'>"counts"</span><span class='op'>)</span></span>
+<span class='r-in'></span>
+<span class='r-in'><span class='kw'>if</span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/Sys.info.html'>Sys.info</a></span><span class='op'>(</span><span class='op'>)</span><span class='op'>[[</span><span class='st'>'sysname'</span><span class='op'>]</span><span class='op'>]</span> <span class='op'>!=</span> <span class='st'>"Windows"</span><span class='op'>)</span></span>
+<span class='r-in'><span class='va'>result</span> <span class='op'>=</span></span>
+<span class='r-in'>  <span class='va'>counts</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
+<span class='r-in'>  <span class='fu'>dplyr</span><span class='fu'>::</span><span class='fu'><a href='https://dplyr.tidyverse.org/reference/mutate.html'>mutate</a></span><span class='op'>(</span>  is_significant <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/ifelse.html'>ifelse</a></span><span class='op'>(</span><span class='va'>symbol</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"SLC16A12"</span>, <span class='st'>"CYP1A1"</span>, <span class='st'>"ART3"</span><span class='op'>)</span>, <span class='cn'>TRUE</span>, <span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
+<span class='r-in'> <span class='fu'>ppcseq</span><span class='fu'>::</span><span class='fu'>identify_outliers</span><span class='op'>(</span></span>
+<span class='r-in'>  formula <span class='op'>=</span> <span class='op'>~</span> <span class='va'>Label</span>,</span>
+<span class='r-in'>  <span class='va'>sample</span>, <span class='va'>symbol</span>, <span class='va'>value</span>,</span>
+<span class='r-in'>  .significance <span class='op'>=</span> <span class='va'>PValue</span>,</span>
+<span class='r-in'>  .do_check  <span class='op'>=</span> <span class='va'>is_significant</span>,</span>
+<span class='r-in'>  percent_false_positive_genes <span class='op'>=</span> <span class='fl'>1</span>,</span>
+<span class='r-in'>  tol_rel_obj <span class='op'>=</span> <span class='fl'>0.01</span>,</span>
+<span class='r-in'>  approximate_posterior_inference <span class='op'>=</span><span class='cn'>TRUE</span>,</span>
+<span class='r-in'>  approximate_posterior_analysis <span class='op'>=</span><span class='cn'>TRUE</span>,</span>
+<span class='r-in'>  how_many_negative_controls <span class='op'>=</span> <span class='fl'>50</span>,</span>
+<span class='r-in'>  cores<span class='op'>=</span><span class='fl'>1</span></span>
+<span class='r-in'><span class='op'>)</span></span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> No group or design set. Assuming all samples belong to one group.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing do_inference</span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> Storing counts in `nn`, as `n` already present in input</span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> <span style='color: #0000BB;'>ℹ</span> Use `name = "new_name"` to pick a new name.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: ------------------------------------------------------------</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: EXPERIMENTAL ALGORITHM:</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   This procedure has not been thoroughly tested and may be unstable</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   or buggy. The interface is subject to change.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: ------------------------------------------------------------</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Gradient evaluation took 0.000524 seconds</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.24 seconds.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Adjust your expectations accordingly!</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Begin eta adaptation.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration:   1 / 250 [  0%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration:  50 / 250 [ 20%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration: 100 / 250 [ 40%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration: 150 / 250 [ 60%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration: 200 / 250 [ 80%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration: 250 / 250 [100%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Success! Found best value [eta = 0.1].</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Begin stochastic gradient ascent.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    100      -452505.296             1.000            1.000</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    200      -157418.505             1.437            1.875</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    300       -70222.774             1.372            1.242</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    400       -35745.989             1.270            1.242</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    500       -22618.086             1.132            1.000</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    600       -16658.317             1.003            1.000</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    700       -13837.206             0.889            0.964</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    800       -12322.431             0.793            0.964</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    900       -11506.892             0.713            0.580</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1000       -11028.449             0.646            0.580</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1100       -10717.003             0.590            0.358   MAY BE DIVERGING... INSPECT ELBO</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1200       -10464.457             0.543            0.358   MAY BE DIVERGING... INSPECT ELBO</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1300       -10245.313             0.503            0.204   MAY BE DIVERGING... INSPECT ELBO</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1400       -10072.091             0.468            0.204</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1500        -9894.544             0.438            0.123</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1600        -9736.109             0.412            0.123</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1700        -9594.897             0.388            0.071</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1800        -9446.112             0.368            0.071</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   1900        -9342.712             0.349            0.043</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2000        -9209.518             0.332            0.043</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2100        -9088.416             0.317            0.029</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2200        -8987.869             0.303            0.029</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2300        -8886.049             0.290            0.024</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2400        -8791.583             0.279            0.024</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2500        -8716.956             0.268            0.021</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2600        -8635.481             0.258            0.021</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2700        -8552.895             0.249            0.018</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2800        -8494.802             0.240            0.018</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   2900        -8427.819             0.232            0.017</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3000        -8362.447             0.225            0.017</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3100        -8310.672             0.218            0.016</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3200        -8256.785             0.211            0.016</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3300        -8208.731             0.205            0.016</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3400        -8155.343             0.199            0.016</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3500        -8128.213             0.193            0.015</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3600        -8080.613             0.188            0.015</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3700        -8043.241             0.183            0.014</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3800        -8009.696             0.178            0.014</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   3900        -7978.113             0.174            0.013</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4000        -7947.499             0.170            0.013</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4100        -7916.283             0.166            0.011</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4200        -7889.169             0.162            0.011</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4300        -7860.121             0.158            0.011</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4400        -7838.884             0.155            0.011</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4500        -7818.803             0.151            0.011</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4600        -7794.792             0.148            0.011</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4700        -7772.819             0.145            0.011</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4800        -7750.911             0.142            0.011</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   4900        -7728.804             0.139            0.010</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5000        -7712.898             0.136            0.010</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5100        -7701.366             0.116            0.009</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5200        -7678.364             0.079            0.009</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5300        -7663.574             0.054            0.008</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5400        -7655.062             0.035            0.008</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5500        -7640.610             0.023            0.007</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5600        -7627.211             0.016            0.007</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5700        -7620.446             0.012            0.007</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5800        -7605.334             0.010            0.006</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   5900        -7594.515             0.008            0.006</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   6000        -7586.622             0.008            0.006</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   6100        -7578.763             0.007            0.005   MEDIAN ELBO CONVERGED</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Drawing a sample of size 1000 from the approximate posterior... </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: COMPLETED.</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>Pareto k diagnostic value is 5.08. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing add_exposure_rate</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing check_if_within_posterior</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing save_generated_quantities_in_case</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing fit_to_counts_rng</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>Unknown columns: `Rhat`</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing do_inference</span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> Storing counts in `nn`, as `n` already present in input</span>
+<span class='r-msg co'><span class='r-pr'>#&gt;</span> <span style='color: #0000BB;'>ℹ</span> Use `name = "new_name"` to pick a new name.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: ------------------------------------------------------------</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: EXPERIMENTAL ALGORITHM:</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   This procedure has not been thoroughly tested and may be unstable</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   or buggy. The interface is subject to change.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: ------------------------------------------------------------</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Gradient evaluation took 0.000492 seconds</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 4.92 seconds.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Adjust your expectations accordingly!</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Begin eta adaptation.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration:   1 / 250 [  0%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration:  50 / 250 [ 20%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration: 100 / 250 [ 40%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration: 150 / 250 [ 60%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Iteration: 200 / 250 [ 80%]  (Adaptation)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Success! Found best value [eta = 1] earlier than expected.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Begin stochastic gradient ascent.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    100       -12030.210             1.000            1.000</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    200        -8451.246             0.712            1.000</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    300        -7581.437             0.513            0.423</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    400        -7565.731             0.385            0.423</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    500        -7520.117             0.309            0.115</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    600        -7510.318             0.258            0.115</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    700        -7523.554             0.221            0.006</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    800        -7499.543             0.194            0.006</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1:    900        -7498.006             0.173            0.003   MEDIAN ELBO CONVERGED</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: Drawing a sample of size 1000 from the approximate posterior... </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> Chain 1: COMPLETED.</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>Pareto k diagnostic value is 2.54. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing add_exposure_rate</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing check_if_within_posterior</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing save_generated_quantities_in_case</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> executing fit_to_counts_rng_approximated</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>first element used of 'length.out' argument</span>
+<span class='r-wrn co'><span class='r-pr'>#&gt;</span> <span class='warning'>Warning: </span>Unknown columns: `generated quantities`</span>
+<span class='r-in'></span>
+</code></pre></div>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
