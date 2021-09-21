@@ -12,12 +12,12 @@
 #' @import rstantools
 #' @import lifecycle
 #' @importFrom graphics par
+#' @importFrom RcppParallel RcppParallelLibs CxxFlags
 #'
 #' @usage data(counts)
 #'
 #' @return See documentation
 #'
 #' @references
-#' Stan Development Team (2019). RStan: the R interface to Stan. R package version 2.19.2. https://mc-stan.org
-#' angiola S, Thomas E, Modrak M, Vehtari A, Papenfuss A (2021). “Probabilistic outlier identification for RNA sequencing generalized linear models.” NAR Genomics and Bioinformatics_, *3*(1), lqab005. <URL: https://doi.org/10.1093/nargab/lqab005>.
+#' Mangiola S, Thomas E, Modrak M, Vehtari A, Papenfuss A (2021). “Probabilistic outlier identification for RNA sequencing generalized linear models.” NAR Genomics and Bioinformatics_, *3*(1), lqab005. <URL: https://doi.org/10.1093/nargab/lqab005>.
 NULL

@@ -1,6 +1,6 @@
 Package: ppcseq
 Title: Probabilistic Outlier Identification for RNA Sequencing Generalized Linear Models
-Version: 0.99.16
+Version: 0.99.27
 Authors@R: 
     person(given = "Stefano",
            family = "Mangiola",
@@ -30,32 +30,34 @@ Biarch: true
 Depends: 
     R (>= 4.1.0)
 Imports: 
-    methods,
-    Rcpp (>= 0.12.0),
-    rstan (>= 2.18.1),
-    rstantools (>= 2.0.0),
-    tibble, 
-    dplyr, 
-    magrittr, 
-    purrr,
-    future,
-    furrr,
-    tidyr (>= 0.8.3.9000), 
-    lifecycle,
-    ggplot2,
-    foreach,
-    tidybayes,
-    edgeR,
     benchmarkme,
+    dplyr,
+    edgeR,
+    foreach,
+    furrr,
+    future,
+    ggplot2,
+    graphics,
+    lifecycle,
+    magrittr,
+    methods,
     parallel,
+    purrr,
+    Rcpp (>= 0.12.0),
+    RcppParallel (>= 5.0.1),
     rlang,
+    rstan (>= 2.18.1),
+    rstantools (>= 2.1.1),
     stats,
-    utils,
-    graphics
+    tibble,
+    tidybayes,
+    tidyr (>= 0.8.3.9000),
+    utils
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
     RcppEigen (>= 0.3.3.3.0),
+    RcppParallel (>= 5.0.1),
     rstan (>= 2.18.1),
     StanHeaders (>= 2.18.0)
 Suggests: 
@@ -71,5 +73,6 @@ biocViews: RNASeq, DifferentialExpression, GeneExpression, Normalization, Cluste
 SystemRequirements: GNU make
 RoxygenNote: 7.1.1
 Roxygen: list(markdown = TRUE)
+URL: https://github.com/stemangiola/ppcseq
 BugReports: https://github.com/stemangiola/ppcseq/issues
 Config/testthat/edition: 3
