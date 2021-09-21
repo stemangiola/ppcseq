@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ppcseq</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.99.16</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.99.27</span>
       </span>
     </div>
 
@@ -72,13 +72,13 @@
 
       
 
-      </header><script src="introduction_files/header-attrs-2.10/header-attrs.js"></script><div class="row">
+      </header><script src="introduction_files/header-attrs-2.11/header-attrs.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Probabilistic Outlier Identification for RNA Sequencing Generalized Linear Models</h1>
                         <h4 data-toc-skip class="author">Stefano Mangiola</h4>
             
-            <h4 data-toc-skip class="date">2021-08-31</h4>
+            <h4 data-toc-skip class="date">2021-09-21</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/stemangiola/ppcseq/blob/master/vignettes/introduction.Rmd" class="external-link"><code>vignettes/introduction.Rmd</code></a></small>
       <div class="hidden name"><code>introduction.Rmd</code></div>
@@ -98,7 +98,7 @@
 <p>The input data set is a tidy representation of a differential gene transcript abundance analysis</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">ppcseq</span><span class="op">)</span></code></pre></div>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/stemangiola/ppcseq" class="external-link">ppcseq</a></span><span class="op">)</span></code></pre></div>
 <p>To install:</p>
 <p>Before install, for linux systems, in order to exploit multi-threading, from R write:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
@@ -133,10 +133,10 @@
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Import libraries</span>
 
-
+<span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.info.html" class="external-link">Sys.info</a></span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="st">'sysname'</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="st">"Linux"</span><span class="op">)</span>
 <span class="va">counts.ppc</span> <span class="op">=</span> 
     <span class="va">counts</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
-    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>is_significant <span class="op">=</span> <span class="va">FDR</span> <span class="op">&lt;</span> <span class="fl">0.01</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>is_significant <span class="op">=</span> <span class="va">FDR</span> <span class="op">&lt;</span> <span class="fl">0.0001</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
     <span class="fu"><a href="../reference/identify_outliers.html">identify_outliers</a></span><span class="op">(</span>
         formula <span class="op">=</span> <span class="op">~</span> <span class="va">Label</span>,
         .sample <span class="op">=</span> <span class="va">sample</span>, 
@@ -144,47 +144,34 @@
         .abundance <span class="op">=</span> <span class="va">value</span>,
         .significance <span class="op">=</span> <span class="va">PValue</span>,
         .do_check <span class="op">=</span> <span class="va">is_significant</span>,
-        percent_false_positive_genes <span class="op">=</span> <span class="fl">5</span>
+        percent_false_positive_genes <span class="op">=</span> <span class="fl">5</span>, 
+        approximate_posterior_inference <span class="op">=</span> <span class="cn">FALSE</span>
     <span class="op">)</span></code></pre></div>
 <p>The new posterior predictive check has been added to the original data frame</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">counts.ppc</span> </code></pre></div>
-<pre><code>## # A tibble: 15 × 4
-##    symbol   `sample wise data` `ppc samples failed` `tot deleterious outliers`
-##    &lt;chr&gt;    &lt;list&gt;                            &lt;int&gt;                      &lt;int&gt;
-##  1 SLC16A12 &lt;tibble [21 × 14]&gt;                    0                          0
-##  2 CYP1A1   &lt;tibble [21 × 14]&gt;                    1                          1
-##  3 ART3     &lt;tibble [21 × 14]&gt;                    0                          0
-##  4 DIO2     &lt;tibble [21 × 14]&gt;                    0                          0
-##  5 OR51E2   &lt;tibble [21 × 14]&gt;                    0                          0
-##  6 MUC16    &lt;tibble [21 × 14]&gt;                    0                          0
-##  7 CCNA1    &lt;tibble [21 × 14]&gt;                    0                          0
-##  8 LYZ      &lt;tibble [21 × 14]&gt;                    1                          1
-##  9 PPM1H    &lt;tibble [21 × 14]&gt;                    0                          0
-## 10 SUSD5    &lt;tibble [21 × 14]&gt;                    0                          0
-## 11 TPRG1    &lt;tibble [21 × 14]&gt;                    0                          0
-## 12 EPB42    &lt;tibble [21 × 14]&gt;                    0                          0
-## 13 LRRC38   &lt;tibble [21 × 14]&gt;                    0                          0
-## 14 SUSD4    &lt;tibble [21 × 14]&gt;                    0                          0
-## 15 MMP8     &lt;tibble [21 × 14]&gt;                    1                          1</code></pre>
+<code class="sourceCode R"><span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.info.html" class="external-link">Sys.info</a></span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="st">'sysname'</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="st">"Linux"</span><span class="op">)</span>
+<span class="va">counts.ppc</span> </code></pre></div>
+<pre><code>## # A tibble: 1 × 4
+##   symbol   `sample wise data` `ppc samples failed` `tot deleterious outliers`
+##   &lt;chr&gt;    &lt;list&gt;                            &lt;int&gt;                      &lt;int&gt;
+## 1 SLC16A12 &lt;tibble [21 × 14]&gt;                    0                          0</code></pre>
 <p>The new data frame contains plots for each gene</p>
 <p>We can visualise the top five differentially transcribed genes</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">counts.ppc_plots</span> <span class="op">=</span> 
+<code class="sourceCode R"><span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.info.html" class="external-link">Sys.info</a></span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="st">'sysname'</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="st">"Linux"</span><span class="op">)</span>
+<span class="va">counts.ppc_plots</span> <span class="op">=</span> 
     <span class="va">counts.ppc</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
     <span class="fu"><a href="../reference/plot_credible_intervals.html">plot_credible_intervals</a></span><span class="op">(</span><span class="op">)</span> </code></pre></div>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">counts.ppc_plots</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+<code class="sourceCode R"><span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.info.html" class="external-link">Sys.info</a></span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="st">'sysname'</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="st">"Linux"</span><span class="op">)</span>
+<span class="va">counts.ppc_plots</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
     <span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">plot</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
-    <span class="va">.</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">]</span></code></pre></div>
+    <span class="va">.</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">]</span></code></pre></div>
 <pre><code>## [[1]]</code></pre>
 <p><img src="introduction_files/figure-html/unnamed-chunk-9-1.png" width="700"></p>
-<pre><code>## 
-## [[2]]</code></pre>
-<p><img src="introduction_files/figure-html/unnamed-chunk-9-2.png" width="700"></p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
-<pre><code>## R version 4.1.0 (2021-05-18)
+<pre><code>## R version 4.1.1 (2021-08-10)
 ## Platform: x86_64-pc-linux-gnu (64-bit)
 ## Running under: Ubuntu 20.04.3 LTS
 ## 
@@ -203,42 +190,42 @@
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] ppcseq_0.99.16   dplyr_1.0.7      knitr_1.33       BiocStyle_2.21.3
+## [1] ppcseq_0.99.27   dplyr_1.0.7      knitr_1.34       BiocStyle_2.21.3
 ## 
 ## loaded via a namespace (and not attached):
-##   [1] matrixStats_0.60.0    fs_1.5.0              httr_1.4.2           
+##   [1] matrixStats_0.61.0    fs_1.5.0              httr_1.4.2           
 ##   [4] doParallel_1.0.16     rprojroot_2.0.2       rstan_2.21.2         
-##   [7] tensorA_0.36.2        tools_4.1.0           backports_1.2.1      
-##  [10] bslib_0.2.5.1         utf8_1.2.2            R6_2.5.0             
+##   [7] tensorA_0.36.2        tools_4.1.1           backports_1.2.1      
+##  [10] bslib_0.3.0           utf8_1.2.2            R6_2.5.1             
 ##  [13] colorspace_2.0-2      ggdist_3.0.0          withr_2.4.2          
 ##  [16] tidyselect_1.1.1      gridExtra_2.3         prettyunits_1.1.1    
-##  [19] processx_3.5.2        curl_4.3.2            compiler_4.1.0       
+##  [19] processx_3.5.2        curl_4.3.2            compiler_4.1.1       
 ##  [22] textshaping_0.3.5     cli_3.0.1             arrayhelpers_1.1-0   
-##  [25] desc_1.3.0            labeling_0.4.2        bookdown_0.22        
-##  [28] posterior_1.0.1       sass_0.4.0            scales_1.1.1         
+##  [25] desc_1.3.0            labeling_0.4.2        bookdown_0.24        
+##  [28] posterior_1.1.0       sass_0.4.0            scales_1.1.1         
 ##  [31] checkmate_2.0.0       callr_3.7.0           pkgdown_1.6.1.9001   
 ##  [34] systemfonts_1.0.2     stringr_1.4.0         digest_0.6.27        
-##  [37] StanHeaders_2.21.0-7  rmarkdown_2.10        benchmarkmeData_1.0.4
-##  [40] pkgconfig_2.0.3       htmltools_0.5.1.1     parallelly_1.27.0    
+##  [37] StanHeaders_2.21.0-7  rmarkdown_2.11        benchmarkmeData_1.0.4
+##  [40] pkgconfig_2.0.3       htmltools_0.5.2       parallelly_1.28.1    
 ##  [43] highr_0.9             fastmap_1.1.0         limma_3.49.4         
 ##  [46] rlang_0.4.11          jquerylib_0.1.4       farver_2.1.0         
 ##  [49] generics_0.1.0        svUnit_1.0.6          jsonlite_1.7.2       
 ##  [52] distributional_0.2.2  inline_0.3.19         magrittr_2.0.1       
 ##  [55] loo_2.4.1             Matrix_1.3-4          Rcpp_1.0.7           
 ##  [58] munsell_0.5.0         fansi_0.5.0           abind_1.4-5          
-##  [61] furrr_0.2.3           lifecycle_1.0.0       stringi_1.7.3        
-##  [64] yaml_2.2.1            edgeR_3.35.0          pkgbuild_1.2.0       
-##  [67] grid_4.1.0            listenv_0.8.0         parallel_4.1.0       
+##  [61] furrr_0.2.3           lifecycle_1.0.0       stringi_1.7.4        
+##  [64] yaml_2.2.1            edgeR_3.35.1          pkgbuild_1.2.0       
+##  [67] grid_4.1.1            listenv_0.8.0         parallel_4.1.1       
 ##  [70] crayon_1.4.1          lattice_0.20-44       locfit_1.5-9.4       
 ##  [73] ps_1.6.0              pillar_1.6.2          codetools_0.2-18     
-##  [76] stats4_4.1.0          rstantools_2.1.1      glue_1.4.2           
+##  [76] stats4_4.1.1          rstantools_2.1.1      glue_1.4.2           
 ##  [79] evaluate_0.14         V8_3.4.2              BiocManager_1.30.16  
 ##  [82] RcppParallel_5.1.4    vctrs_0.3.8           foreach_1.5.1        
 ##  [85] gtable_0.3.0          purrr_0.3.4           tidyr_1.1.3          
-##  [88] future_1.21.0         benchmarkme_1.0.7     cachem_1.0.5         
-##  [91] ggplot2_3.3.5         xfun_0.25             coda_0.19-4          
-##  [94] ragg_1.1.3            tibble_3.1.3          iterators_1.0.13     
-##  [97] memoise_2.0.0         globals_0.14.0        tidybayes_3.0.0      
+##  [88] future_1.22.1         benchmarkme_1.0.7     cachem_1.0.6         
+##  [91] ggplot2_3.3.5         xfun_0.26             coda_0.19-4          
+##  [94] ragg_1.1.3            tibble_3.1.4          iterators_1.0.13     
+##  [97] memoise_2.0.0         globals_0.14.0        tidybayes_3.0.1      
 ## [100] ellipsis_0.3.2</code></pre>
 </div>
   </div>
