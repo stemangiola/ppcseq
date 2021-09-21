@@ -12,6 +12,7 @@
 #' @import rstantools
 #' @import lifecycle
 #' @importFrom graphics par
+#' @importFrom RcppParallel RcppParallelLibs CxxFlags
 #'
 #' @usage data(counts)
 #'
