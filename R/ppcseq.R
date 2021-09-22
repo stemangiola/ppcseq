@@ -247,7 +247,7 @@ identify_outliers = function(.data,
 	res_discovery =
 		my_df %>%
 		do_inference(
-			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,!!.do_check,
+			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,do_check___,
 			approximate_posterior_inference,
 			approximate_posterior_analysis = FALSE,
 			C,
@@ -300,7 +300,7 @@ identify_outliers = function(.data,
 	res_test =
 		my_df %>%
 		do_inference(
-			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,!!.do_check,
+			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,do_check___,
 			approximate_posterior_inference,
 			approximate_posterior_analysis,
 			C,
