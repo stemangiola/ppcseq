@@ -195,13 +195,15 @@ identify_outliers = function(.data,
 
 
 	# distinct_at is not released yet for dplyr, thus we have to use this trick
-	my_df <- format_input(
-		.data,
+	my_df <-
+		.data %>%
+		mutate(do_check___ = !!.do_check) %>%
+		format_input(
 		formula,
 		!!.sample,
 		!!.transcript,
 		!!.abundance,
-		!!.do_check,
+		do_check___,
 		!!.significance,
 		how_many_negative_controls
 	)
