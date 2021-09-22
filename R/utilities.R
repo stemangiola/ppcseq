@@ -870,16 +870,15 @@ save_generated_quantities_in_case = function(.data, fit, save_generated_quantiti
 		)
 }
 
-check_columns_exist = function(.data, .sample, .transcript, .abundance, .significance, .do_check){
+check_columns_exist = function(.data, .sample, .transcript, .abundance, .significance){
 
 	# Prepare column same enquo
 	.sample = enquo(.sample)
 	.transcript = enquo(.transcript)
 	.abundance = enquo(.abundance)
 	.significance = enquo(.significance)
-	.do_check = enquo(.do_check)
 
-	columns = c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), quo_name(.do_check))
+	columns = c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance))
 	if((!columns %in% (.data %>% colnames)) %>% any)
 		stop(
 			sprintf(
@@ -909,16 +908,15 @@ check_columns_exist = function(.data, .sample, .transcript, .abundance, .signifi
 #' @return A `tbl`
 #'
 #' @noRd
-check_if_any_NA = function(.data, .sample, .transcript, .abundance, .significance, .do_check, formula_columns){
+check_if_any_NA = function(.data, .sample, .transcript, .abundance, .significance, formula_columns){
 
 	# Prepare column same enquo
 	.sample = enquo(.sample)
 	.transcript = enquo(.transcript)
 	.abundance = enquo(.abundance)
 	.significance = enquo(.significance)
-	.do_check = enquo(.do_check)
 
-	columns = c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), quo_name(.do_check), formula_columns)
+	columns = c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), formula_columns)
 
 	if(
 		.data %>%
