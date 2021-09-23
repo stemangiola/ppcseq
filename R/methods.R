@@ -78,7 +78,7 @@ identify_outliers = function(.data,
 														 .abundance,
 														 .significance,
 														 .do_check,
-														 .library_size = NULL,
+														 .scaling_factor = NULL,
 														 percent_false_positive_genes = 1,
 														 how_many_negative_controls = 500,
 
@@ -103,7 +103,7 @@ identify_outliers = function(.data,
 	.abundance = enquo(.abundance)
 	.significance = enquo(.significance)
 	.do_check = enquo(.do_check)
-	.library_size = enquo(.library_size)
+	.scaling_factor = enquo(.scaling_factor)
 
 	# Get factor of interest
 	#factor_of_interest = ifelse(parse_formula(formula) %>% length %>% `>` (0), parse_formula(formula)[1], "")
@@ -220,11 +220,20 @@ identify_outliers = function(.data,
 
 
 	# Find normalisation
-	sample_scaling =
-		my_df %>%
-		.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
-		get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance)  %>%
-		distinct(sample, multiplier) %>%
+	if(quo_is_null(.scaling_factor))
+		sample_scaling =
+			my_df %>%
+			.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
+			get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance)  %>%
+			distinct(!!.sample, multiplier)
+	else
+		sample_scaling =
+			.data %>%
+			distinct(!!.sample, multiplier= !!.scaling_factor) %>%
+			distinct()
+
+	sample_exposure =
+		sample_scaling %>%
 		mutate(exposure_rate = -log(multiplier)) %>%
 		mutate(exposure_multiplier = exp(exposure_rate))
 
@@ -266,7 +275,7 @@ identify_outliers = function(.data,
 			X,
 			lambda_mu_mu,
 			cores,
-			sample_scaling,
+			sample_exposure,
 			additional_parameters_to_save,
 			adj_prob_theshold  = adj_prob_theshold_1,
 			how_many_posterior_draws = how_many_posterior_draws_1,
@@ -318,7 +327,7 @@ identify_outliers = function(.data,
 			X,
 			lambda_mu_mu,
 			cores,
-			sample_scaling,
+			sample_exposure,
 			additional_parameters_to_save,
 			adj_prob_theshold = adj_prob_theshold_2, # If check only deleterious is one side test
 			# * 2 because we just test one side of the distribution

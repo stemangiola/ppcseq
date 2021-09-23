@@ -12,7 +12,7 @@ identify_outliers(
   .abundance,
   .significance,
   .do_check,
-  .library_size = NULL,
+  .scaling_factor = NULL,
   percent_false_positive_genes = 1,
   how_many_negative_controls = 500,
   approximate_posterior_inference = TRUE,
