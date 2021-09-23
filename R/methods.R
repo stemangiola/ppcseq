@@ -218,32 +218,42 @@ identify_outliers = function(.data,
 	# Prior info
 	lambda_mu_mu = 5.612671
 
-	# Scale dataset
-	my_df_scaled =
+
+	# Find normalisation
+	sample_scaling =
 		my_df %>%
 		.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
-		get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance) %>%
-		left_join(my_df, by=quo_name(.sample)) %>%
-		dplyr::mutate(!!as.symbol(sprintf("%s_scaled",  quo_name(.abundance))) := !!.abundance * multiplier)
+		get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance)  %>%
+		distinct(sample, multiplier) %>%
+		mutate(exposure_rate = -log(multiplier)) %>%
+		mutate(exposure_multiplier = exp(exposure_rate))
 
-	# Build better scales for the inference
-	exposure_rate_multiplier =
-		my_df_scaled %>%
-		distinct(!!.sample, TMM, multiplier) %>%
-		mutate(l = multiplier %>% log) %>%
-		summarise(l %>% sd) %>%
-		pull(`l %>% sd`)
+	# # Scale dataset
+	# my_df_scaled =
+	# 	my_df %>%
+	# 	.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
+	# 	get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance) %>%
+	# 	left_join(my_df, by=quo_name(.sample)) %>%
+	# 	dplyr::mutate(!!as.symbol(sprintf("%s_scaled",  quo_name(.abundance))) := !!.abundance * multiplier)
 
-	# Build better scales for the inference
-	intercept_shift_scale =
-		my_df_scaled %>%
-		mutate(cc =
-					 	!!as.symbol(sprintf(
-					 		"%s_scaled",  quo_name(.abundance)
-					 	)) %>%
-					 	`+` (1) %>% log) %>%
-		summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
-		as.numeric
+	# # Build better scales for the inference
+	# exposure_rate_multiplier =
+	# 	my_df_scaled %>%
+	# 	distinct(!!.sample, TMM, multiplier) %>%
+	# 	mutate(l = multiplier %>% log) %>%
+	# 	summarise(l %>% sd) %>%
+	# 	pull(`l %>% sd`)
+	#
+	# # Build better scales for the inference
+	# intercept_shift_scale =
+	# 	my_df_scaled %>%
+	# 	mutate(cc =
+	# 				 	!!as.symbol(sprintf(
+	# 				 		"%s_scaled",  quo_name(.abundance)
+	# 				 	)) %>%
+	# 				 	`+` (1) %>% log) %>%
+	# 	summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
+	# 	as.numeric
 
 	# Run the first discovery phase with permissive false discovery rate
 	res_discovery =
@@ -256,8 +266,7 @@ identify_outliers = function(.data,
 			X,
 			lambda_mu_mu,
 			cores,
-			exposure_rate_multiplier,
-			intercept_shift_scale,
+			sample_scaling,
 			additional_parameters_to_save,
 			adj_prob_theshold  = adj_prob_theshold_1,
 			how_many_posterior_draws = how_many_posterior_draws_1,
@@ -309,8 +318,7 @@ identify_outliers = function(.data,
 			X,
 			lambda_mu_mu,
 			cores,
-			exposure_rate_multiplier,
-			intercept_shift_scale,
+			sample_scaling,
 			additional_parameters_to_save,
 			adj_prob_theshold = adj_prob_theshold_2, # If check only deleterious is one side test
 			# * 2 because we just test one side of the distribution

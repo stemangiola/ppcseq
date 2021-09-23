@@ -259,7 +259,7 @@ vb_iterative = function(model,
 				iter = iter,
 				tol_rel_obj = tol_rel_obj,
 				#seed = 654321,
-				pars=c("counts_rng", "exposure_rate", "alpha_sub_1", additional_parameters_to_save),
+				pars=c("counts_rng", "alpha_sub_1", additional_parameters_to_save),
 				...
 			)
 			boolFalse <- TRUE
@@ -538,12 +538,10 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			!!.abundance,
 			!!.sample,
 			mean,
-			# `.lower_1`,
-			# `.upper_1`,
-			`exposure rate`,
 			slope_1 = slope,
 			one_of(parse_formula(formula))
 		) %>%
+
 
 		# Attach results of tests
 		left_join(
@@ -561,6 +559,7 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 					),
 				by = c("S", "G")
 		) %>%
+		suppressWarnings() %>%
 
 		# format results
 		format_results(formula, !!.transcript, !!.abundance, !!.sample, do_check_only_on_detrimental)
@@ -579,13 +578,15 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 	.data %>%
 
 		# Check if new package is installed with different sintax
-		ifelse_pipe(
-			packageVersion("tidyr") >= "0.8.3.9000",
-			~ .x %>% nest(`sample wise data` = c(-!!.transcript)),
-			~ .x %>%
-				group_by(!!.transcript) %>%
-				nest(`sample wise data` = -!!.transcript)
-		) %>%
+		nest(`sample wise data` = -!!.transcript) %>%
+
+		# ifelse_pipe(
+		# 	packageVersion("tidyr") >= "0.8.3.9000",
+		# 	~ .x %>% nest(`sample wise data` = c(-!!.transcript)),
+		# 	~ .x %>%
+		# 		group_by(!!.transcript) %>%
+		# 		nest(`sample wise data` = -!!.transcript)
+		# ) %>%
 
 		# Add summary statistics
 		mutate(`ppc samples failed` = map_int(`sample wise data`, ~ .x %>% pull(ppc) %>% `!` %>% sum)) %>%
@@ -640,43 +641,6 @@ select_to_check_and_house_keeping = function(.data, .do_check, .significance, .t
 					)
 			)
 		}
-}
-
-
-#' add_exposure_rate
-#'
-#' @keywords internal
-#'
-#'
-#' @importFrom tidyr separate
-#'
-#' @param .data A data frame
-#' @param fit A fit object
-#'
-#' @return A `tbl`
-#'
-#' @noRd
-add_exposure_rate = function(.data, fit){
-
-	writeLines(sprintf("executing %s", "add_exposure_rate"))
-
-	.data %>%
-		left_join(
-			fit %>%
-				summary("exposure_rate") %$%
-				summary %>%
-				as_tibble(rownames = ".variable") %>%
-				separate(
-					.variable,
-					c(".variable", "S"),
-					sep = "[\\[,\\]]",
-					extra = "drop"
-				) %>%
-				mutate(S = S %>% as.integer) %>%
-				rename(`exposure rate` = mean) %>%
-				select(S, `exposure rate`),
-			by = "S"
-		)
 }
 
 check_if_within_posterior = function(.data, my_df, .do_check, .abundance){
@@ -762,7 +726,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @return A `tbl`
 #'
 #' @noRd
-fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check){
+fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check, exposure_rate){
 
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
@@ -777,7 +741,7 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 	# %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
 
-	draws_exposure = 	fit %>% rstan::extract("exposure_rate") %>% .[[1]]
+	# draws_exposure = 	fit %>% rstan::extract("exposure_rate") %>% .[[1]]
 
 	# %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
@@ -789,10 +753,11 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 				list(  S,G, truncation_compensation),
 				~ {
 
-					i_supersampled =	seq_len(length.out=sample(length(draws_mu[,..1, ..2]), how_many_posterior_draws, replace = TRUE ))
+					i_supersampled = sample(seq_len(length(draws_mu[,..1, ..2])), how_many_posterior_draws, replace = TRUE )
+
 					draws = rnbinom(
 						n = how_many_posterior_draws,
-						mu = exp(draws_mu[,..1, ..2][i_supersampled] + draws_exposure[,..1][i_supersampled]),
+						mu = exp(draws_mu[,..1, ..2][i_supersampled] + exposure_rate[..1]),
 						size = 1/exp(draws_sigma[,..2][i_supersampled]) * ..3
 					)
 					draws %>%
@@ -1051,7 +1016,6 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 			tol_rel_obj = tol_rel_obj,
 			pars = c(
 				"counts_rng",
-				"exposure_rate",
 				additional_parameters_to_save
 			)
 			#,
@@ -1071,7 +1035,6 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 			init = inits_fx,
 			pars = c(
 				"counts_rng",
-				"exposure_rate",
 				additional_parameters_to_save
 			)
 		)
@@ -1408,8 +1371,7 @@ do_inference = function(my_df,
 												X,
 												lambda_mu_mu,
 												cores,
-												exposure_rate_multiplier,
-												intercept_shift_scale,
+												sample_scaling,
 												additional_parameters_to_save,
 												adj_prob_theshold,
 												how_many_posterior_draws,
@@ -1541,6 +1503,15 @@ do_inference = function(my_df,
 	# Dimension od the data package to pass to Stan
 	CP = ncol(counts_package)
 
+	exposure_rate =
+		sample_scaling %>%
+		left_join(
+			counts_MPI %>% distinct(!!.sample, S), by=quo_name(.sample)
+		) %>%
+		distinct(S, exposure_rate ) %>%
+		arrange(S) %>%
+		pull(exposure_rate)
+
 	# Run model
 	#writeLines(sprintf("- Roughly the memory allocation for the fit object is %s Gb", object.size(1:(S * how_many_to_check * how_many_posterior_draws))/1e9))
 
@@ -1575,7 +1546,6 @@ do_inference = function(my_df,
 				init = inits_fx,
 				pars = c(
 					"counts_rng",
-					"exposure_rate",
 					"alpha_sub_1",
 					additional_parameters_to_save
 				)
@@ -1587,15 +1557,12 @@ do_inference = function(my_df,
 
 		ifelse_pipe(
 			approximate_posterior_analysis,
-			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check),
+			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check, exposure_rate),
 			~ .x %>% fit_to_counts_rng(adj_prob_theshold)
 		) %>%
 
 		# If generated quantities are saved
 		save_generated_quantities_in_case(fit, save_generated_quantities) %>%
-
-		# Add exposure rate
-		#add_exposure_rate(fit) %>%
 
 		# Check if data is within posterior
 		check_if_within_posterior(my_df, .do_check, .abundance) %>%
@@ -1609,9 +1576,6 @@ do_inference = function(my_df,
 		# Add position in MPI package for next inference
 		left_join(counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`),
 							by = c("S", "G")) %>%
-
-		# Add exposure rate
-		add_exposure_rate(fit) %>%
 
 		# needed for the figure article
 		ifelse_pipe(pass_fit,	~ .x %>% add_attr(fit, "fit")	) %>%
