@@ -78,6 +78,7 @@ identify_outliers = function(.data,
 														 .abundance,
 														 .significance,
 														 .do_check,
+														 .library_size = NULL,
 														 percent_false_positive_genes = 1,
 														 how_many_negative_controls = 500,
 
@@ -102,6 +103,7 @@ identify_outliers = function(.data,
 	.abundance = enquo(.abundance)
 	.significance = enquo(.significance)
 	.do_check = enquo(.do_check)
+	.library_size = enquo(.library_size)
 
 	# Get factor of interest
 	#factor_of_interest = ifelse(parse_formula(formula) %>% length %>% `>` (0), parse_formula(formula)[1], "")
