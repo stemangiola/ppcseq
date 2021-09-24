@@ -50,7 +50,7 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 		when(
 			quo_is_symbol(.) &&
 				select(.data, !!(.)) %>% lapply(class) %>%	as.character() %in% c("numeric", "integer", "double") 	~ {
-					message("tidybulk says: The factor of interest is continuous (e.g., integer,numeric, double). The data will be filtered without grouping.")
+					message("ppcseq says: The factor of interest is continuous (e.g., integer,numeric, double). The data will be filtered without grouping.")
 					NULL
 				},
 			quo_is_symbol(.) ~ .data %>%
@@ -74,7 +74,7 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 
 		# If I don't have any transcript with all samples give meaningful error
 		when(
-			nrow(.) == 0 ~ stop("tidybulk says: you don't have any transcript that is in all samples. Please consider using impute_missing_abundance."),
+			nrow(.) == 0 ~ stop("ppcseq says: you don't have any transcript that is in all samples. Please consider using impute_missing_abundance."),
 			~ (.)
 		) %>%
 
@@ -172,7 +172,7 @@ get_scaled_counts_bulk <- function(.data,
 
 	# Check if package is installed, otherwise install
 	if (find.package("edgeR", quiet = TRUE) %>% length %>% equals(0)) {
-		message("tidybulk says: Installing edgeR needed for analyses")
+		message("ppcseq says: Installing edgeR needed for analyses")
 		if (!requireNamespace("BiocManager", quietly = TRUE))
 			install.packages("BiocManager", repos = "https://cloud.r-project.org")
 		BiocManager::install("edgeR", ask = FALSE)

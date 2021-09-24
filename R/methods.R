@@ -343,23 +343,9 @@ identify_outliers = function(.data,
 
 	# Merge results and return
 	merge_results(
-
-		# Calculate CI 2 for discovery for plotting
-		res_discovery,
-
-		# %>%
-		# 	left_join(
-		# 		(.) %>%
-		# 			attr("fit") %>%
-		# 			fit_to_counts_rng_approximated(adj_prob_theshold_2, how_many_posterior_draws_2, truncation_compensation = 0.7352941, cores) %>%
-		# 			select(S, G, .lower_1 = .lower, .upper_1 = .upper)
-		# 	),
-
-		res_test,
-		formula,
-		!!.transcript,
-		!!.abundance,
-		!!.sample,
+		res_discovery %>%	left_join(sample_exposure, by = quo_name(.sample)) ,
+		res_test  %>%	left_join(sample_exposure, by = quo_name(.sample)) ,
+		formula,!!.transcript,!!.abundance,!!.sample,
 		do_check_only_on_detrimental
 	) %>%
 

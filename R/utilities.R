@@ -461,10 +461,10 @@ produce_plots = function(.x,
 		ifelse_pipe(
 			covariate %>% is.null %>% `!`,
 			~ .x + geom_point(aes(
-				size = `exposure rate`, fill = !!as.symbol(covariate)
+				size = exposure_rate, fill = !!as.symbol(covariate)
 			), shape = 21),
 			~ .x + geom_point(
-				aes(size = `exposure rate`),
+				aes(size = exposure_rate),
 				shape = 21,
 				fill = "black"
 			)
@@ -539,7 +539,8 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			!!.sample,
 			mean,
 			slope_1 = slope,
-			one_of(parse_formula(formula))
+			one_of(parse_formula(formula)),
+			exposure_rate
 		) %>%
 
 
@@ -555,9 +556,10 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 						.upper_2 = `.upper`,
 						slope_2 = slope,
 						ppc,
-						one_of(c("generated quantities", "deleterious outliers"))
+						one_of(c("generated quantities", "deleterious outliers")),
+						exposure_rate
 					),
-				by = c("S", "G")
+				by = c("S", "G", "exposure_rate")
 		) %>%
 		suppressWarnings() %>%
 
@@ -1278,7 +1280,7 @@ identify_outliers_1_step = function(.data,
 			`.upper`,
 			ppc,
 			one_of(c("generated quantities", "deleterious outliers")),
-			`exposure rate`,
+			exposure_rate,
 			one_of(parse_formula(formula))
 		) %>%
 
