@@ -235,7 +235,8 @@ identify_outliers = function(.data,
 	sample_exposure =
 		sample_scaling %>%
 		mutate(exposure_rate = -log(multiplier)) %>%
-		mutate(exposure_multiplier = exp(exposure_rate))
+		mutate(exposure_multiplier = exp(exposure_rate)) %>%
+		rename(multiplier := !!.scaling_factor)
 
 	# # Scale dataset
 	# my_df_scaled =
@@ -343,7 +344,7 @@ identify_outliers = function(.data,
 
 	# Merge results and return
 	merge_results(
-		res_discovery %>%	left_join(sample_exposure, by = quo_name(.sample)) ,
+		res_discovery,
 		res_test  %>%	left_join(sample_exposure, by = quo_name(.sample)) ,
 		formula,!!.transcript,!!.abundance,!!.sample,
 		do_check_only_on_detrimental

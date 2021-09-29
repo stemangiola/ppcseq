@@ -433,6 +433,11 @@ produce_plots = function(.x,
 
 	max_y  = .x %>% summarise(a = max(!!as.symbol(.abundance)), b = max(.upper_2)) %>% as.numeric %>% max
 
+	# Scale
+	.x =
+		.x %>%
+		mutate(across(c(.abundance, .lower_2, .upper_2), ~ .x * multiplier)	)
+
 	{
 		ggplot(data = .x, aes(
 			y = !!as.symbol(.abundance),
@@ -539,8 +544,7 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			!!.sample,
 			mean,
 			slope_1 = slope,
-			one_of(parse_formula(formula)),
-			exposure_rate
+			one_of(parse_formula(formula))
 		) %>%
 
 
@@ -557,9 +561,9 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 						slope_2 = slope,
 						ppc,
 						one_of(c("generated quantities", "deleterious outliers")),
-						exposure_rate
+						exposure_rate, multiplier
 					),
-				by = c("S", "G", "exposure_rate")
+				by = c("S", "G")
 		) %>%
 		suppressWarnings() %>%
 
