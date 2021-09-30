@@ -168,7 +168,7 @@ format_for_MPI = function(df, shards, .sample) {
 		# Add counts MPI rows indexes
 		group_by(idx_MPI) %>%
 		arrange(G) %>%
-		mutate(`read count MPI row` = seq_len(length.out=n())) %>%
+		mutate(`read_count_MPI_row` = seq_len(length.out=n())) %>%
 		ungroup
 
 }
@@ -322,9 +322,9 @@ get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
 			counts_MPI %>%
 				inner_join(to_exclude, by = c("S", "G")) %>%
 				filter(idx_MPI == s) %>%
-				distinct(idx_MPI, `read count MPI row`) %>%
+				distinct(idx_MPI, `read_count_MPI_row`) %>%
 				rowid_to_column %>%
-				spread(idx_MPI, `read count MPI row`) %>%
+				spread(idx_MPI, `read_count_MPI_row`) %>%
 
 				# If a shard is empty create a dummy data set to avoid error
 				ifelse_pipe((.) %>% nrow == 0, ~ tibble(rowid = 1,!!as.symbol(s) := NA))
@@ -452,7 +452,7 @@ produce_plots = function(.x,
 				geom_errorbar(aes(
 					ymin = `.lower_2`,
 					ymax = `.upper_2`,
-					color = `deleterious outliers`
+					color = `deleterious_outliers`
 				),
 				width = 0),
 			~ (.)
@@ -485,14 +485,14 @@ add_deleterious_if_covariate_exists = function(.data, X){
 						select(2) %>%
 						setNames("factor or interest") %>%
 						mutate(S = seq_len(length.out=n())) %>%
-						mutate(`is group right` = `factor or interest` > mean(`factor or interest`)) ,
+						mutate(`is_group_right` = `factor or interest` > mean(`factor or interest`)) ,
 					by = "S"
 				) %>%
 
-				mutate(`is group high` = (slope > 0 & `is group right`) |  (slope < 0 & !`is group right`)) %>%
+				mutate(`is group high` = (slope > 0 & `is_group_right`) |  (slope < 0 & !`is_group_right`)) %>%
 
 				# Check if outlier might be deleterious for the statistics
-				mutate(`deleterious outliers` = (!ppc) &
+				mutate(`deleterious_outliers` = (!ppc) &
 							 	(`is higher than mean` == `is group high`)),
 			~ (.)
 		)
@@ -537,11 +537,11 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			!!.transcript,
 			!!.abundance,
 			!!.sample,
-			mean,
+			# mean,
 			# `.lower_1`,
 			# `.upper_1`,
-			`exposure rate`,
-			slope_1 = slope,
+			# `exposure rate`,
+			slope_before_outlier_filtering = slope,
 			one_of(parse_formula(formula))
 		) %>%
 
@@ -552,12 +552,12 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 					select(
 						S,
 						G,
-						mean_2 = mean,
-						.lower_2 = `.lower`,
-						.upper_2 = `.upper`,
-						slope_2 = slope,
-						ppc,
-						one_of(c("generated quantities", "deleterious outliers"))
+						# mean_2 = mean,
+						.lower = `.lower`,
+						.upper = `.upper`,
+						slope_after_outlier_filtering = slope,
+						posterior_predictive_check_succeded = ppc,
+						one_of(c("generated quantities", "deleterious_outliers"))
 					),
 				by = c("S", "G")
 		) %>%
@@ -581,22 +581,22 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 		# Check if new package is installed with different sintax
 		ifelse_pipe(
 			packageVersion("tidyr") >= "0.8.3.9000",
-			~ .x %>% nest(`sample wise data` = c(-!!.transcript)),
+			~ .x %>% nest(`sample_wise_data` = c(-!!.transcript)),
 			~ .x %>%
 				group_by(!!.transcript) %>%
-				nest(`sample wise data` = -!!.transcript)
+				nest(`sample_wise_data` = -!!.transcript)
 		) %>%
 
 		# Add summary statistics
-		mutate(`ppc samples failed` = map_int(`sample wise data`, ~ .x %>% pull(ppc) %>% `!` %>% sum)) %>%
+		mutate(`ppc_samples_failed` = map_int(`sample_wise_data`, ~ .x %>% pull(posterior_predictive_check_succeded) %>% `!` %>% sum)) %>%
 
 		# If deleterious detection add summary as well
 		ifelse_pipe(
 			do_check_only_on_detrimental,
 			~ .x %>%
 				mutate(
-					`tot deleterious outliers` =
-						map_int(`sample wise data`, ~ .x %>% pull(`deleterious outliers`) %>% sum)
+					`tot_deleterious_outliers` =
+						map_int(`sample_wise_data`, ~ .x %>% pull(`deleterious_outliers`) %>% sum)
 				)
 		)
 }
@@ -1314,7 +1314,7 @@ identify_outliers_1_step = function(.data,
 			`.lower`,
 			`.upper`,
 			ppc,
-			one_of(c("generated quantities", "deleterious outliers")),
+			one_of(c("generated quantities", "deleterious_outliers")),
 			`exposure rate`,
 			one_of(parse_formula(formula))
 		) %>%
@@ -1472,7 +1472,7 @@ do_inference = function(my_df,
 	# Setup dimensions of variables for the model
 	G = counts_MPI %>% distinct(G) %>% nrow()
 	S = counts_MPI %>% distinct(!!.sample) %>% nrow()
-	N = counts_MPI %>% distinct(idx_MPI,!!.abundance, `read count MPI row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
+	N = counts_MPI %>% distinct(idx_MPI,!!.abundance, `read_count_MPI_row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
 	M = counts_MPI %>% distinct(`start`, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% max
 	G_per_shard = counts_MPI %>% distinct(!!.transcript, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% as.array
 	n_shards = min(shards, counts_MPI %>% distinct(idx_MPI) %>% nrow)
@@ -1484,18 +1484,18 @@ do_inference = function(my_df,
 	# Read count object
 	counts =
 		counts_MPI %>%
-		distinct(idx_MPI,!!.abundance, `read count MPI row`)  %>%
+		distinct(idx_MPI,!!.abundance, `read_count_MPI_row`)  %>%
 		spread(idx_MPI,!!.abundance) %>%
-		select(-`read count MPI row`) %>%
+		select(-`read_count_MPI_row`) %>%
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
 
 	# Indexes of the samples
 	sample_idx =
 		counts_MPI %>%
-		distinct(idx_MPI, S, `read count MPI row`)  %>%
+		distinct(idx_MPI, S, `read_count_MPI_row`)  %>%
 		spread(idx_MPI, S) %>%
-		select(-`read count MPI row`) %>%
+		select(-`read_count_MPI_row`) %>%
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
 
@@ -1607,7 +1607,7 @@ do_inference = function(my_df,
 		add_deleterious_if_covariate_exists(X) %>%
 
 		# Add position in MPI package for next inference
-		left_join(counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`),
+		left_join(counts_MPI %>% distinct(S, G, idx_MPI, `read_count_MPI_row`),
 							by = c("S", "G")) %>%
 
 		# Add exposure rate

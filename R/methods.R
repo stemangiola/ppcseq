@@ -44,7 +44,7 @@
 #' @param adj_prob_theshold_2 A boolean. Used for development and testing purposes
 #' @param return_fit A boolean
 #'
-#' @return A nested tibble `tbl` with transcript-wise information: `sample wise data` | plot | `ppc samples failed` | `tot deleterious outliers`
+#' @return A nested tibble `tbl` with transcript-wise information: `sample wise data` | plot | `ppc samples failed` | `tot deleterious_outliers`
 #'
 #' @examples
 #'
@@ -122,7 +122,7 @@ identify_outliers = function(.data,
 			d = 1L
 		) %>%
 			slice(0) %>%
-			setNames(c(quo_name(.transcript), "sample wise data", "ppc samples failed", "tot deleterious outliers")))
+			setNames(c(quo_name(.transcript), "sample wise data", "ppc samples failed", "tot deleterious_outliers")))
 	}
 
 
@@ -274,7 +274,7 @@ identify_outliers = function(.data,
 		filter(`.variable` == "counts_rng") %>%
 		ifelse_pipe(
 			do_check_only_on_detrimental,
-			~ .x %>% filter(`deleterious outliers`),
+			~ .x %>% filter(`deleterious_outliers`),
 			~ .x %>% filter(!ppc)
 		) %>%
 		distinct(S, G, .lower, .upper)
