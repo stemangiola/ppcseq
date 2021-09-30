@@ -290,10 +290,13 @@ vb_iterative = function(model,
 #' @noRd
 find_optimal_number_of_chains = function(how_many_posterior_draws,
 																				 max_number_to_check = 100) {
-	foreach(cc = 2:max_number_to_check, .combine = bind_rows) %do%
-		{
-			tibble(chains = cc, tot = how_many_posterior_draws / cc + 150 * cc)
-		} %>%
+
+
+	2:max_number_to_check %>%
+		map(
+			~ tibble(chains = .x, tot = how_many_posterior_draws / .x + 150 * .x)
+		) %>%
+		reduce(bind_rows) %>%
 		filter(tot == tot %>% min) %>%
 		pull(chains)
 
@@ -307,6 +310,7 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 #'
 #' @importFrom tibble rowid_to_column
 #' @importFrom purrr map
+#' @importFrom purrr reduce
 #'
 #' @param counts_MPI A matrix of read count information
 #' @param to_exclude A vector of oulier data points to exclude
@@ -315,38 +319,43 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 #' @return A matrix
 #' @noRd
 get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
-	# If there are genes to exclude
-	switch(
-		to_exclude %>% nrow %>% gt(0) %>% `!` %>% sum(1),
-		foreach(s =  seq_len(length.out=shards), .combine = full_join) %do% {
-			counts_MPI %>%
-				inner_join(to_exclude, by = c("S", "G")) %>%
-				filter(idx_MPI == s) %>%
-				distinct(idx_MPI, `read_count_MPI_row`) %>%
-				rowid_to_column %>%
-				spread(idx_MPI, `read_count_MPI_row`) %>%
 
-				# If a shard is empty create a dummy data set to avoid error
-				ifelse_pipe((.) %>% nrow == 0, ~ tibble(rowid = 1,!!as.symbol(s) := NA))
 
-		} %>%
+	to_exclude %>%
+		when(
+			# If there are genes to exclude
+			nrow(.) %>% gt(0) ~ 	seq_len(length.out = shards) %>%
+				map(~ {
+					s = .x
+					counts_MPI %>%
+						inner_join(to_exclude, by = c("S", "G")) %>%
+						filter(idx_MPI == s) %>%
+						distinct(idx_MPI, `read_count_MPI_row`) %>%
+						rowid_to_column %>%
+						spread(idx_MPI, `read_count_MPI_row`) %>%
 
-			# Anonymous function - Add length array to the first row for indexing in MPI
-			# Input: tibble
-			# Output: tibble
-			{
-				bind_rows((.) %>% map(function(x)
-					x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
-					(.))
-			} %>%
+						# If a shard is empty create a dummy data set to avoid error
+						ifelse_pipe((.) %>% nrow == 0, ~ tibble(rowid = 1, !!as.symbol(s) := NA))
+				}) %>%
+				reduce(full_join, by = "rowid") %>%
 
-			select(-rowid) %>%
-			replace(is.na(.), 0 %>% as.integer) %>%
-			as_matrix() %>% t,
+				# Anonymous function - Add length array to the first row for indexing in MPI
+				# Input: tibble
+				# Output: tibble
+				{
+					bind_rows((.) %>% map(function(x)
+						x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
+						(.))
+				} %>%
 
-		# Otherwise
-		matrix(rep(0, shards))
-	)
+				select(-rowid) %>%
+				replace(is.na(.), 0 %>% as.integer) %>%
+				as_matrix() %>% t,
+
+			# Otherwise
+			~ matrix(rep(0, shards))
+		)
+
 }
 
 #' function to pass initialisation values
@@ -728,6 +737,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 						 extra = "drop") %>%
 		mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
 		select(-one_of(c("n_eff", "Rhat", "khat"))) %>%
+		suppressWarnings() %>%
 		rename(`.lower` = (.) %>% ncol - 1,
 					 `.upper` = (.) %>% ncol)
 }
@@ -1435,7 +1445,7 @@ do_inference = function(my_df,
 	.do_check = enquo(.do_check)
 
 	# Check that the dataset is squared
-	if(my_df %>% distinct(!!.sample, !!.transcript) %>% count(!!.transcript) %>% count(n) %>% nrow %>% gt(1))
+	if(my_df %>% distinct(!!.sample, !!.transcript) %>% count(!!.transcript) %>% count(n, name = "nn") %>% nrow %>% gt(1))
 		stop("The input data frame does not represent a rectangular structure. Each transcript must be present in all samples.")
 
 	# Get the number of transcripts to check
