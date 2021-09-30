@@ -1172,7 +1172,7 @@ identify_outliers_1_step = function(.data,
 	#factor_of_interest = ifelse(parse_formula(formula) %>% length %>% `>` (0), parse_formula(formula)[1], "")
 
 	# Check if columns exist
-	check_columns_exist(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check)
+	check_columns_exist(.data, !!.sample, !!.transcript, !!.abundance, !!.significance)
 
 	# Check if any column is NA or null
 	check_if_any_NA(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check, parse_formula(formula))
