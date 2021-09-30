@@ -431,7 +431,7 @@ produce_plots = function(.x,
 			))
 		)
 
-	max_y  = .x %>% summarise(a = max(!!as.symbol(.abundance)), b = max(.upper_2)) %>% as.numeric %>% max
+	max_y  = .x %>% summarise(a = max(!!as.symbol(.abundance)), b = max(.upper)) %>% as.numeric %>% max
 
 	{
 		ggplot(data = .x, aes(
@@ -448,10 +448,10 @@ produce_plots = function(.x,
 		# 	)
 	} %>%
 		when(
-			".lower_2" %in% colnames(.x) ~ (.) +
+			".lower" %in% colnames(.x) ~ (.) +
 				geom_errorbar(aes(
-					ymin = `.lower_2`,
-					ymax = `.upper_2`,
+					ymin = `.lower`,
+					ymax = `.upper`,
 					color = `deleterious_outliers`
 				),
 				width = 0),
@@ -540,7 +540,7 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			# mean,
 			# `.lower_1`,
 			# `.upper_1`,
-			# `exposure rate`,
+			`exposure rate`,
 			slope_before_outlier_filtering = slope,
 			one_of(parse_formula(formula))
 		) %>%
