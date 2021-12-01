@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ppcseq</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.99.27</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.99.27</span>
       </span>
     </div>
 
@@ -72,29 +72,29 @@
 
       
 
-      </header><script src="introduction_files/header-attrs-2.11/header-attrs.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Probabilistic Outlier Identification for RNA Sequencing Generalized Linear Models</h1>
                         <h4 data-toc-skip class="author">Stefano Mangiola</h4>
             
-            <h4 data-toc-skip class="date">2021-09-21</h4>
+            <h4 data-toc-skip class="date">2021-12-01</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/stemangiola/ppcseq/blob/master/vignettes/introduction.Rmd" class="external-link"><code>vignettes/introduction.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/stemangiola/ppcseq/blob/HEAD/vignettes/introduction.Rmd" class="external-link"><code>vignettes/introduction.Rmd</code></a></small>
       <div class="hidden name"><code>introduction.Rmd</code></div>
 
     </div>
 
     
     
-<div id="introduction" class="section level1">
-<h1 class="hasAnchor">
-<a href="#introduction" class="anchor" aria-hidden="true"></a>Introduction</h1>
+<div class="section level1">
+<h1 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+</h1>
 <p>Relative transcript abundance has proven to be a valuable tool for understanding the function of genes in biological systems. For the differential analysis of transcript abundance using RNA sequencing data, the negative binomial model is by far the most frequently adopted. However, common methods that are based on a negative binomial model are not robust to extreme outliers, which we found to be abundant in public datasets. So far, no rigorous and probabilistic methods for detection of outliers have been developed for RNA sequencing data, leaving the identification mostly to visual inspection. Recent advances in Bayesian computation allow large-scale comparison of observed data against its theoretical distribution given in a statistical model. Here we propose ppcseq, a key quality-control tool for identifying transcripts that include outlier data points in differential expression analysis, which do not follow a negative binomial distribution. Applying ppcseq to analyse several publicly available datasets using popular tools, we show that from 3 to 10 percent of differentially abundant transcripts across algorithms and datasets had statistics inflated by the presence of outliers.</p>
 </div>
-<div id="installation-and-use" class="section level1">
-<h1 class="hasAnchor">
-<a href="#installation-and-use" class="anchor" aria-hidden="true"></a>Installation and use</h1>
+<div class="section level1">
+<h1 id="installation-and-use">Installation and use<a class="anchor" aria-label="anchor" href="#installation-and-use"></a>
+</h1>
 <p>The input data set is a tidy representation of a differential gene transcript abundance analysis</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span>
@@ -115,20 +115,20 @@
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"counts"</span><span class="op">)</span>
 <span class="va">counts</span> </code></pre></div>
-<pre><code>## # A tibble: 394,821 × 9
-##    sample  symbol   logCPM    LR   PValue        FDR value       W Label      
-##    &lt;chr&gt;   &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;      
-##  1 10922PP SLC16A12   1.39  41.1 1.46e-10 0.00000274   160 -0.129  High       
-##  2 10935PP SLC16A12   1.39  41.1 1.46e-10 0.00000274   150 -0.127  High       
-##  3 10973PP SLC16A12   1.39  41.1 1.46e-10 0.00000274   146 -0.426  High       
-##  4 10976PP SLC16A12   1.39  41.1 1.46e-10 0.00000274   347 -0.0164 High       
-##  5 10985PP SLC16A12   1.39  41.1 1.46e-10 0.00000274   175 -0.135  High       
-##  6 11026PP SLC16A12   1.39  41.1 1.46e-10 0.00000274   244  0.125  High       
-##  7 11045PP SLC16A12   1.39  41.1 1.46e-10 0.00000274   399 -0.0892 High       
-##  8 11082PP SLC16A12   1.39  41.1 1.46e-10 0.00000274   100  0.261  Neoadjuvant
-##  9 11086PP SLC16A12   1.39  41.1 1.46e-10 0.00000274    37 -0.132  Neoadjuvant
-## 10 11103PP SLC16A12   1.39  41.1 1.46e-10 0.00000274    73  0.146  Neoadjuvant
-## # … with 394,811 more rows</code></pre>
+<pre><code><span class="co">## <span style="color: #949494;"># A tibble: 394,821 × 9</span></span>
+<span class="co">##    sample  symbol   logCPM    LR   PValue        FDR value       W Label      </span>
+<span class="co">##    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span>
+<span class="co">## <span style="color: #BCBCBC;"> 1</span> 10922PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74   160 -<span style="color: #BB0000;">0.129</span>  High       </span>
+<span class="co">## <span style="color: #BCBCBC;"> 2</span> 10935PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74   150 -<span style="color: #BB0000;">0.127</span>  High       </span>
+<span class="co">## <span style="color: #BCBCBC;"> 3</span> 10973PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74   146 -<span style="color: #BB0000;">0.426</span>  High       </span>
+<span class="co">## <span style="color: #BCBCBC;"> 4</span> 10976PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74   347 -<span style="color: #BB0000;">0.016</span><span style="color: #BB0000; text-decoration: underline;">4</span> High       </span>
+<span class="co">## <span style="color: #BCBCBC;"> 5</span> 10985PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74   175 -<span style="color: #BB0000;">0.135</span>  High       </span>
+<span class="co">## <span style="color: #BCBCBC;"> 6</span> 11026PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74   244  0.125  High       </span>
+<span class="co">## <span style="color: #BCBCBC;"> 7</span> 11045PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74   399 -<span style="color: #BB0000;">0.089</span><span style="color: #BB0000; text-decoration: underline;">2</span> High       </span>
+<span class="co">## <span style="color: #BCBCBC;"> 8</span> 11082PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74   100  0.261  Neoadjuvant</span>
+<span class="co">## <span style="color: #BCBCBC;"> 9</span> 11086PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74    37 -<span style="color: #BB0000;">0.132</span>  Neoadjuvant</span>
+<span class="co">## <span style="color: #BCBCBC;">10</span> 11103PP SLC16A12   1.39  41.1 1.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 0.000<span style="text-decoration: underline;">002</span>74    73  0.146  Neoadjuvant</span>
+<span class="co">## <span style="color: #949494;"># … with 394,811 more rows</span></span></code></pre>
 <p>You can identify anrtefactual calls from your differential transcribt anundance analysis, due to outliers.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Import libraries</span>
@@ -151,10 +151,10 @@
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.info.html" class="external-link">Sys.info</a></span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="st">'sysname'</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="st">"Linux"</span><span class="op">)</span>
 <span class="va">counts.ppc</span> </code></pre></div>
-<pre><code>## # A tibble: 1 × 4
-##   symbol   `sample wise data` `ppc samples failed` `tot deleterious outliers`
-##   &lt;chr&gt;    &lt;list&gt;                            &lt;int&gt;                      &lt;int&gt;
-## 1 SLC16A12 &lt;tibble [21 × 14]&gt;                    0                          0</code></pre>
+<pre><code><span class="co">## <span style="color: #949494;"># A tibble: 1 × 4</span></span>
+<span class="co">##   symbol   `sample wise data` `ppc samples failed` `tot deleterious outliers`</span>
+<span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;list&gt;</span>                            <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>                      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
+<span class="co">## <span style="color: #BCBCBC;">1</span> SLC16A12 <span style="color: #949494;">&lt;tibble [21 × 14]&gt;</span>                    0                          0</span></code></pre>
 <p>The new data frame contains plots for each gene</p>
 <p>We can visualise the top five differentially transcribed genes</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -167,66 +167,66 @@
 <span class="va">counts.ppc_plots</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
     <span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">plot</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
     <span class="va">.</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">]</span></code></pre></div>
-<pre><code>## [[1]]</code></pre>
+<pre><code><span class="co">## [[1]]</span></code></pre>
 <p><img src="introduction_files/figure-html/unnamed-chunk-9-1.png" width="700"></p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
-<pre><code>## R version 4.1.1 (2021-08-10)
-## Platform: x86_64-pc-linux-gnu (64-bit)
-## Running under: Ubuntu 20.04.3 LTS
-## 
-## Matrix products: default
-## BLAS/LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.8.so
-## 
-## locale:
-##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
-##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
-##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=C             
-##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
-##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
-## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
-## 
-## attached base packages:
-## [1] stats     graphics  grDevices utils     datasets  methods   base     
-## 
-## other attached packages:
-## [1] ppcseq_0.99.27   dplyr_1.0.7      knitr_1.34       BiocStyle_2.21.3
-## 
-## loaded via a namespace (and not attached):
-##   [1] matrixStats_0.61.0    fs_1.5.0              httr_1.4.2           
-##   [4] doParallel_1.0.16     rprojroot_2.0.2       rstan_2.21.2         
-##   [7] tensorA_0.36.2        tools_4.1.1           backports_1.2.1      
-##  [10] bslib_0.3.0           utf8_1.2.2            R6_2.5.1             
-##  [13] colorspace_2.0-2      ggdist_3.0.0          withr_2.4.2          
-##  [16] tidyselect_1.1.1      gridExtra_2.3         prettyunits_1.1.1    
-##  [19] processx_3.5.2        curl_4.3.2            compiler_4.1.1       
-##  [22] textshaping_0.3.5     cli_3.0.1             arrayhelpers_1.1-0   
-##  [25] desc_1.3.0            labeling_0.4.2        bookdown_0.24        
-##  [28] posterior_1.1.0       sass_0.4.0            scales_1.1.1         
-##  [31] checkmate_2.0.0       callr_3.7.0           pkgdown_1.6.1.9001   
-##  [34] systemfonts_1.0.2     stringr_1.4.0         digest_0.6.27        
-##  [37] StanHeaders_2.21.0-7  rmarkdown_2.11        benchmarkmeData_1.0.4
-##  [40] pkgconfig_2.0.3       htmltools_0.5.2       parallelly_1.28.1    
-##  [43] highr_0.9             fastmap_1.1.0         limma_3.49.4         
-##  [46] rlang_0.4.11          jquerylib_0.1.4       farver_2.1.0         
-##  [49] generics_0.1.0        svUnit_1.0.6          jsonlite_1.7.2       
-##  [52] distributional_0.2.2  inline_0.3.19         magrittr_2.0.1       
-##  [55] loo_2.4.1             Matrix_1.3-4          Rcpp_1.0.7           
-##  [58] munsell_0.5.0         fansi_0.5.0           abind_1.4-5          
-##  [61] furrr_0.2.3           lifecycle_1.0.0       stringi_1.7.4        
-##  [64] yaml_2.2.1            edgeR_3.35.1          pkgbuild_1.2.0       
-##  [67] grid_4.1.1            listenv_0.8.0         parallel_4.1.1       
-##  [70] crayon_1.4.1          lattice_0.20-44       locfit_1.5-9.4       
-##  [73] ps_1.6.0              pillar_1.6.2          codetools_0.2-18     
-##  [76] stats4_4.1.1          rstantools_2.1.1      glue_1.4.2           
-##  [79] evaluate_0.14         V8_3.4.2              BiocManager_1.30.16  
-##  [82] RcppParallel_5.1.4    vctrs_0.3.8           foreach_1.5.1        
-##  [85] gtable_0.3.0          purrr_0.3.4           tidyr_1.1.3          
-##  [88] future_1.22.1         benchmarkme_1.0.7     cachem_1.0.6         
-##  [91] ggplot2_3.3.5         xfun_0.26             coda_0.19-4          
-##  [94] ragg_1.1.3            tibble_3.1.4          iterators_1.0.13     
-##  [97] memoise_2.0.0         globals_0.14.0        tidybayes_3.0.1      
-## [100] ellipsis_0.3.2</code></pre>
+<pre><code><span class="co">## R Under development (unstable) (2021-11-16 r81199)</span>
+<span class="co">## Platform: x86_64-pc-linux-gnu (64-bit)</span>
+<span class="co">## Running under: Ubuntu 20.04.3 LTS</span>
+<span class="co">## </span>
+<span class="co">## Matrix products: default</span>
+<span class="co">## BLAS/LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.8.so</span>
+<span class="co">## </span>
+<span class="co">## locale:</span>
+<span class="co">##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              </span>
+<span class="co">##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    </span>
+<span class="co">##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=C             </span>
+<span class="co">##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 </span>
+<span class="co">##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            </span>
+<span class="co">## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       </span>
+<span class="co">## </span>
+<span class="co">## attached base packages:</span>
+<span class="co">## [1] stats     graphics  grDevices utils     datasets  methods   base     </span>
+<span class="co">## </span>
+<span class="co">## other attached packages:</span>
+<span class="co">## [1] ppcseq_0.99.27   dplyr_1.0.7      knitr_1.36       BiocStyle_2.23.0</span>
+<span class="co">## </span>
+<span class="co">## loaded via a namespace (and not attached):</span>
+<span class="co">##   [1] matrixStats_0.61.0    fs_1.5.1              httr_1.4.2           </span>
+<span class="co">##   [4] doParallel_1.0.16     rprojroot_2.0.2       rstan_2.21.2         </span>
+<span class="co">##   [7] tensorA_0.36.2        tools_4.2.0           backports_1.4.0      </span>
+<span class="co">##  [10] bslib_0.3.1           utf8_1.2.2            R6_2.5.1             </span>
+<span class="co">##  [13] colorspace_2.0-2      ggdist_3.0.1          withr_2.4.3          </span>
+<span class="co">##  [16] tidyselect_1.1.1      gridExtra_2.3         prettyunits_1.1.1    </span>
+<span class="co">##  [19] processx_3.5.2        curl_4.3.2            compiler_4.2.0       </span>
+<span class="co">##  [22] textshaping_0.3.6     cli_3.1.0             arrayhelpers_1.1-0   </span>
+<span class="co">##  [25] desc_1.4.0            labeling_0.4.2        bookdown_0.24        </span>
+<span class="co">##  [28] posterior_1.1.0       sass_0.4.0            scales_1.1.1         </span>
+<span class="co">##  [31] checkmate_2.0.0       callr_3.7.0           pkgdown_2.0.0.9000   </span>
+<span class="co">##  [34] systemfonts_1.0.3     stringr_1.4.0         digest_0.6.28        </span>
+<span class="co">##  [37] StanHeaders_2.21.0-7  rmarkdown_2.11        benchmarkmeData_1.0.4</span>
+<span class="co">##  [40] pkgconfig_2.0.3       htmltools_0.5.2       parallelly_1.29.0    </span>
+<span class="co">##  [43] highr_0.9             fastmap_1.1.0         limma_3.51.1         </span>
+<span class="co">##  [46] rlang_0.4.12          jquerylib_0.1.4       farver_2.1.0         </span>
+<span class="co">##  [49] generics_0.1.1        svUnit_1.0.6          jsonlite_1.7.2       </span>
+<span class="co">##  [52] distributional_0.2.2  inline_0.3.19         magrittr_2.0.1       </span>
+<span class="co">##  [55] loo_2.4.1             Matrix_1.3-4          Rcpp_1.0.7           </span>
+<span class="co">##  [58] munsell_0.5.0         fansi_0.5.0           abind_1.4-5          </span>
+<span class="co">##  [61] furrr_0.2.3           lifecycle_1.0.1       stringi_1.7.6        </span>
+<span class="co">##  [64] yaml_2.2.1            edgeR_3.37.0          pkgbuild_1.2.1       </span>
+<span class="co">##  [67] grid_4.2.0            listenv_0.8.0         parallel_4.2.0       </span>
+<span class="co">##  [70] crayon_1.4.2          lattice_0.20-45       locfit_1.5-9.4       </span>
+<span class="co">##  [73] ps_1.6.0              pillar_1.6.4          codetools_0.2-18     </span>
+<span class="co">##  [76] stats4_4.2.0          rstantools_2.1.1      glue_1.5.1           </span>
+<span class="co">##  [79] evaluate_0.14         V8_3.6.0              BiocManager_1.30.16  </span>
+<span class="co">##  [82] RcppParallel_5.1.4    vctrs_0.3.8           foreach_1.5.1        </span>
+<span class="co">##  [85] gtable_0.3.0          purrr_0.3.4           tidyr_1.1.4          </span>
+<span class="co">##  [88] future_1.23.0         benchmarkme_1.0.7     cachem_1.0.6         </span>
+<span class="co">##  [91] ggplot2_3.3.5         xfun_0.28             coda_0.19-4          </span>
+<span class="co">##  [94] ragg_1.2.0            tibble_3.1.6          iterators_1.0.13     </span>
+<span class="co">##  [97] memoise_2.0.1         globals_0.14.0        tidybayes_3.0.1      </span>
+<span class="co">## [100] ellipsis_0.3.2</span></code></pre>
 </div>
   </div>
 
@@ -247,7 +247,7 @@
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link external-link">pkgdown</a> 1.6.1.9001.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.0.9000.</p>
 </div>
 
       </footer>
