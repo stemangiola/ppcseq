@@ -18,7 +18,7 @@ library(magrittr)
 
 To install:
 
-Before install, for linux systems, in order to exploit multi-threading, from R write:
+Before install, for linux systems, in order to exploit multi-threading, from R write (without changing anything of the code):
 
 ```{r eval=FALSE}
 fileConn<-file("~/.R/Makevars")
