@@ -10,6 +10,7 @@ Before install, for linux systems, in order to exploit multi-threading,
 from R write:
 
 ``` r
+dir.create(file.path("~/", ".R"), showWarnings = FALSE)
 fileConn<-file("~/.R/Makevars")
 writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS += -pthread"), fileConn)
 close(fileConn)
