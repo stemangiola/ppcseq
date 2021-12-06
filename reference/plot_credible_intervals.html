@@ -59,7 +59,9 @@
     <p>Plot the data along the theoretical data distribution.</p>
     </div>
 
-    <div id="ref-usage">Usage,<div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">plot_credible_intervals</span><span class="op">(</span><span class="va">.data</span><span class="op">)</span></code></pre></div></div>
+    <div id="ref-usage">
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">plot_credible_intervals</span><span class="op">(</span><span class="va">.data</span><span class="op">)</span></code></pre></div>
+    </div>
 
     <div id="arguments">
     <h2>Arguments</h2>
@@ -109,8 +111,8 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000521 seconds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.21 seconds.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000509 seconds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.09 seconds.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Adjust your expectations accordingly!</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
@@ -124,55 +126,19 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Begin stochastic gradient ascent.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100   -156518854.612             1.000            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200   -535614774.272             0.854            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300   -193453644.893             1.159            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400    -60320697.166             1.421            1.769</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500   -276717647.851             1.293            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600     -6280000.684             8.255            1.769</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700      -955856.469             7.871            1.769</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800  -62139499914559.266             7.012            1.769</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900  -1628027603784.084            10.363            1.769</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1000  -2455530169.140            75.527            2.207</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1100    -83760294.615            71.235            2.207   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1200       -34993.394           264.683            5.570   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1300       -22841.209           244.363            2.207   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1400      -936966.782           226.978            2.207   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1500     -2730460.985           211.890            1.769   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1600       -11252.179           213.751            2.207   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1700        -9627.406           201.187            1.769   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1800        -8593.099           190.017            1.769   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1900        -8137.619           180.019            1.000   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2000        -7770.834           171.020            1.000   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2100        -7591.228           162.878            1.000   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2200        -7536.715           155.475            1.000   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2300        -7522.356           148.715            0.976   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2400        -7531.175           142.518            0.976   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2500        -7521.998           136.818            0.782   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2600        -7523.608           131.556            0.782   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2700        -7522.516           126.683            0.708   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2800        -7527.706           122.159            0.708   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   2900        -7526.060           117.946            0.657   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3000        -7520.666           114.015            0.657   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3100        -7541.812           110.337            0.532   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3200        -7518.740           106.889            0.532   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3300        -7518.885           103.650            0.169   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3400        -7513.435           100.602            0.169   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3500        -7515.823            97.727            0.120   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3600        -7510.898            95.013            0.120   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3700        -7511.633            92.445            0.056   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3800        -7511.017            90.012            0.056   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   3900        -7518.918            87.704            0.047   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   4000        -7516.442            85.511            0.047   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   4100        -7513.626            83.426            0.024   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   4200        -7512.469            81.439            0.024   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   4300        -7509.624            79.545            0.007   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   4400        -7513.173            77.738            0.007   MAY BE DIVERGING... INSPECT ELBO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   4500        -7520.867            76.010            0.003   MEDIAN ELBO CONVERGED   MAY BE DIVERGING... INSPECT ELBO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -12379.331             1.000            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8612.603             0.719            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7625.216             0.522            0.437</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7545.113             0.394            0.437</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7526.712             0.316            0.129</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7526.704             0.263            0.129</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7527.180             0.226            0.011</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7522.051             0.198            0.011</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7526.694             0.176            0.002   MEDIAN ELBO CONVERGED</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Drawing a sample of size 1000 from the approximate posterior... </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: COMPLETED.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.36. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.52. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing add_exposure_rate</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing check_if_within_posterior</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing save_generated_quantities_in_case</span>
@@ -188,9 +154,12 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: ------------------------------------------------------------</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Rejecting initial value:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Gradient evaluated at the initial value is not finite.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Stan can't start sampling from this initial value.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000546 seconds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.46 seconds.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000454 seconds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 4.54 seconds.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Adjust your expectations accordingly!</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
@@ -204,19 +173,21 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Begin stochastic gradient ascent.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -12041.890             1.000            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8488.332             0.709            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7587.794             0.512            0.419</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7506.376             0.387            0.419</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7516.220             0.310            0.119</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7495.500             0.259            0.119</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7501.266             0.222            0.011</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7495.382             0.194            0.011</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7497.096             0.173            0.003   MEDIAN ELBO CONVERGED</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -12374.808             1.000            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8578.377             0.721            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7585.113             0.525            0.443</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7515.663             0.396            0.443</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7513.298             0.317            0.131</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7547.252             0.265            0.131</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7508.058             0.228            0.009</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7504.691             0.199            0.009</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7501.627             0.177            0.005</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1000        -7503.691             0.159            0.005</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1100        -7508.659             0.145            0.004   MEDIAN ELBO CONVERGED</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Drawing a sample of size 1000 from the approximate posterior... </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: COMPLETED.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 3.06. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 3.32. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing add_exposure_rate</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing check_if_within_posterior</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing save_generated_quantities_in_case</span>
@@ -300,7 +271,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.0.9000.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.9000.</p>
 </div>
 
       </footer></div>

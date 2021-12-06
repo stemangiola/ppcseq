@@ -61,7 +61,8 @@
 <p><a href="https://lifecycle.r-lib.org/articles/stages.html#maturing" class="external-link"><img src="figures/lifecycle-maturing.svg" alt="[Maturing]"></a></p>
     </div>
 
-    <div id="ref-usage">Usage,<div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">identify_outliers</span><span class="op">(</span>
+    <div id="ref-usage">
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">identify_outliers</span><span class="op">(</span>
   <span class="va">.data</span>,
   formula <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>,
   <span class="va">.sample</span>,
@@ -84,7 +85,8 @@
   seed <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span>length.out <span class="op">=</span> <span class="fl">999999</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,
   adj_prob_theshold_2 <span class="op">=</span> <span class="cn">NULL</span>,
   return_fit <span class="op">=</span> <span class="cn">FALSE</span>
-<span class="op">)</span></code></pre></div></div>
+<span class="op">)</span></code></pre></div>
+    </div>
 
     <div id="arguments">
     <h2>Arguments</h2>
@@ -180,9 +182,15 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: ------------------------------------------------------------</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Rejecting initial value:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Gradient evaluated at the initial value is not finite.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Stan can't start sampling from this initial value.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Rejecting initial value:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Log probability evaluates to log(0), i.e. negative infinity.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Stan can't start sampling from this initial value.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000546 seconds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.46 seconds.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000468 seconds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 4.68 seconds.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Adjust your expectations accordingly!</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
@@ -196,19 +204,19 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Begin stochastic gradient ascent.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -11986.049             1.000            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8488.570             0.706            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7610.186             0.509            0.412</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7555.092             0.384            0.412</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7530.341             0.308            0.115</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7527.747             0.256            0.115</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7525.820             0.220            0.007</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7522.604             0.192            0.007</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7515.370             0.171            0.003   MEDIAN ELBO CONVERGED</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -12918.474             1.000            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8574.162             0.753            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7572.626             0.546            0.507</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7534.326             0.411            0.507</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7535.387             0.329            0.132</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7542.532             0.274            0.132</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7525.680             0.235            0.005</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7526.878             0.206            0.005</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7518.425             0.183            0.002   MEDIAN ELBO CONVERGED</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Drawing a sample of size 1000 from the approximate posterior... </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: COMPLETED.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.52. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.54. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing add_exposure_rate</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing check_if_within_posterior</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing save_generated_quantities_in_case</span>
@@ -225,8 +233,8 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000519 seconds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.19 seconds.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000554 seconds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.54 seconds.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Adjust your expectations accordingly!</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
@@ -240,23 +248,19 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Begin stochastic gradient ascent.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -12090.818             1.000            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8464.214             0.714            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7580.136             0.515            0.428</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7523.903             0.388            0.428</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7513.119             0.311            0.117</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7510.873             0.259            0.117</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7552.528             0.223            0.007</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7496.165             0.196            0.008</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7491.095             0.174            0.007</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1000        -7496.039             0.157            0.007</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1100        -7495.281             0.143            0.006</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1200        -7492.119             0.131            0.006</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   1300        -7492.665             0.121            0.001   MEDIAN ELBO CONVERGED</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -11945.559             1.000            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8374.067             0.713            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7589.678             0.510            0.426</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7517.411             0.385            0.426</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7511.215             0.308            0.103</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7514.359             0.257            0.103</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7502.455             0.220            0.010</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7521.189             0.193            0.010</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7498.619             0.172            0.003   MEDIAN ELBO CONVERGED</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Drawing a sample of size 1000 from the approximate posterior... </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: COMPLETED.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.82. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.3. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing add_exposure_rate</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing check_if_within_posterior</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing save_generated_quantities_in_case</span>
@@ -340,7 +344,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.0.9000.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.9000.</p>
 </div>
 
       </footer></div>
