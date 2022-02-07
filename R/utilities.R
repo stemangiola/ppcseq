@@ -879,20 +879,14 @@ check_columns_exist = function(.data, .sample, .transcript, .abundance, .signifi
 #' @return A `tbl`
 #'
 #' @noRd
-check_if_any_NA = function(.data, .sample, .transcript, .abundance, .significance, formula_columns){
+#'
+check_if_any_NA = function(.data, columns){
 
-	# Prepare column same enquo
-	.sample = enquo(.sample)
-	.transcript = enquo(.transcript)
-	.abundance = enquo(.abundance)
-	.significance = enquo(.significance)
-
-	columns = c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), formula_columns)
 
 	if(
 		.data %>%
 		drop_na(columns) %>%
-		nrow %>% st(	.data %>% nrow	)
+		nrow %>% st(      .data %>% nrow    )
 	)
 		stop(sprintf("There are NA values in you tibble for any of the column %s", paste(columns, collapse=", ")))
 }
@@ -1134,7 +1128,7 @@ identify_outliers_1_step = function(.data,
 	check_columns_exist(.data, !!.sample, !!.transcript, !!.abundance, !!.significance)
 
 	# Check if any column is NA or null
-	check_if_any_NA(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check, parse_formula(formula))
+	check_if_any_NA(.data, c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), quo_name(.do_check), parse_formula(formula)))
 
 	# Check is testing environment is supported
 	if (approximate_posterior_inference &	save_generated_quantities)

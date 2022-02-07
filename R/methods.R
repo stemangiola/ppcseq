@@ -28,6 +28,7 @@
 #' @param .abundance A column name as symbol. The transcript abundance (read count)
 #' @param .significance A column name as symbol. A column with the Pvalue, or other significance measure (preferred Pvalue over false discovery rate)
 #' @param .do_check A column name as symbol. A column with a boolean indicating whether a transcript was identified as differentially abundant
+#' @param .scaling_factor In case the scaling factor must not be calculated (TMM method) using the input data but provided. It is useful, for example, for pseudobulk single-cell where the scaling might depend on sample sequencing depth for all cells rather than a particular cell type.
 #' @param percent_false_positive_genes A real between 0 and 100. It is the aimed percent of transcript being a false positive. For example, percent_false_positive_genes = 1 provide 1 percent of the calls for outlier containing transcripts that has actually not outliers.
 #' @param approximate_posterior_inference A boolean. Whether the inference of the joint posterior distribution should be approximated with variational Bayes It confers execution time advantage.
 #' @param approximate_posterior_analysis A boolean. Whether the calculation of the credible intervals should be done semi-analytically, rather than with pure sampling from the posterior. It confers execution time and memory advantage.
@@ -112,7 +113,7 @@ identify_outliers = function(.data,
 	check_columns_exist(.data, !!.sample, !!.transcript, !!.abundance, !!.significance)
 
 	# Check if any column is NA or null
-	check_if_any_NA(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, parse_formula(formula))
+	check_if_any_NA(.data, c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), parse_formula(formula)))
 
 	# Check if I have any genes to check
 	if(.data %>%	filter(!!.do_check) %>% nrow %>% equals(0)){
