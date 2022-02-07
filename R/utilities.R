@@ -443,9 +443,9 @@ produce_plots = function(.x,
 	max_y  = .x %>% summarise(a = max(!!as.symbol(.abundance)), b = max(.upper)) %>% as.numeric %>% max
 
 	# Scale
-	.x =
-		.x %>%
-		mutate(across(c(.abundance, .lower_2, .upper_2), ~ .x * multiplier)	)
+	# .x =
+	# 	.x %>%
+	# 	mutate(across(c(.abundance, .lower_2, .upper_2), ~ .x * multiplier)	)
 
 	{
 		ggplot(data = .x, aes(
