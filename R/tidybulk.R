@@ -162,13 +162,13 @@ get_scaled_counts_bulk <- function(.data,
 
 	.library_size = enquo(.library_size)
 
-	# Check if package is installed, otherwise install
-	if (find.package("edgeR", quiet = TRUE) %>% length %>% equals(0)) {
-		message("ppcseq says: Installing edgeR needed for analyses")
-		if (!requireNamespace("BiocManager", quietly = TRUE))
-			install.packages("BiocManager", repos = "https://cloud.r-project.org")
-		BiocManager::install("edgeR", ask = FALSE)
-	}
+	# # Check if package is installed, otherwise install
+	# if (find.package("edgeR", quiet = TRUE) %>% length %>% equals(0)) {
+	# 	message("ppcseq says: Installing edgeR needed for analyses")
+	# 	if (!requireNamespace("BiocManager", quietly = TRUE))
+	# 		install.packages("BiocManager", repos = "https://cloud.r-project.org")
+	# 	BiocManager::install("edgeR", ask = FALSE)
+	# }
 
 	# Set factors
 	.data =
