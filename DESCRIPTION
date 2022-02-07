@@ -71,7 +71,7 @@ RdMacros:
     lifecycle
 biocViews: RNASeq, DifferentialExpression, GeneExpression, Normalization, Clustering, QualityControl, Sequencing, Transcription, Transcriptomics
 SystemRequirements: GNU make
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Roxygen: list(markdown = TRUE)
 URL: https://github.com/stemangiola/ppcseq
 BugReports: https://github.com/stemangiola/ppcseq/issues
