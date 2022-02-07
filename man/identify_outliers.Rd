@@ -12,6 +12,7 @@ identify_outliers(
   .abundance,
   .significance,
   .do_check,
+  .scaling_factor = NULL,
   percent_false_positive_genes = 1,
   how_many_negative_controls = 500,
   approximate_posterior_inference = TRUE,
@@ -75,7 +76,7 @@ identify_outliers(
 \item{return_fit}{A boolean}
 }
 \value{
-A nested tibble \code{tbl} with transcript-wise information: \code{sample_wise_data} | plot | \verb{ppc samples failed} | \verb{tot deleterious_outliers}
+A nested tibble \code{tbl} with transcript-wise information: \verb{sample wise data} | plot | \verb{ppc samples failed} | \verb{tot deleterious outliers}
 }
 \description{
 This function runs the data modeling and statistical test for the hypothesis that a transcript includes outlier biological replicate.

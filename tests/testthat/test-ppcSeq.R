@@ -7,8 +7,10 @@ if(Sys.info()[['sysname']] == "Linux"){
 test_that("VB post approx no correction",{
 
   res =
-    counts %>%
-    dplyr::mutate(  is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE) ) %>%
+    counts |>
+    dplyr::mutate(
+      is_significant = ifelse(symbol %in% c("SLC16A12", "CYP1A1", "ART3"), TRUE, FALSE)
+    ) |>
     ppcseq::identify_outliers(
       formula = ~ Label,
       sample, symbol, value,

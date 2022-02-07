@@ -78,6 +78,7 @@ identify_outliers = function(.data,
 														 .abundance,
 														 .significance,
 														 .do_check,
+														 .scaling_factor = NULL,
 														 percent_false_positive_genes = 1,
 														 how_many_negative_controls = 500,
 
@@ -102,6 +103,7 @@ identify_outliers = function(.data,
 	.abundance = enquo(.abundance)
 	.significance = enquo(.significance)
 	.do_check = enquo(.do_check)
+	.scaling_factor = enquo(.scaling_factor)
 
 	# Get factor of interest
 	#factor_of_interest = ifelse(parse_formula(formula) %>% length %>% `>` (0), parse_formula(formula)[1], "")
@@ -216,32 +218,52 @@ identify_outliers = function(.data,
 	# Prior info
 	lambda_mu_mu = 5.612671
 
-	# Scale dataset
-	my_df_scaled =
-		my_df %>%
-		.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
-		get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance) %>%
-		left_join(my_df, by=quo_name(.sample)) %>%
-		dplyr::mutate(!!as.symbol(sprintf("%s_scaled",  quo_name(.abundance))) := !!.abundance * multiplier)
 
-	# Build better scales for the inference
-	exposure_rate_multiplier =
-		my_df_scaled %>%
-		distinct(!!.sample, TMM, multiplier) %>%
-		mutate(l = multiplier %>% log) %>%
-		summarise(l %>% sd) %>%
-		pull(`l %>% sd`)
+	# Find normalisation
+	if(quo_is_null(.scaling_factor))
+		sample_scaling =
+			my_df %>%
+			.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
+			get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance)  %>%
+			distinct(!!.sample, multiplier)
+	else
+		sample_scaling =
+			.data %>%
+			distinct(!!.sample, multiplier= !!.scaling_factor) %>%
+			distinct()
 
-	# Build better scales for the inference
-	intercept_shift_scale =
-		my_df_scaled %>%
-		mutate(cc =
-					 	!!as.symbol(sprintf(
-					 		"%s_scaled",  quo_name(.abundance)
-					 	)) %>%
-					 	`+` (1) %>% log) %>%
-		summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
-		as.numeric
+	sample_exposure =
+		sample_scaling %>%
+		mutate(exposure_rate = -log(multiplier)) %>%
+		mutate(exposure_multiplier = exp(exposure_rate)) %>%
+		rename(multiplier := !!.scaling_factor)
+
+	# # Scale dataset
+	# my_df_scaled =
+	# 	my_df %>%
+	# 	.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
+	# 	get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance) %>%
+	# 	left_join(my_df, by=quo_name(.sample)) %>%
+	# 	dplyr::mutate(!!as.symbol(sprintf("%s_scaled",  quo_name(.abundance))) := !!.abundance * multiplier)
+
+	# # Build better scales for the inference
+	# exposure_rate_multiplier =
+	# 	my_df_scaled %>%
+	# 	distinct(!!.sample, TMM, multiplier) %>%
+	# 	mutate(l = multiplier %>% log) %>%
+	# 	summarise(l %>% sd) %>%
+	# 	pull(`l %>% sd`)
+	#
+	# # Build better scales for the inference
+	# intercept_shift_scale =
+	# 	my_df_scaled %>%
+	# 	mutate(cc =
+	# 				 	!!as.symbol(sprintf(
+	# 				 		"%s_scaled",  quo_name(.abundance)
+	# 				 	)) %>%
+	# 				 	`+` (1) %>% log) %>%
+	# 	summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
+	# 	as.numeric
 
 	# Run the first discovery phase with permissive false discovery rate
 	res_discovery =
@@ -254,8 +276,7 @@ identify_outliers = function(.data,
 			X,
 			lambda_mu_mu,
 			cores,
-			exposure_rate_multiplier,
-			intercept_shift_scale,
+			sample_exposure,
 			additional_parameters_to_save,
 			adj_prob_theshold  = adj_prob_theshold_1,
 			how_many_posterior_draws = how_many_posterior_draws_1,
@@ -307,8 +328,7 @@ identify_outliers = function(.data,
 			X,
 			lambda_mu_mu,
 			cores,
-			exposure_rate_multiplier,
-			intercept_shift_scale,
+			sample_exposure,
 			additional_parameters_to_save,
 			adj_prob_theshold = adj_prob_theshold_2, # If check only deleterious is one side test
 			# * 2 because we just test one side of the distribution
@@ -325,11 +345,8 @@ identify_outliers = function(.data,
 	# Merge results and return
 	merge_results(
 		res_discovery,
-		res_test,
-		formula,
-		!!.transcript,
-		!!.abundance,
-		!!.sample,
+		res_test  %>%	left_join(sample_exposure, by = quo_name(.sample)) ,
+		formula,!!.transcript,!!.abundance,!!.sample,
 		do_check_only_on_detrimental
 	) %>%
 
