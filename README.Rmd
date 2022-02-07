@@ -10,7 +10,8 @@ knitr::opts_chunk$set( fig.path = "man/figures/")
 The input data set is a tidy representation of a differential gene transcript abundance analysis
 
 ```{r echo=FALSE, include=FALSE}
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
 library(ppcseq)
 library(dplyr)
 library(magrittr)
@@ -46,8 +47,8 @@ You can identify anrtefactual calls from your differential transcribt anundance 
 
 
 counts.ppc = 
-	counts %>%
-	mutate(is_significant = FDR < 0.01) %>%
+	counts |>
+	mutate(is_significant = FDR < 0.01) |>
 	identify_outliers(
 		formula = ~ Label,
 		.sample = sample, 
@@ -71,12 +72,12 @@ We can visualise the top five differentially transcribed genes
 
 ```{r }
 counts.ppc_plots = 
-	counts.ppc %>% 
+	counts.ppc |> 
 	plot_credible_intervals() 
 ```
 
 ```{r}
-counts.ppc_plots %>%
-	pull(plot) %>% 
-	.[seq_len(length.out=2)]
+counts.ppc_plots |>
+	pull(plot) |> 
+	head(2)
 ```
