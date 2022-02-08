@@ -3,8 +3,8 @@
 #' @keywords internal
 #' @noRd
 #'
-#' @import dplyr
-#' @import tidyr
+#' @importFrom tidyr spread
+#' @importFrom tidyr drop_na
 #' @import tibble
 #' @importFrom rlang :=
 #' @importFrom stats median
@@ -130,7 +130,6 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 #' @noRd
 #'
 #' @import dplyr
-#' @import tidyr
 #' @import tibble
 #' @importFrom magrittr equals
 #' @importFrom rlang :=
@@ -247,7 +246,6 @@ get_scaled_counts_bulk <- function(.data,
 #' @noRd
 #'
 #' @import dplyr
-#' @import tidyr
 #' @import tibble
 #' @importFrom rlang :=
 #' @importFrom stats setNames
