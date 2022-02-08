@@ -714,7 +714,6 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @importFrom rstan summary
 #' @importFrom furrr future_map
 #' @importFrom future multiprocess
-#' @importFrom rstan extract
 #' @importFrom stats sd
 #'
 #' @param fit A fit object
@@ -781,44 +780,6 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		) %>%
 		mutate(.variable = "counts_rng") %>%
 		unnest(CI)
-
-	# draws_mu =
-	# 	fit %>% extract("lambda_log_param") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
-	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
-	# draws_sigma =
-	# 	fit %>% extract("sigma_raw") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
-	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
-	# draws_exposure =
-	# 	fit %>% extract("exposure_rate") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
-	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
-	#
-	# draws_mu %>%
-	# 	left_join(draws_sigma, by = c(".draw", "G")) %>%
-	# 	left_join(draws_exposure, by = c(".draw", "S")) %>%
-	# 	nest(data = -c(S, G)) %>%
-	# 	mutate(
-	# 		CI = map(
-	# 			data,
-	# 			~ {
-	# 				.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = TRUE)
-	# 				draws = rnbinom(n =how_many_posterior_draws,	mu = exp(.x_supersampled$mu + .x_supersampled$exposure),	size = 1/exp(.x_supersampled$sigma) * truncation_compensation	)
-	# 				draws %>%
-	# 					# Process quantile
-	# 					quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
-	# 					tibble::as_tibble(rownames="prop") %>%
-	# 					tidyr::spread(prop, value) %>%
-	# 					setNames(c(".lower", ".upper")) %>%
-	# 					# Add mean and sd
-	# 					dplyr::mutate(mean = mean(draws), sd = sd(draws))
-	# 			}
-	# 		)
-	# 	) %>%
-	# 	select(-data) %>%
-	# 	unnest(CI) %>%
-	#
-	# 	# Adapt to old dataset
-	# 	mutate(.variable = "counts_rng") %>%
-	# 	mutate(S = as.integer(S), G = as.integer(G))
 
 
 }
