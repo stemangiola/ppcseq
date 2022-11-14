@@ -58,7 +58,7 @@
   <a href="reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -96,15 +96,16 @@
 <p>To install:</p>
 <p>Before install, for linux systems, in order to exploit multi-threading, from R write:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">fileConn</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">file</a></span><span class="op">(</span><span class="st">"~/.R/Makevars"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span> <span class="st">"CXX14FLAGS += -O3"</span>,<span class="st">"CXX14FLAGS += -DSTAN_THREADS"</span>, <span class="st">"CXX14FLAGS += -pthread"</span><span class="op">)</span>, <span class="va">fileConn</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">close</a></span><span class="op">(</span><span class="va">fileConn</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"~/"</span>, <span class="st">".R"</span><span class="op">)</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">fileConn</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">file</a></span><span class="op">(</span><span class="st">"~/.R/Makevars"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span> <span class="st">"CXX14FLAGS += -O3"</span>,<span class="st">"CXX14FLAGS += -DSTAN_THREADS"</span>, <span class="st">"CXX14FLAGS += -pthread"</span><span class="op">)</span>, <span class="va">fileConn</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">close</a></span><span class="op">(</span><span class="va">fileConn</span><span class="op">)</span></span></code></pre></div>
 <p>Then, install with</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/remote-reexports.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"stemangiola/ppcseq"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"stemangiola/ppcseq"</span><span class="op">)</span></span></code></pre></div>
 <p>You can get the test dataset with</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">ppcseq</span><span class="fu">::</span><span class="va"><a href="reference/counts.html">counts</a></span> </code></pre></div>
+<code class="sourceCode R"><span><span class="fu">ppcseq</span><span class="fu">::</span><span class="va"><a href="reference/counts.html">counts</a></span> </span></code></pre></div>
 <div class="sourceCode" id="cb4"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="do">## # A tibble: 394,821 x 9</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="do">##    sample  symbol   logCPM    LR   PValue        FDR value       W Label      </span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="do">##    &lt;chr&gt;   &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;      </span></span>
@@ -121,24 +122,24 @@
 <span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="do">## # … with 394,811 more rows</span></span></code></pre></div>
 <p>You can identify anrtefactual calls from your differential transcribt anundance analysis, due to outliers.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Import libraries</span>
-
-
-<span class="va">counts.ppc</span> <span class="op">=</span> 
-    <span class="fu">ppcseq</span><span class="fu">::</span><span class="va"><a href="reference/counts.html">counts</a></span> <span class="op">%&gt;%</span>
-    <span class="fu">mutate</span><span class="op">(</span>is_significant <span class="op">=</span> <span class="va">FDR</span> <span class="op">&lt;</span> <span class="fl">0.01</span><span class="op">)</span> <span class="op">%&gt;%</span>
-    <span class="fu"><a href="reference/identify_outliers.html">identify_outliers</a></span><span class="op">(</span>
-        formula <span class="op">=</span> <span class="op">~</span> <span class="va">Label</span>,
-        .sample <span class="op">=</span> <span class="va">sample</span>, 
-        .transcript <span class="op">=</span> <span class="va">symbol</span>,
-        .abundance <span class="op">=</span> <span class="va">value</span>,
-        .significance <span class="op">=</span> <span class="va">PValue</span>,
-        .do_check <span class="op">=</span> <span class="va">is_significant</span>,
-        percent_false_positive_genes <span class="op">=</span> <span class="fl">5</span>
-    <span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Import libraries</span></span>
+<span></span>
+<span></span>
+<span><span class="va">counts.ppc</span> <span class="op">=</span> </span>
+<span>    <span class="fu">ppcseq</span><span class="fu">::</span><span class="va"><a href="reference/counts.html">counts</a></span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu">mutate</span><span class="op">(</span>is_significant <span class="op">=</span> <span class="va">FDR</span> <span class="op">&lt;</span> <span class="fl">0.01</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu"><a href="reference/identify_outliers.html">identify_outliers</a></span><span class="op">(</span></span>
+<span>        formula <span class="op">=</span> <span class="op">~</span> <span class="va">Label</span>,</span>
+<span>        .sample <span class="op">=</span> <span class="va">sample</span>, </span>
+<span>        .transcript <span class="op">=</span> <span class="va">symbol</span>,</span>
+<span>        .abundance <span class="op">=</span> <span class="va">value</span>,</span>
+<span>        .significance <span class="op">=</span> <span class="va">PValue</span>,</span>
+<span>        .do_check <span class="op">=</span> <span class="va">is_significant</span>,</span>
+<span>        percent_false_positive_genes <span class="op">=</span> <span class="fl">5</span></span>
+<span>    <span class="op">)</span></span></code></pre></div>
 <p>The new posterior predictive check has been added to the original data frame</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">counts.ppc</span> </code></pre></div>
+<code class="sourceCode R"><span><span class="va">counts.ppc</span> </span></code></pre></div>
 <div class="sourceCode" id="cb7"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="do">## # A tibble: 15 x 4</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="do">##    symbol   `sample wise data` `ppc samples failed` `tot deleterious outliers`</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="do">##    &lt;chr&gt;    &lt;list&gt;                            &lt;int&gt;                      &lt;int&gt;</span></span>
@@ -160,13 +161,13 @@
 <p>The new data frame contains plots for each gene</p>
 <p>We can visualise the top five differentially transcribed genes</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">counts.ppc_plots</span> <span class="op">=</span> 
-    <span class="va">counts.ppc</span> <span class="op">%&gt;%</span> 
-    <span class="fu"><a href="reference/plot_credible_intervals.html">plot_credible_intervals</a></span><span class="op">(</span><span class="op">)</span> </code></pre></div>
+<code class="sourceCode R"><span><span class="va">counts.ppc_plots</span> <span class="op">=</span> </span>
+<span>    <span class="va">counts.ppc</span> <span class="op">%&gt;%</span> </span>
+<span>    <span class="fu"><a href="reference/plot_credible_intervals.html">plot_credible_intervals</a></span><span class="op">(</span><span class="op">)</span> </span></code></pre></div>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">counts.ppc_plots</span> <span class="op">%&gt;%</span>
-    <span class="fu">pull</span><span class="op">(</span><span class="va">plot</span><span class="op">)</span> <span class="op">%&gt;%</span> 
-    <span class="va">.</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">counts.ppc_plots</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu">pull</span><span class="op">(</span><span class="va">plot</span><span class="op">)</span> <span class="op">%&gt;%</span> </span>
+<span>    <span class="va">.</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span></span></code></pre></div>
 <div class="sourceCode" id="cb10"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="do">## [[1]]</span></span></code></pre></div>
 <p><img src="reference/figures/unnamed-chunk-9-1.png"><!-- --></p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
@@ -220,7 +221,7 @@
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.9000.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer>

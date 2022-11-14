@@ -27,7 +27,7 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -62,88 +62,135 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">identify_outliers</span><span class="op">(</span>
-  <span class="va">.data</span>,
-  formula <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>,
-  <span class="va">.sample</span>,
-  <span class="va">.transcript</span>,
-  <span class="va">.abundance</span>,
-  <span class="va">.significance</span>,
-  <span class="va">.do_check</span>,
-  percent_false_positive_genes <span class="op">=</span> <span class="fl">1</span>,
-  how_many_negative_controls <span class="op">=</span> <span class="fl">500</span>,
-  approximate_posterior_inference <span class="op">=</span> <span class="cn">TRUE</span>,
-  approximate_posterior_analysis <span class="op">=</span> <span class="cn">TRUE</span>,
-  draws_after_tail <span class="op">=</span> <span class="fl">10</span>,
-  save_generated_quantities <span class="op">=</span> <span class="cn">FALSE</span>,
-  additional_parameters_to_save <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>,
-  cores <span class="op">=</span> <span class="fu">detect_cores</span><span class="op">(</span><span class="op">)</span>,
-  pass_fit <span class="op">=</span> <span class="cn">FALSE</span>,
-  do_check_only_on_detrimental <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu">parse_formula</span><span class="op">(</span><span class="va">formula</span><span class="op">)</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span>,
-  tol_rel_obj <span class="op">=</span> <span class="fl">0.01</span>,
-  just_discovery <span class="op">=</span> <span class="cn">FALSE</span>,
-  seed <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span>length.out <span class="op">=</span> <span class="fl">999999</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,
-  adj_prob_theshold_2 <span class="op">=</span> <span class="cn">NULL</span>,
-  return_fit <span class="op">=</span> <span class="cn">FALSE</span>
-<span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">identify_outliers</span><span class="op">(</span></span>
+<span>  <span class="va">.data</span>,</span>
+<span>  formula <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>,</span>
+<span>  <span class="va">.sample</span>,</span>
+<span>  <span class="va">.transcript</span>,</span>
+<span>  <span class="va">.abundance</span>,</span>
+<span>  <span class="va">.significance</span>,</span>
+<span>  <span class="va">.do_check</span>,</span>
+<span>  percent_false_positive_genes <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  how_many_negative_controls <span class="op">=</span> <span class="fl">500</span>,</span>
+<span>  approximate_posterior_inference <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  approximate_posterior_analysis <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  draws_after_tail <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  save_generated_quantities <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  additional_parameters_to_save <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  cores <span class="op">=</span> <span class="fu">detect_cores</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  pass_fit <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  do_check_only_on_detrimental <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu">parse_formula</span><span class="op">(</span><span class="va">formula</span><span class="op">)</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span>,</span>
+<span>  tol_rel_obj <span class="op">=</span> <span class="fl">0.01</span>,</span>
+<span>  just_discovery <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span>length.out <span class="op">=</span> <span class="fl">999999</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  adj_prob_theshold_2 <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  return_fit <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
     <h2>Arguments</h2>
     <dl><dt>.data</dt>
 <dd><p>A tibble including a transcript name column | sample name column | read counts column | covariate columns | Pvalue column | a significance column</p></dd>
+
+
 <dt>formula</dt>
 <dd><p>A formula. The sample formula used to perform the differential transcript abundance analysis</p></dd>
+
+
 <dt>.sample</dt>
 <dd><p>A column name as symbol. The sample identifier</p></dd>
+
+
 <dt>.transcript</dt>
 <dd><p>A column name as symbol. The transcript identifier</p></dd>
+
+
 <dt>.abundance</dt>
 <dd><p>A column name as symbol. The transcript abundance (read count)</p></dd>
+
+
 <dt>.significance</dt>
 <dd><p>A column name as symbol. A column with the Pvalue, or other significance measure (preferred Pvalue over false discovery rate)</p></dd>
+
+
 <dt>.do_check</dt>
 <dd><p>A column name as symbol. A column with a boolean indicating whether a transcript was identified as differentially abundant</p></dd>
+
+
 <dt>percent_false_positive_genes</dt>
 <dd><p>A real between 0 and 100. It is the aimed percent of transcript being a false positive. For example, percent_false_positive_genes = 1 provide 1 percent of the calls for outlier containing transcripts that has actually not outliers.</p></dd>
+
+
 <dt>how_many_negative_controls</dt>
 <dd><p>An integer. How many transcript from the bottom non-significant should be taken for inferring the mean-overdispersion trend.</p></dd>
+
+
 <dt>approximate_posterior_inference</dt>
 <dd><p>A boolean. Whether the inference of the joint posterior distribution should be approximated with variational Bayes It confers execution time advantage.</p></dd>
+
+
 <dt>approximate_posterior_analysis</dt>
 <dd><p>A boolean. Whether the calculation of the credible intervals should be done semi-analytically, rather than with pure sampling from the posterior. It confers execution time and memory advantage.</p></dd>
+
+
 <dt>draws_after_tail</dt>
 <dd><p>An integer. How many draws should on average be after the tail, in a way to inform CI.</p></dd>
+
+
 <dt>save_generated_quantities</dt>
 <dd><p>A boolean. Used for development and testing purposes</p></dd>
+
+
 <dt>additional_parameters_to_save</dt>
 <dd><p>A character vector. Used for development and testing purposes</p></dd>
+
+
 <dt>cores</dt>
 <dd><p>An integer. How many cored to be used with parallel calculations.</p></dd>
+
+
 <dt>pass_fit</dt>
 <dd><p>A boolean. Used for development and testing purposes</p></dd>
+
+
 <dt>do_check_only_on_detrimental</dt>
 <dd><p>A boolean. Whether to test only for detrimental outliers (same direction as the fold change). It allows to test for less transcript/sample pairs and therefore higher the probability threshold.</p></dd>
+
+
 <dt>tol_rel_obj</dt>
 <dd><p>A real. Used for development and testing purposes</p></dd>
+
+
 <dt>just_discovery</dt>
 <dd><p>A boolean. Used for development and testing purposes</p></dd>
+
+
 <dt>seed</dt>
 <dd><p>An integer. Used for development and testing purposes</p></dd>
+
+
 <dt>adj_prob_theshold_2</dt>
 <dd><p>A boolean. Used for development and testing purposes</p></dd>
+
+
 <dt>return_fit</dt>
 <dd><p>A boolean</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>A nested tibble <code>tbl</code> with transcript-wise information: <code>sample wise data</code> | plot | <code>ppc samples failed</code> | <code>tot deleterious outliers</code></p>
+    
+
+<p>A nested tibble <code>tbl</code> with transcript-wise information: <code>sample wise data</code> | plot | <code>ppc samples failed</code> | <code>tot deleterious outliers</code></p>
+
+
     </div>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"></span>
-<span class="r-in"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Attaching package: ‘dplyr’</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:stats’:</span>
@@ -152,29 +199,29 @@
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:base’:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect, setdiff, setequal, union</span>
-<span class="r-in"></span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"counts"</span><span class="op">)</span></span>
-<span class="r-in"></span>
-<span class="r-in"><span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.info.html" class="external-link">Sys.info</a></span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="st">'sysname'</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="st">"Linux"</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">result</span> <span class="op">=</span></span>
-<span class="r-in">  <span class="va">counts</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span class="r-in">  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>  is_significant <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">symbol</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"SLC16A12"</span>, <span class="st">"CYP1A1"</span>, <span class="st">"ART3"</span><span class="op">)</span>, <span class="cn">TRUE</span>, <span class="cn">FALSE</span><span class="op">)</span> <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span class="r-in"> <span class="fu">ppcseq</span><span class="fu">::</span><span class="fu">identify_outliers</span><span class="op">(</span></span>
-<span class="r-in">  formula <span class="op">=</span> <span class="op">~</span> <span class="va">Label</span>,</span>
-<span class="r-in">  <span class="va">sample</span>, <span class="va">symbol</span>, <span class="va">value</span>,</span>
-<span class="r-in">  .significance <span class="op">=</span> <span class="va">PValue</span>,</span>
-<span class="r-in">  .do_check  <span class="op">=</span> <span class="va">is_significant</span>,</span>
-<span class="r-in">  percent_false_positive_genes <span class="op">=</span> <span class="fl">1</span>,</span>
-<span class="r-in">  tol_rel_obj <span class="op">=</span> <span class="fl">0.01</span>,</span>
-<span class="r-in">  approximate_posterior_inference <span class="op">=</span><span class="cn">TRUE</span>,</span>
-<span class="r-in">  approximate_posterior_analysis <span class="op">=</span><span class="cn">TRUE</span>,</span>
-<span class="r-in">  how_many_negative_controls <span class="op">=</span> <span class="fl">50</span>,</span>
-<span class="r-in">  cores<span class="op">=</span><span class="fl">1</span></span>
-<span class="r-in"><span class="op">)</span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"counts"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.info.html" class="external-link">Sys.info</a></span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="st">'sysname'</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="st">"Linux"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">result</span> <span class="op">=</span></span></span>
+<span class="r-in"><span>  <span class="va">counts</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>  is_significant <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">symbol</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"SLC16A12"</span>, <span class="st">"CYP1A1"</span>, <span class="st">"ART3"</span><span class="op">)</span>, <span class="cn">TRUE</span>, <span class="cn">FALSE</span><span class="op">)</span> <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span> <span class="fu">ppcseq</span><span class="fu">::</span><span class="fu">identify_outliers</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  formula <span class="op">=</span> <span class="op">~</span> <span class="va">Label</span>,</span></span>
+<span class="r-in"><span>  <span class="va">sample</span>, <span class="va">symbol</span>, <span class="va">value</span>,</span></span>
+<span class="r-in"><span>  .significance <span class="op">=</span> <span class="va">PValue</span>,</span></span>
+<span class="r-in"><span>  .do_check  <span class="op">=</span> <span class="va">is_significant</span>,</span></span>
+<span class="r-in"><span>  percent_false_positive_genes <span class="op">=</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>  tol_rel_obj <span class="op">=</span> <span class="fl">0.01</span>,</span></span>
+<span class="r-in"><span>  approximate_posterior_inference <span class="op">=</span><span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  approximate_posterior_analysis <span class="op">=</span><span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  how_many_negative_controls <span class="op">=</span> <span class="fl">50</span>,</span></span>
+<span class="r-in"><span>  cores<span class="op">=</span><span class="fl">1</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> No group or design set. Assuming all samples belong to one group.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing do_inference</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Storing counts in `nn`, as `n` already present in input</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Use `name = "new_name"` to pick a new name.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Use `name = "new_name"` to pick a new name.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: ------------------------------------------------------------</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: EXPERIMENTAL ALGORITHM:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   This procedure has not been thoroughly tested and may be unstable</span>
@@ -182,15 +229,9 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: ------------------------------------------------------------</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Rejecting initial value:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Gradient evaluated at the initial value is not finite.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Stan can't start sampling from this initial value.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Rejecting initial value:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Log probability evaluates to log(0), i.e. negative infinity.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   Stan can't start sampling from this initial value.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000468 seconds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 4.68 seconds.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000524 seconds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.24 seconds.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Adjust your expectations accordingly!</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
@@ -204,19 +245,19 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Begin stochastic gradient ascent.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -12918.474             1.000            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8574.162             0.753            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7572.626             0.546            0.507</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7534.326             0.411            0.507</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7535.387             0.329            0.132</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7542.532             0.274            0.132</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7525.680             0.235            0.005</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7526.878             0.206            0.005</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7518.425             0.183            0.002   MEDIAN ELBO CONVERGED</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -12245.772             1.000            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8586.474             0.713            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7597.984             0.519            0.426</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7525.822             0.391            0.426</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7523.547             0.313            0.130</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7526.756             0.261            0.130</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7526.146             0.224            0.010</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7525.740             0.196            0.010</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7519.705             0.174            0.001   MEDIAN ELBO CONVERGED</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Drawing a sample of size 1000 from the approximate posterior... </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: COMPLETED.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.54. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.17. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing add_exposure_rate</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing check_if_within_posterior</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing save_generated_quantities_in_case</span>
@@ -224,7 +265,7 @@
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Unknown columns: `Rhat`</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing do_inference</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Storing counts in `nn`, as `n` already present in input</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Use `name = "new_name"` to pick a new name.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Use `name = "new_name"` to pick a new name.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: ------------------------------------------------------------</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: EXPERIMENTAL ALGORITHM:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   This procedure has not been thoroughly tested and may be unstable</span>
@@ -233,8 +274,8 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000554 seconds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.54 seconds.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Gradient evaluation took 0.000516 seconds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.16 seconds.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Adjust your expectations accordingly!</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
@@ -248,19 +289,19 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Begin stochastic gradient ascent.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:   iter             ELBO   delta_ELBO_mean   delta_ELBO_med   notes </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -11945.559             1.000            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8374.067             0.713            1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7589.678             0.510            0.426</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7517.411             0.385            0.426</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7511.215             0.308            0.103</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7514.359             0.257            0.103</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7502.455             0.220            0.010</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7521.189             0.193            0.010</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7498.619             0.172            0.003   MEDIAN ELBO CONVERGED</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    100       -12188.784             1.000            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    200        -8514.551             0.716            1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    300        -7619.704             0.516            0.432</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    400        -7515.177             0.391            0.432</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    500        -7504.355             0.313            0.117</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    600        -7506.571             0.261            0.117</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    700        -7522.026             0.224            0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    800        -7501.919             0.196            0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1:    900        -7498.695             0.174            0.003   MEDIAN ELBO CONVERGED</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: Drawing a sample of size 1000 from the approximate posterior... </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Chain 1: COMPLETED.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.3. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Pareto k diagnostic value is 2.93. Resampling is disabled. Decreasing tol_rel_obj may help if variational algorithm has terminated prematurely. Otherwise consider using sampling instead.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing add_exposure_rate</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing check_if_within_posterior</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> executing save_generated_quantities_in_case</span>
@@ -329,7 +370,7 @@
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>first element used of 'length.out' argument</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>first element used of 'length.out' argument</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Unknown columns: `generated quantities`</span>
-<span class="r-in"></span>
+<span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
   </div>
@@ -344,7 +385,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.9000.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>
