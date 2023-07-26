@@ -35,8 +35,6 @@ Imports:
     dplyr,
     edgeR,
     foreach,
-    furrr,
-    future,
     ggplot2,
     graphics,
     lifecycle,
@@ -71,7 +69,7 @@ RdMacros:
     lifecycle
 biocViews: RNASeq, DifferentialExpression, GeneExpression, Normalization, Clustering, QualityControl, Sequencing, Transcription, Transcriptomics
 SystemRequirements: GNU make
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 Roxygen: list(markdown = TRUE)
 URL: https://github.com/stemangiola/ppcseq
 BugReports: https://github.com/stemangiola/ppcseq/issues

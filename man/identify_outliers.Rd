@@ -26,8 +26,7 @@ identify_outliers(
   tol_rel_obj = 0.01,
   just_discovery = FALSE,
   seed = sample(seq_len(length.out = 999999), size = 1),
-  adj_prob_theshold_2 = NULL,
-  return_fit = FALSE
+  adj_prob_theshold_2 = NULL
 )
 }
 \arguments{
@@ -74,8 +73,6 @@ identify_outliers(
 \item{seed}{An integer. Used for development and testing purposes}
 
 \item{adj_prob_theshold_2}{A boolean. Used for development and testing purposes}
-
-\item{return_fit}{A boolean}
 }
 \value{
 A nested tibble \code{tbl} with transcript-wise information: \code{sample_wise_data} | plot | \verb{ppc samples failed} | \verb{tot deleterious_outliers}
