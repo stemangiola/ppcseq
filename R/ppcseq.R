@@ -42,7 +42,6 @@
 #' @param just_discovery A boolean. Used for development and testing purposes
 #' @param seed An integer. Used for development and testing purposes
 #' @param adj_prob_theshold_2 A boolean. Used for development and testing purposes
-#' @param return_fit A boolean
 #'
 #' @return A nested tibble `tbl` with transcript-wise information: `sample wise data` | plot | `ppc samples failed` | `tot deleterious outliers`
 #'
@@ -93,8 +92,7 @@ identify_outliers = function(.data,
 														 tol_rel_obj = 0.01,
 														 just_discovery = FALSE,
 														 seed = sample(seq_len(length.out=999999), size = 1),
-														 adj_prob_theshold_2 = NULL,
-														 return_fit = FALSE
+														 adj_prob_theshold_2 = NULL
 ) {
 	# Prepare column same enquo
 	.sample = enquo(.sample)
@@ -342,9 +340,9 @@ identify_outliers = function(.data,
 		do_check_only_on_detrimental
 	) %>%
 
-		# If return_fit
+		# If pass_fit
 		when(
-			return_fit ~ (.) %>%
+			pass_fit ~ (.) %>%
 				add_attr(res_discovery %>% attr("fit"), "fit 1") %>%
 				add_attr(res_test %>% attr("fit"), "fit 2"),
 			~ (.)

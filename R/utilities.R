@@ -742,8 +742,6 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @importFrom tidyr unnest
 #' @importFrom tidyr expand_grid
 #' @importFrom rstan summary
-#' @importFrom furrr future_map
-#' @importFrom future multiprocess
 #' @importFrom rstan extract
 #' @importFrom stats sd
 #'
