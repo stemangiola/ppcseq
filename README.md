@@ -16,7 +16,7 @@ writeLines(c( "CXX14FLAGS += -O3","CXX14FLAGS += -DSTAN_THREADS", "CXX14FLAGS +=
 close(fileConn)
 ```
 
-Then, install with 
+Then, install with
 
 ``` r
 devtools::install_github("stemangiola/ppcseq")
@@ -25,7 +25,8 @@ devtools::install_github("stemangiola/ppcseq")
 You can get the test dataset with
 
 ``` r
-ppcseq::counts 
+data("counts")
+counts 
 ```
 
     ## # A tibble: 394,821 x 9
@@ -51,8 +52,8 @@ anundance analysis, due to outliers.
 
 
 counts.ppc = 
-    ppcseq::counts %>%
-    mutate(is_significant = FDR < 0.01) %>%
+    counts |>
+    mutate(is_significant = FDR < 0.01) |>
     identify_outliers(
         formula = ~ Label,
         .sample = sample, 
@@ -72,23 +73,23 @@ counts.ppc
 ```
 
     ## # A tibble: 15 x 4
-    ##    symbol   `sample wise data` `ppc samples failed` `tot deleterious outliers`
-    ##    <chr>    <list>                            <int>                      <int>
-    ##  1 SLC16A12 <tibble [21 × 14]>                    0                          0
-    ##  2 CYP1A1   <tibble [21 × 14]>                    1                          1
-    ##  3 ART3     <tibble [21 × 14]>                    0                          0
-    ##  4 DIO2     <tibble [21 × 14]>                    0                          0
-    ##  5 OR51E2   <tibble [21 × 14]>                    0                          0
-    ##  6 MUC16    <tibble [21 × 14]>                    0                          0
-    ##  7 CCNA1    <tibble [21 × 14]>                    0                          0
-    ##  8 LYZ      <tibble [21 × 14]>                    1                          1
-    ##  9 PPM1H    <tibble [21 × 14]>                    0                          0
-    ## 10 SUSD5    <tibble [21 × 14]>                    0                          0
-    ## 11 TPRG1    <tibble [21 × 14]>                    0                          0
-    ## 12 EPB42    <tibble [21 × 14]>                    0                          0
-    ## 13 LRRC38   <tibble [21 × 14]>                    0                          0
-    ## 14 SUSD4    <tibble [21 × 14]>                    0                          0
-    ## 15 MMP8     <tibble [21 × 14]>                    0                          0
+    ##    symbol   sample_wise_data   ppc_samples_failed tot_deleterious_outliers
+    ##    <chr>    <list>                          <int>                    <int>
+    ##  1 SLC16A12 <tibble [21 × 12]>                  0                        0
+    ##  2 CYP1A1   <tibble [21 × 12]>                  1                        1
+    ##  3 ART3     <tibble [21 × 12]>                  0                        0
+    ##  4 DIO2     <tibble [21 × 12]>                  0                        0
+    ##  5 OR51E2   <tibble [21 × 12]>                  0                        0
+    ##  6 MUC16    <tibble [21 × 12]>                  0                        0
+    ##  7 CCNA1    <tibble [21 × 12]>                  0                        0
+    ##  8 LYZ      <tibble [21 × 12]>                  1                        1
+    ##  9 PPM1H    <tibble [21 × 12]>                  0                        0
+    ## 10 SUSD5    <tibble [21 × 12]>                  0                        0
+    ## 11 TPRG1    <tibble [21 × 12]>                  0                        0
+    ## 12 EPB42    <tibble [21 × 12]>                  0                        0
+    ## 13 LRRC38   <tibble [21 × 12]>                  0                        0
+    ## 14 SUSD4    <tibble [21 × 12]>                  0                        0
+    ## 15 MMP8     <tibble [21 × 12]>                  0                        0
 
 The new data frame contains plots for each gene
 
@@ -96,14 +97,14 @@ We can visualise the top five differentially transcribed genes
 
 ``` r
 counts.ppc_plots = 
-    counts.ppc %>% 
+    counts.ppc |> 
     plot_credible_intervals() 
 ```
 
 ``` r
-counts.ppc_plots %>%
-    pull(plot) %>% 
-    .[1:2]
+counts.ppc_plots |>
+    pull(plot) |> 
+    head(2)
 ```
 
     ## [[1]]

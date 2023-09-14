@@ -1,16 +1,15 @@
 #' Drop lowly transcribed genes for TMM normalization
 #'
 #' @keywords internal
+#' @noRd
 #'
-#' @import dplyr
-#' @importFrom  tidyr spread
+#' @importFrom tidyr spread
+#' @importFrom tidyr drop_na
 #' @import tibble
 #' @importFrom rlang :=
 #' @importFrom stats median
-#' @importFrom edgeR filterByExpr
-#' @importFrom rlang enquo
-#' @importFrom rlang quo_is_symbol
 #' @importFrom purrr when
+#' @importFrom rlang quo_is_symbol
 #'
 #' @param .data A tibble
 #' @param .sample The name of the sample column
@@ -33,6 +32,7 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 	.transcript = enquo(.transcript)
 	.abundance = enquo(.abundance)
 
+
 	factor_of_interest = enquo(factor_of_interest)
 
 	# Check if factor_of_interest is continuous and exists
@@ -40,20 +40,15 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 
 		factor_of_interest %>%
 		when(
-
 			quo_is_symbol(.) &&
-				select(.data, !!(.)) %>%
-				lapply(class) %>%
-				as.character() %in% c("numeric", "integer", "double") ~ {
+				select(.data, !!(.)) %>% lapply(class) %>%	as.character() %in% c("numeric", "integer", "double") 	~ {
 					message("ppcseq says: The factor of interest is continuous (e.g., integer,numeric, double). The data will be filtered without grouping.")
 					NULL
 				},
-
 			quo_is_symbol(.) ~ .data %>%
 				distinct(!!.sample, !!factor_of_interest) %>%
 				arrange(!!.sample) %>%
 				pull(!!factor_of_interest),
-
 			~ NULL
 		)
 
@@ -77,7 +72,7 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 
 		# Call edgeR
 		as_matrix(rownames = !!.transcript) %>%
-		filterByExpr(
+		edgeR::filterByExpr(
 			min.count = minimum_counts,
 			group = string_factor_of_interest,
 			min.prop = minimum_proportion
@@ -88,7 +83,6 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 }
 
 # Set internal
-#' @importFrom purrr when
 .identify_abundant = 		function(.data,
 																.sample = NULL,
 																.transcript = NULL,
@@ -102,38 +96,45 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 	.transcript = enquo(.transcript)
 	.abundance = enquo(.abundance)
 
+
 	factor_of_interest = enquo(factor_of_interest)
 
 	.data %>%
 
-		{
-			gene_to_exclude =
-				add_scaled_counts_bulk.get_low_expressed(
-					.,
-					.sample = !!.sample,
-					.transcript = !!.transcript,
-					.abundance = !!.abundance,
-					factor_of_interest = !!factor_of_interest,
-					minimum_counts = minimum_counts,
-					minimum_proportion = minimum_proportion
-				)
+		# Filter
+		when(
 
-			dplyr::mutate(., .abundant := !!.transcript %in% gene_to_exclude %>% not())
-		}
+			# If column is present use this instead of doing more work
+			".abundant" %in% colnames(.) %>% not ~  {
+				gene_to_exclude =
+					add_scaled_counts_bulk.get_low_expressed(
+						.data,
+						.sample = !!.sample,
+						.transcript = !!.transcript,
+						.abundance = !!.abundance,
+						factor_of_interest = !!factor_of_interest,
+						minimum_counts = minimum_counts,
+						minimum_proportion = minimum_proportion
+					)
+
+				dplyr::mutate(., .abundant := !!.transcript %in% gene_to_exclude %>% not())
+			},
+			~ (.)
+		)
 }
 
 
 #' Get a tibble with scaled counts using TMM
 #'
 #' @keywords internal
+#' @noRd
 #'
 #' @import dplyr
 #' @import tibble
 #' @importFrom magrittr equals
 #' @importFrom rlang :=
 #' @importFrom stats median
-#' @importFrom purrr when
-#' @importFrom utils head
+#' @importFrom utils install.packages
 #'
 #' @param .data A tibble
 #' @param .sample The name of the sample column
@@ -141,6 +142,7 @@ add_scaled_counts_bulk.get_low_expressed <- function(.data,
 #' @param .abundance The name of the transcript/gene abundance column
 #' @param method A character string. The scaling method passed to the backend function (i.e., edgeR::calcNormFactors; "TMM","TMMwsp","RLE","upperquartile")
 #' @param reference_sample A character string. The name of the reference sample. If NULL the sample with highest total read count will be selected as reference.
+#'
 #'
 #' @return A tibble including additional columns
 #'
@@ -150,21 +152,29 @@ get_scaled_counts_bulk <- function(.data,
 																	 .transcript = NULL,
 																	 .abundance = NULL,
 																	 method = "TMM",
-																	 reference_sample = NULL) {
+																	 reference_sample = NULL,
+																	 .library_size = NULL) {
 	# Get column names
 	.sample = enquo(.sample)
 	.transcript = enquo(.transcript)
 	.abundance = enquo(.abundance)
 
-	# Reformat input data set
-	df <-
+	.library_size = enquo(.library_size)
+
+	# # Check if package is installed, otherwise install
+	# if (find.package("edgeR", quiet = TRUE) %>% length %>% equals(0)) {
+	# 	message("ppcseq says: Installing edgeR needed for analyses")
+	# 	if (!requireNamespace("BiocManager", quietly = TRUE))
+	# 		install.packages("BiocManager", repos = "https://cloud.r-project.org")
+	# 	BiocManager::install("edgeR", ask = FALSE)
+	# }
+
+	# Set factors
+	.data =
 		.data %>%
+		dplyr::mutate(!!.sample := factor(!!.sample),!!.transcript := factor(!!.transcript)) %>%
+		droplevels()
 
-		# Rename
-		dplyr::select(!!.sample,!!.transcript,!!.abundance) %>%
-
-		# Set samples and genes as factors
-		dplyr::mutate(!!.sample := factor(!!.sample),!!.transcript := factor(!!.transcript))
 
 
 	# Get reference
@@ -174,7 +184,7 @@ get_scaled_counts_bulk <- function(.data,
 			!is.null(.) ~ (.),
 
 			# If not specified take most abundance sample
-			df %>%
+			.data %>%
 				group_by(!!.sample) %>%
 				summarise(sum = median(!!.abundance)) %>%
 				mutate(med = max(sum)) %>%
@@ -188,18 +198,19 @@ get_scaled_counts_bulk <- function(.data,
 
 	nf_obj <-
 		add_scaled_counts_bulk.calcNormFactor(
-			df,
+			.data,
 			reference,
 			.sample = !!.sample,
 			.transcript = !!.transcript,
 			.abundance = !!.abundance,
-			method
+			method,
+			.library_size = !!.library_size
 		)
 
 	# Calculate normalization factors
 	nf_obj$nf %>%
 		dplyr::left_join(
-			df %>%
+			.data %>%
 				group_by(!!.sample) %>%
 				summarise(tot = sum(!!.abundance, na.rm = TRUE)) %>%
 				ungroup() %>%
@@ -232,14 +243,12 @@ get_scaled_counts_bulk <- function(.data,
 #' Calculate the norm factor with calcNormFactor from limma
 #'
 #' @keywords internal
+#' @noRd
 #'
 #' @import dplyr
-#' @importFrom  tidyr spread
-#' @importFrom  tidyr drop_na
 #' @import tibble
 #' @importFrom rlang :=
 #' @importFrom stats setNames
-#' @importFrom edgeR calcNormFactors
 #'
 #' @param .data A tibble
 #' @param reference A reference matrix, not sure if used anymore
@@ -255,26 +264,34 @@ add_scaled_counts_bulk.calcNormFactor <- function(.data,
 																									.sample = `sample`,
 																									.transcript = `transcript`,
 																									.abundance = `count`,
-																									method) {
+																									method,
+																									.library_size = NULL) {
 	.sample = enquo(.sample)
 	.transcript = enquo(.transcript)
 	.abundance = enquo(.abundance)
 
-	# Get data frame for the highly transcribed transcripts
-	df.filt <-
+	.library_size = enquo(.library_size)
+
+	# Force or not library size
+	lib.size =
 		.data %>%
-		# dplyr::filter(!(!!.transcript %in% gene_to_exclude)) %>%
-		droplevels() %>%
-		select(!!.sample, !!.transcript, !!.abundance)
+		when(
+			!quo_is_null(.library_size) ~ distinct(., !!.sample, !!.library_size) %>% arrange(!!.sample) %>% pull(!!.library_size),
+			~ NULL
+		)
+
+	# Get data frame for the highly transcribed transcripts
+	df.filt <-	.data %>%	select(!!.sample, !!.transcript, !!.abundance)
 
 	# scaled data set
 	nf =
 		tibble::tibble(
+
 			# Sample factor
 			sample = factor(levels(df.filt %>% pull(!!.sample))),
 
 			# scaled data frame
-			nf = calcNormFactors(
+			nf = edgeR::calcNormFactors(
 				df.filt %>%
 					tidyr::spread(!!.sample,!!.abundance) %>%
 					tidyr::drop_na() %>%
@@ -282,7 +299,8 @@ add_scaled_counts_bulk.calcNormFactor <- function(.data,
 				refColumn = which(reference == factor(levels(
 					df.filt %>% pull(!!.sample)
 				))),
-				method = method
+				method = method,
+				lib.size = lib.size
 			)
 		) %>%
 

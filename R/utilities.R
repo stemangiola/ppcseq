@@ -168,7 +168,7 @@ format_for_MPI = function(df, shards, .sample) {
 		# Add counts MPI rows indexes
 		group_by(idx_MPI) %>%
 		arrange(G) %>%
-		mutate(`read count MPI row` = seq_len(length.out=n())) %>%
+		mutate(`read_count_MPI_row` = seq_len(length.out=n())) %>%
 		ungroup
 
 }
@@ -259,7 +259,7 @@ vb_iterative = function(model,
 				iter = iter,
 				tol_rel_obj = tol_rel_obj,
 				#seed = 654321,
-				pars=c("counts_rng", "exposure_rate", "alpha_sub_1", additional_parameters_to_save),
+				pars=c("counts_rng", "alpha_sub_1", additional_parameters_to_save),
 				...
 			)
 			boolFalse <- TRUE
@@ -290,10 +290,13 @@ vb_iterative = function(model,
 #' @noRd
 find_optimal_number_of_chains = function(how_many_posterior_draws,
 																				 max_number_to_check = 100) {
-	foreach(cc = 2:max_number_to_check, .combine = bind_rows) %do%
-		{
-			tibble(chains = cc, tot = how_many_posterior_draws / cc + 150 * cc)
-		} %>%
+
+
+	2:max_number_to_check %>%
+		map(
+			~ tibble(chains = .x, tot = how_many_posterior_draws / .x + 150 * .x)
+		) %>%
+		reduce(bind_rows) %>%
 		filter(tot == tot %>% min) %>%
 		pull(chains)
 
@@ -307,6 +310,7 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 #'
 #' @importFrom tibble rowid_to_column
 #' @importFrom purrr map
+#' @importFrom purrr reduce
 #'
 #' @param counts_MPI A matrix of read count information
 #' @param to_exclude A vector of oulier data points to exclude
@@ -315,38 +319,43 @@ find_optimal_number_of_chains = function(how_many_posterior_draws,
 #' @return A matrix
 #' @noRd
 get_outlier_data_to_exlude = function(counts_MPI, to_exclude, shards) {
-	# If there are genes to exclude
-	switch(
-		to_exclude %>% nrow %>% gt(0) %>% `!` %>% sum(1),
-		foreach(s =  seq_len(length.out=shards), .combine = full_join) %do% {
-			counts_MPI %>%
-				inner_join(to_exclude, by = c("S", "G")) %>%
-				filter(idx_MPI == s) %>%
-				distinct(idx_MPI, `read count MPI row`) %>%
-				rowid_to_column %>%
-				spread(idx_MPI, `read count MPI row`) %>%
 
-				# If a shard is empty create a dummy data set to avoid error
-				ifelse_pipe((.) %>% nrow == 0, ~ tibble(rowid = 1,!!as.symbol(s) := NA))
 
-		} %>%
+	to_exclude %>%
+		when(
+			# If there are genes to exclude
+			nrow(.) %>% gt(0) ~ 	seq_len(length.out = shards) %>%
+				map(~ {
+					s = .x
+					counts_MPI %>%
+						inner_join(to_exclude, by = c("S", "G")) %>%
+						filter(idx_MPI == s) %>%
+						distinct(idx_MPI, `read_count_MPI_row`) %>%
+						rowid_to_column %>%
+						spread(idx_MPI, `read_count_MPI_row`) %>%
 
-			# Anonymous function - Add length array to the first row for indexing in MPI
-			# Input: tibble
-			# Output: tibble
-			{
-				bind_rows((.) %>% map(function(x)
-					x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
-					(.))
-			} %>%
+						# If a shard is empty create a dummy data set to avoid error
+						ifelse_pipe((.) %>% nrow == 0, ~ tibble(rowid = 1, !!as.symbol(s) := NA))
+				}) %>%
+				reduce(full_join, by = "rowid") %>%
 
-			select(-rowid) %>%
-			replace(is.na(.), 0 %>% as.integer) %>%
-			as_matrix() %>% t,
+				# Anonymous function - Add length array to the first row for indexing in MPI
+				# Input: tibble
+				# Output: tibble
+				{
+					bind_rows((.) %>% map(function(x)
+						x %>% is.na %>% `!` %>% as.numeric %>% sum) %>% unlist,
+						(.))
+				} %>%
 
-		# Otherwise
-		matrix(rep(0, shards))
-	)
+				select(-rowid) %>%
+				replace(is.na(.), 0 %>% as.integer) %>%
+				as_matrix() %>% t,
+
+			# Otherwise
+			~ matrix(rep(0, shards))
+		)
+
 }
 
 #' function to pass initialisation values
@@ -431,7 +440,12 @@ produce_plots = function(.x,
 			))
 		)
 
-	max_y  = .x %>% summarise(a = max(!!as.symbol(.abundance)), b = max(.upper_2)) %>% as.numeric %>% max
+	max_y  = .x %>% summarise(a = max(!!as.symbol(.abundance)), b = max(.upper)) %>% as.numeric %>% max
+
+	# Scale
+	# .x =
+	# 	.x %>%
+	# 	mutate(across(c(.abundance, .lower_2, .upper_2), ~ .x * multiplier)	)
 
 	{
 		ggplot(data = .x, aes(
@@ -448,11 +462,11 @@ produce_plots = function(.x,
 		# 	)
 	} %>%
 		when(
-			".lower_2" %in% colnames(.x) ~ (.) +
+			".lower" %in% colnames(.x) ~ (.) +
 				geom_errorbar(aes(
-					ymin = `.lower_2`,
-					ymax = `.upper_2`,
-					color = `deleterious outliers`
+					ymin = `.lower`,
+					ymax = `.upper`,
+					color = `deleterious_outliers`
 				),
 				width = 0),
 			~ (.)
@@ -461,10 +475,10 @@ produce_plots = function(.x,
 		ifelse_pipe(
 			covariate %>% is.null %>% `!`,
 			~ .x + geom_point(aes(
-				size = `exposure rate`, fill = !!as.symbol(covariate)
+				size = exposure_rate, fill = !!as.symbol(covariate)
 			), shape = 21),
 			~ .x + geom_point(
-				aes(size = `exposure rate`),
+				aes(size = exposure_rate),
 				shape = 21,
 				fill = "black"
 			)
@@ -485,14 +499,14 @@ add_deleterious_if_covariate_exists = function(.data, X){
 						select(2) %>%
 						setNames("factor or interest") %>%
 						mutate(S = seq_len(length.out=n())) %>%
-						mutate(`is group right` = `factor or interest` > mean(`factor or interest`)) ,
+						mutate(`is_group_right` = `factor or interest` > mean(`factor or interest`)) ,
 					by = "S"
 				) %>%
 
-				mutate(`is group high` = (slope > 0 & `is group right`) |  (slope < 0 & !`is group right`)) %>%
+				mutate(`is group high` = (slope > 0 & `is_group_right`) |  (slope < 0 & !`is_group_right`)) %>%
 
 				# Check if outlier might be deleterious for the statistics
-				mutate(`deleterious outliers` = (!ppc) &
+				mutate(`deleterious_outliers` = (!ppc) &
 							 	(`is higher than mean` == `is group high`)),
 			~ (.)
 		)
@@ -537,13 +551,10 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 			!!.transcript,
 			!!.abundance,
 			!!.sample,
-			mean,
-			# `.lower_1`,
-			# `.upper_1`,
-			`exposure rate`,
-			slope_1 = slope,
+			slope_before_outlier_filtering = slope,
 			one_of(parse_formula(formula))
 		) %>%
+
 
 		# Attach results of tests
 		left_join(
@@ -552,15 +563,16 @@ merge_results = function(res_discovery, res_test, formula, .transcript, .abundan
 					select(
 						S,
 						G,
-						mean_2 = mean,
-						.lower_2 = `.lower`,
-						.upper_2 = `.upper`,
-						slope_2 = slope,
-						ppc,
-						one_of(c("generated quantities", "deleterious outliers"))
+						exposure_rate, multiplier,
+						.lower = `.lower`,
+						.upper = `.upper`,
+						slope_after_outlier_filtering = slope,
+						posterior_predictive_check_succeded = ppc,
+						one_of(c("generated quantities", "deleterious_outliers"))
 					),
 				by = c("S", "G")
 		) %>%
+		suppressWarnings() %>%
 
 		# format results
 		format_results(formula, !!.transcript, !!.abundance, !!.sample, do_check_only_on_detrimental)
@@ -579,24 +591,18 @@ format_results = function(.data, formula, .transcript, .abundance, .sample, do_c
 	.data %>%
 
 		# Check if new package is installed with different sintax
-		ifelse_pipe(
-			packageVersion("tidyr") >= "0.8.3.9000",
-			~ .x %>% nest(`sample wise data` = c(-!!.transcript)),
-			~ .x %>%
-				group_by(!!.transcript) %>%
-				nest(`sample wise data` = -!!.transcript)
-		) %>%
+		nest(`sample_wise_data` = -!!.transcript) %>%
 
 		# Add summary statistics
-		mutate(`ppc samples failed` = map_int(`sample wise data`, ~ .x %>% pull(ppc) %>% `!` %>% sum)) %>%
+		mutate(`ppc_samples_failed` = map_int(`sample_wise_data`, ~ .x %>% pull(posterior_predictive_check_succeded) %>% `!` %>% sum)) %>%
 
 		# If deleterious detection add summary as well
 		ifelse_pipe(
 			do_check_only_on_detrimental,
 			~ .x %>%
 				mutate(
-					`tot deleterious outliers` =
-						map_int(`sample wise data`, ~ .x %>% pull(`deleterious outliers`) %>% sum)
+					`tot_deleterious_outliers` =
+						map_int(`sample_wise_data`, ~ .x %>% pull(`deleterious_outliers`) %>% sum)
 				)
 		)
 }
@@ -640,43 +646,6 @@ select_to_check_and_house_keeping = function(.data, .do_check, .significance, .t
 					)
 			)
 		}
-}
-
-
-#' add_exposure_rate
-#'
-#' @keywords internal
-#'
-#'
-#' @importFrom tidyr separate
-#'
-#' @param .data A data frame
-#' @param fit A fit object
-#'
-#' @return A `tbl`
-#'
-#' @noRd
-add_exposure_rate = function(.data, fit){
-
-	writeLines(sprintf("executing %s", "add_exposure_rate"))
-
-	.data %>%
-		left_join(
-			fit %>%
-				summary("exposure_rate") %$%
-				summary %>%
-				as_tibble(rownames = ".variable") %>%
-				separate(
-					.variable,
-					c(".variable", "S"),
-					sep = "[\\[,\\]]",
-					extra = "drop"
-				) %>%
-				mutate(S = S %>% as.integer) %>%
-				rename(`exposure rate` = mean) %>%
-				select(S, `exposure rate`),
-			by = "S"
-		)
 }
 
 check_if_within_posterior = function(.data, my_df, .do_check, .abundance){
@@ -728,6 +697,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 						 extra = "drop") %>%
 		mutate(S = S %>% as.integer, G = G %>% as.integer) %>%
 		select(-one_of(c("n_eff", "Rhat", "khat"))) %>%
+		suppressWarnings() %>%
 		rename(`.lower` = (.) %>% ncol - 1,
 					 `.upper` = (.) %>% ncol)
 }
@@ -760,7 +730,7 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @return A `tbl`
 #'
 #' @noRd
-fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check){
+fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check, exposure_rate){
 
 
 	writeLines(sprintf("executing %s", "fit_to_counts_rng_approximated"))
@@ -775,7 +745,7 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 	# %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
 
-	draws_exposure = 	fit %>% rstan::extract("exposure_rate") %>% .[[1]]
+	# draws_exposure = 	fit %>% rstan::extract("exposure_rate") %>% .[[1]]
 
 	# %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
 	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
@@ -787,10 +757,11 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 				list(  S,G, truncation_compensation),
 				~ {
 
-					i_supersampled =	seq_len(length.out=sample(length(draws_mu[,..1, ..2]), how_many_posterior_draws, replace = TRUE ))
+					i_supersampled = sample(seq_len(length(draws_mu[,..1, ..2])), how_many_posterior_draws, replace = TRUE )
+
 					draws = rnbinom(
 						n = how_many_posterior_draws,
-						mu = exp(draws_mu[,..1, ..2][i_supersampled] + draws_exposure[,..1][i_supersampled]),
+						mu = exp(draws_mu[,..1, ..2][i_supersampled] + exposure_rate[..1]),
 						size = 1/exp(draws_sigma[,..2][i_supersampled]) * ..3
 					)
 					draws %>%
@@ -808,44 +779,6 @@ fit_to_counts_rng_approximated = function(fit, adj_prob_theshold, how_many_poste
 		) %>%
 		mutate(.variable = "counts_rng") %>%
 		unnest(CI)
-
-	# draws_mu =
-	# 	fit %>% extract("lambda_log_param") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("mu.%s", colnames(.))) %>%
-	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, mu, -.draw) %>% separate(par, c("par", "S", "G"), sep="\\.") %>% select(-par)
-	# draws_sigma =
-	# 	fit %>% extract("sigma_raw") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("sigma.%s", colnames(.) %>% gsub("V", "", .))) %>%
-	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, sigma, -.draw) %>% separate(par, c("par", "G"), sep="\\.") %>% select(-par)
-	# draws_exposure =
-	# 	fit %>% extract("exposure_rate") %>% `[[` (1) %>% as.data.frame() %>% setNames(sprintf("exposure.%s", colnames(.) %>% gsub("V", "", .))) %>%
-	# 	as_tibble() %>% mutate(.draw = 1:n()) %>% gather(par, exposure, -.draw) %>% separate(par, c("par", "S"), sep="\\.") %>% select(-par)
-	#
-	# draws_mu %>%
-	# 	left_join(draws_sigma, by = c(".draw", "G")) %>%
-	# 	left_join(draws_exposure, by = c(".draw", "S")) %>%
-	# 	nest(data = -c(S, G)) %>%
-	# 	mutate(
-	# 		CI = map(
-	# 			data,
-	# 			~ {
-	# 				.x_supersampled = .x %>%	sample_n(how_many_posterior_draws, replace = TRUE)
-	# 				draws = rnbinom(n =how_many_posterior_draws,	mu = exp(.x_supersampled$mu + .x_supersampled$exposure),	size = 1/exp(.x_supersampled$sigma) * truncation_compensation	)
-	# 				draws %>%
-	# 					# Process quantile
-	# 					quantile(c(adj_prob_theshold, 1 - adj_prob_theshold)) %>%
-	# 					tibble::as_tibble(rownames="prop") %>%
-	# 					tidyr::spread(prop, value) %>%
-	# 					setNames(c(".lower", ".upper")) %>%
-	# 					# Add mean and sd
-	# 					dplyr::mutate(mean = mean(draws), sd = sd(draws))
-	# 			}
-	# 		)
-	# 	) %>%
-	# 	select(-data) %>%
-	# 	unnest(CI) %>%
-	#
-	# 	# Adapt to old dataset
-	# 	mutate(.variable = "counts_rng") %>%
-	# 	mutate(S = as.integer(S), G = as.integer(G))
 
 
 }
@@ -868,16 +801,15 @@ save_generated_quantities_in_case = function(.data, fit, save_generated_quantiti
 		)
 }
 
-check_columns_exist = function(.data, .sample, .transcript, .abundance, .significance, .do_check){
+check_columns_exist = function(.data, .sample, .transcript, .abundance, .significance){
 
 	# Prepare column same enquo
 	.sample = enquo(.sample)
 	.transcript = enquo(.transcript)
 	.abundance = enquo(.abundance)
 	.significance = enquo(.significance)
-	.do_check = enquo(.do_check)
 
-	columns = c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), quo_name(.do_check))
+	columns = c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance))
 	if((!columns %in% (.data %>% colnames)) %>% any)
 		stop(
 			sprintf(
@@ -907,21 +839,14 @@ check_columns_exist = function(.data, .sample, .transcript, .abundance, .signifi
 #' @return A `tbl`
 #'
 #' @noRd
-check_if_any_NA = function(.data, .sample, .transcript, .abundance, .significance, .do_check, formula_columns){
+#'
+check_if_any_NA = function(.data, columns){
 
-	# Prepare column same enquo
-	.sample = enquo(.sample)
-	.transcript = enquo(.transcript)
-	.abundance = enquo(.abundance)
-	.significance = enquo(.significance)
-	.do_check = enquo(.do_check)
-
-	columns = c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), quo_name(.do_check), formula_columns)
 
 	if(
 		.data %>%
 		drop_na(columns) %>%
-		nrow %>% st(	.data %>% nrow	)
+		nrow %>% st(      .data %>% nrow    )
 	)
 		stop(sprintf("There are NA values in you tibble for any of the column %s", paste(columns, collapse=", ")))
 }
@@ -1051,7 +976,6 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 			tol_rel_obj = tol_rel_obj,
 			pars = c(
 				"counts_rng",
-				"exposure_rate",
 				additional_parameters_to_save
 			)
 			#,
@@ -1071,7 +995,6 @@ run_model = function(model, approximate_posterior_inference, chains, how_many_po
 			init = inits_fx,
 			pars = c(
 				"counts_rng",
-				"exposure_rate",
 				additional_parameters_to_save
 			)
 		)
@@ -1162,10 +1085,10 @@ identify_outliers_1_step = function(.data,
 	#factor_of_interest = ifelse(parse_formula(formula) %>% length %>% `>` (0), parse_formula(formula)[1], "")
 
 	# Check if columns exist
-	check_columns_exist(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check)
+	check_columns_exist(.data, !!.sample, !!.transcript, !!.abundance, !!.significance)
 
 	# Check if any column is NA or null
-	check_if_any_NA(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check, parse_formula(formula))
+	check_if_any_NA(.data, c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), quo_name(.do_check), parse_formula(formula)))
 
 	# Check is testing environment is supported
 	if (approximate_posterior_inference &	save_generated_quantities)
@@ -1314,8 +1237,8 @@ identify_outliers_1_step = function(.data,
 			`.lower`,
 			`.upper`,
 			ppc,
-			one_of(c("generated quantities", "deleterious outliers")),
-			`exposure rate`,
+			one_of(c("generated quantities", "deleterious_outliers")),
+			exposure_rate,
 			one_of(parse_formula(formula))
 		) %>%
 
@@ -1408,8 +1331,7 @@ do_inference = function(my_df,
 												X,
 												lambda_mu_mu,
 												cores,
-												exposure_rate_multiplier,
-												intercept_shift_scale,
+												sample_scaling,
 												additional_parameters_to_save,
 												adj_prob_theshold,
 												how_many_posterior_draws,
@@ -1435,7 +1357,7 @@ do_inference = function(my_df,
 	.do_check = enquo(.do_check)
 
 	# Check that the dataset is squared
-	if(my_df %>% distinct(!!.sample, !!.transcript) %>% count(!!.transcript) %>% count(n) %>% nrow %>% gt(1))
+	if(my_df %>% distinct(!!.sample, !!.transcript) %>% count(!!.transcript) %>% count(n, name = "nn") %>% nrow %>% gt(1))
 		stop("The input data frame does not represent a rectangular structure. Each transcript must be present in all samples.")
 
 	# Get the number of transcripts to check
@@ -1472,7 +1394,7 @@ do_inference = function(my_df,
 	# Setup dimensions of variables for the model
 	G = counts_MPI %>% distinct(G) %>% nrow()
 	S = counts_MPI %>% distinct(!!.sample) %>% nrow()
-	N = counts_MPI %>% distinct(idx_MPI,!!.abundance, `read count MPI row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
+	N = counts_MPI %>% distinct(idx_MPI,!!.abundance, `read_count_MPI_row`) %>%  count(idx_MPI) %>% summarise(max(n)) %>% pull(1)
 	M = counts_MPI %>% distinct(`start`, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% max
 	G_per_shard = counts_MPI %>% distinct(!!.transcript, idx_MPI) %>% count(idx_MPI) %>% pull(n) %>% as.array
 	n_shards = min(shards, counts_MPI %>% distinct(idx_MPI) %>% nrow)
@@ -1484,18 +1406,18 @@ do_inference = function(my_df,
 	# Read count object
 	counts =
 		counts_MPI %>%
-		distinct(idx_MPI,!!.abundance, `read count MPI row`)  %>%
+		distinct(idx_MPI,!!.abundance, `read_count_MPI_row`)  %>%
 		spread(idx_MPI,!!.abundance) %>%
-		select(-`read count MPI row`) %>%
+		select(-`read_count_MPI_row`) %>%
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
 
 	# Indexes of the samples
 	sample_idx =
 		counts_MPI %>%
-		distinct(idx_MPI, S, `read count MPI row`)  %>%
+		distinct(idx_MPI, S, `read_count_MPI_row`)  %>%
 		spread(idx_MPI, S) %>%
-		select(-`read count MPI row`) %>%
+		select(-`read_count_MPI_row`) %>%
 		replace(is.na(.), 0 %>% as.integer) %>%
 		as_matrix() %>% t
 
@@ -1541,6 +1463,15 @@ do_inference = function(my_df,
 	# Dimension od the data package to pass to Stan
 	CP = ncol(counts_package)
 
+	exposure_rate =
+		sample_scaling %>%
+		left_join(
+			counts_MPI %>% distinct(!!.sample, S), by=quo_name(.sample)
+		) %>%
+		distinct(S, exposure_rate ) %>%
+		arrange(S) %>%
+		pull(exposure_rate)
+
 	# Run model
 	#writeLines(sprintf("- Roughly the memory allocation for the fit object is %s Gb", object.size(1:(S * how_many_to_check * how_many_posterior_draws))/1e9))
 
@@ -1575,7 +1506,6 @@ do_inference = function(my_df,
 				init = inits_fx,
 				pars = c(
 					"counts_rng",
-					"exposure_rate",
 					"alpha_sub_1",
 					additional_parameters_to_save
 				)
@@ -1587,15 +1517,12 @@ do_inference = function(my_df,
 
 		ifelse_pipe(
 			approximate_posterior_analysis,
-			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check),
+			~ .x %>% fit_to_counts_rng_approximated(adj_prob_theshold, how_many_posterior_draws, truncation_compensation, cores, how_many_to_check, exposure_rate),
 			~ .x %>% fit_to_counts_rng(adj_prob_theshold)
 		) %>%
 
 		# If generated quantities are saved
 		save_generated_quantities_in_case(fit, save_generated_quantities) %>%
-
-		# Add exposure rate
-		#add_exposure_rate(fit) %>%
 
 		# Check if data is within posterior
 		check_if_within_posterior(my_df, .do_check, .abundance) %>%
@@ -1607,11 +1534,8 @@ do_inference = function(my_df,
 		add_deleterious_if_covariate_exists(X) %>%
 
 		# Add position in MPI package for next inference
-		left_join(counts_MPI %>% distinct(S, G, idx_MPI, `read count MPI row`),
+		left_join(counts_MPI %>% distinct(S, G, idx_MPI, `read_count_MPI_row`),
 							by = c("S", "G")) %>%
-
-		# Add exposure rate
-		add_exposure_rate(fit) %>%
 
 		# needed for the figure article
 		ifelse_pipe(pass_fit,	~ .x %>% add_attr(fit, "fit")	) %>%
