@@ -712,6 +712,10 @@ fit_to_counts_rng = function(fit, adj_prob_theshold){
 #' @importFrom tidyr unnest
 #' @importFrom tidyr expand_grid
 #' @importFrom rstan summary
+<<<<<<< HEAD
+=======
+#' @importFrom rstan extract
+>>>>>>> master
 #' @importFrom stats sd
 #'
 #' @param fit A fit object
