@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ppcseq</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.99.27</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.8.1</span>
       </span>
     </div>
 
@@ -169,7 +169,10 @@ anundance analysis, due to outliers.</p>
 <span>        .do_check <span class="op">=</span> <span class="va">is_significant</span>,</span>
 <span>        percent_false_positive_genes <span class="op">=</span> <span class="fl">5</span>, </span>
 <span>        approximate_posterior_inference <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>        cores <span class="op">=</span> <span class="fl">1</span></span>
+<span>        cores <span class="op">=</span> <span class="fl">1</span>, </span>
+<span>        </span>
+<span>        <span class="co"># This is ONLY for speeding up the Vignette execution</span></span>
+<span>        draws_after_tail <span class="op">=</span> <span class="fl">1</span></span>
 <span>    <span class="op">)</span></span></code></pre></div>
 <p>The new posterior predictive check has been added to the original
 data frame</p>
@@ -216,7 +219,7 @@ data frame</p>
 <span><span class="co">## [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## other attached packages:</span></span>
-<span><span class="co">## [1] ppcseq_0.99.27       rstan_2.21.8         ggplot2_3.4.2       </span></span>
+<span><span class="co">## [1] ppcseq_1.8.1         rstan_2.21.8         ggplot2_3.4.2       </span></span>
 <span><span class="co">## [4] StanHeaders_2.21.0-7 dplyr_1.1.1          knitr_1.42          </span></span>
 <span><span class="co">## [7] BiocStyle_2.26.0    </span></span>
 <span><span class="co">## </span></span>
