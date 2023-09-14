@@ -28,6 +28,7 @@
 #' @param .abundance A column name as symbol. The transcript abundance (read count)
 #' @param .significance A column name as symbol. A column with the Pvalue, or other significance measure (preferred Pvalue over false discovery rate)
 #' @param .do_check A column name as symbol. A column with a boolean indicating whether a transcript was identified as differentially abundant
+#' @param .scaling_factor In case the scaling factor must not be calculated (TMM method) using the input data but provided. It is useful, for example, for pseudobulk single-cell where the scaling might depend on sample sequencing depth for all cells rather than a particular cell type.
 #' @param percent_false_positive_genes A real between 0 and 100. It is the aimed percent of transcript being a false positive. For example, percent_false_positive_genes = 1 provide 1 percent of the calls for outlier containing transcripts that has actually not outliers.
 #' @param approximate_posterior_inference A boolean. Whether the inference of the joint posterior distribution should be approximated with variational Bayes It confers execution time advantage.
 #' @param approximate_posterior_analysis A boolean. Whether the calculation of the credible intervals should be done semi-analytically, rather than with pure sampling from the posterior. It confers execution time and memory advantage.
@@ -43,7 +44,7 @@
 #' @param seed An integer. Used for development and testing purposes
 #' @param adj_prob_theshold_2 A boolean. Used for development and testing purposes
 #'
-#' @return A nested tibble `tbl` with transcript-wise information: `sample wise data` | plot | `ppc samples failed` | `tot deleterious outliers`
+#' @return A nested tibble `tbl` with transcript-wise information: `sample_wise_data` | plot | `ppc samples failed` | `tot deleterious_outliers`
 #'
 #' @examples
 #'
@@ -77,6 +78,7 @@ identify_outliers = function(.data,
 														 .abundance,
 														 .significance,
 														 .do_check,
+														 .scaling_factor = NULL,
 														 percent_false_positive_genes = 1,
 														 how_many_negative_controls = 500,
 
@@ -100,15 +102,16 @@ identify_outliers = function(.data,
 	.abundance = enquo(.abundance)
 	.significance = enquo(.significance)
 	.do_check = enquo(.do_check)
+	.scaling_factor = enquo(.scaling_factor)
 
 	# Get factor of interest
 	#factor_of_interest = ifelse(parse_formula(formula) %>% length %>% `>` (0), parse_formula(formula)[1], "")
 
 	# Check if columns exist
-	check_columns_exist(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check)
+	check_columns_exist(.data, !!.sample, !!.transcript, !!.abundance, !!.significance)
 
 	# Check if any column is NA or null
-	check_if_any_NA(.data, !!.sample, !!.transcript, !!.abundance, !!.significance, !!.do_check, parse_formula(formula))
+	check_if_any_NA(.data, c(quo_name(.sample), quo_name(.transcript), quo_name(.abundance), quo_name(.significance), parse_formula(formula)))
 
 	# Check if I have any genes to check
 	if(.data %>%	filter(!!.do_check) %>% nrow %>% equals(0)){
@@ -120,7 +123,7 @@ identify_outliers = function(.data,
 			d = 1L
 		) %>%
 			slice(0) %>%
-			setNames(c(quo_name(.transcript), "sample wise data", "ppc samples failed", "tot deleterious outliers")))
+			setNames(c(quo_name(.transcript), "sample_wise_data", "ppc samples failed", "tot deleterious_outliers")))
 	}
 
 
@@ -193,13 +196,15 @@ identify_outliers = function(.data,
 
 
 	# distinct_at is not released yet for dplyr, thus we have to use this trick
-	my_df <- format_input(
-		.data,
+	my_df <-
+		.data %>%
+		mutate(do_check___ = !!.do_check) %>%
+		format_input(
 		formula,
 		!!.sample,
 		!!.transcript,
 		!!.abundance,
-		!!.do_check,
+		do_check___,
 		!!.significance,
 		how_many_negative_controls
 	)
@@ -212,46 +217,65 @@ identify_outliers = function(.data,
 	# Prior info
 	lambda_mu_mu = 5.612671
 
-	# Scale dataset
-	my_df_scaled =
-		my_df %>%
-		.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
-		get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance) %>%
-		left_join(my_df, by=quo_name(.sample)) %>%
-		dplyr::mutate(!!as.symbol(sprintf("%s_scaled",  quo_name(.abundance))) := !!.abundance * multiplier)
 
-	# Build better scales for the inference
-	exposure_rate_multiplier =
-		my_df_scaled %>%
-		distinct(!!.sample, TMM, multiplier) %>%
-		mutate(l = multiplier %>% log) %>%
-		summarise(l %>% sd) %>%
-		pull(`l %>% sd`)
+	# Find normalisation
+	if(quo_is_null(.scaling_factor))
+		sample_scaling =
+			my_df %>%
+			.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
+			get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance)  %>%
+			distinct(!!.sample, multiplier)
+	else
+		sample_scaling =
+			.data %>%
+			distinct(!!.sample, multiplier= !!.scaling_factor) %>%
+			distinct()
 
-	# Build better scales for the inference
-	intercept_shift_scale =
-		my_df_scaled %>%
-		mutate(cc =
-					 	!!as.symbol(sprintf(
-					 		"%s_scaled",  quo_name(.abundance)
-					 	)) %>%
-					 	`+` (1) %>% log) %>%
-		summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
-		as.numeric
+	sample_exposure =
+		sample_scaling %>%
+		mutate(exposure_rate = -log(multiplier)) %>%
+		mutate(exposure_multiplier = exp(exposure_rate)) %>%
+		rename(multiplier := !!.scaling_factor)
+
+	# # Scale dataset
+	# my_df_scaled =
+	# 	my_df %>%
+	# 	.identify_abundant(!!.sample,!!.transcript,!!.abundance) %>%
+	# 	get_scaled_counts_bulk(!!.sample,!!.transcript,!!.abundance) %>%
+	# 	left_join(my_df, by=quo_name(.sample)) %>%
+	# 	dplyr::mutate(!!as.symbol(sprintf("%s_scaled",  quo_name(.abundance))) := !!.abundance * multiplier)
+
+	# # Build better scales for the inference
+	# exposure_rate_multiplier =
+	# 	my_df_scaled %>%
+	# 	distinct(!!.sample, TMM, multiplier) %>%
+	# 	mutate(l = multiplier %>% log) %>%
+	# 	summarise(l %>% sd) %>%
+	# 	pull(`l %>% sd`)
+	#
+	# # Build better scales for the inference
+	# intercept_shift_scale =
+	# 	my_df_scaled %>%
+	# 	mutate(cc =
+	# 				 	!!as.symbol(sprintf(
+	# 				 		"%s_scaled",  quo_name(.abundance)
+	# 				 	)) %>%
+	# 				 	`+` (1) %>% log) %>%
+	# 	summarise(shift = cc %>% mean, scale = cc %>% sd) %>%
+	# 	as.numeric
 
 	# Run the first discovery phase with permissive false discovery rate
 	res_discovery =
 		my_df %>%
 		do_inference(
-			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,!!.do_check,
+			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,do_check___,
 			approximate_posterior_inference,
 			approximate_posterior_analysis = FALSE,
 			C,
 			X,
 			lambda_mu_mu,
 			cores,
-			exposure_rate_multiplier,
-			intercept_shift_scale,
+			sample_exposure,
 			additional_parameters_to_save,
 			adj_prob_theshold  = adj_prob_theshold_1,
 			how_many_posterior_draws = how_many_posterior_draws_1,
@@ -270,7 +294,7 @@ identify_outliers = function(.data,
 		filter(`.variable` == "counts_rng") %>%
 		ifelse_pipe(
 			do_check_only_on_detrimental,
-			~ .x %>% filter(`deleterious outliers`),
+			~ .x %>% filter(`deleterious_outliers`),
 			~ .x %>% filter(!ppc)
 		) %>%
 		distinct(S, G, .lower, .upper)
@@ -296,15 +320,14 @@ identify_outliers = function(.data,
 	res_test =
 		my_df %>%
 		do_inference(
-			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,!!.do_check,
+			formula,!!.sample ,!!.transcript ,!!.abundance ,!!.significance ,do_check___,
 			approximate_posterior_inference,
 			approximate_posterior_analysis,
 			C,
 			X,
 			lambda_mu_mu,
 			cores,
-			exposure_rate_multiplier,
-			intercept_shift_scale,
+			sample_exposure,
 			additional_parameters_to_save,
 			adj_prob_theshold = adj_prob_theshold_2, # If check only deleterious is one side test
 			# * 2 because we just test one side of the distribution
@@ -320,23 +343,9 @@ identify_outliers = function(.data,
 
 	# Merge results and return
 	merge_results(
-
-		# Calculate CI 2 for discovery for plotting
 		res_discovery,
-
-		# %>%
-		# 	left_join(
-		# 		(.) %>%
-		# 			attr("fit") %>%
-		# 			fit_to_counts_rng_approximated(adj_prob_theshold_2, how_many_posterior_draws_2, truncation_compensation = 0.7352941, cores) %>%
-		# 			select(S, G, .lower_1 = .lower, .upper_1 = .upper)
-		# 	),
-
-		res_test,
-		formula,
-		!!.transcript,
-		!!.abundance,
-		!!.sample,
+		res_test  %>%	left_join(sample_exposure, by = quo_name(.sample)) ,
+		formula,!!.transcript,!!.abundance,!!.sample,
 		do_check_only_on_detrimental
 	) %>%
 
@@ -409,7 +418,7 @@ plot_credible_intervals = function(.data){
 		mutate(plot =
 					 	pmap(
 					 		list(
-					 			`sample wise data`,
+					 			`sample_wise_data`,
 					 			!!as.symbol(.transcript),
 					 			# nested data for plot
 					 			.abundance,

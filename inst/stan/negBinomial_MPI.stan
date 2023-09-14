@@ -165,8 +165,7 @@ data {
 	int<lower=0> how_many_to_check;
 
 	// For better adaptation
-	real exposure_rate_multiplier;
-	real intercept_shift_scale[2];
+  vector[S] exposure_rate;
 
 	// Truncation
 	real<lower=0> truncation_compensation;
@@ -184,8 +183,6 @@ parameters {
   real<offset=lambda_mu_mu> lambda_mu; // So is compatible with logGamma prior
   real<lower=0> lambda_sigma;
   real lambda_skew;
-
-  vector<multiplier = exposure_rate_multiplier>[S] exposure_rate;
 
   // Gene-wise properties of the data
   row_vector[G] intercept;
@@ -224,10 +221,6 @@ model {
 	if(C>=3) to_vector(alpha_2) ~ normal(0,2.5);
 
   sigma_raw ~ normal(sigma_slope * intercept + sigma_intercept,sigma_sigma);
-
-  // Exposure prior
-  exposure_rate ~ normal(0,1);
-  sum(exposure_rate) ~ normal(0, 0.001 * S);
 
 	//Gene-wise properties of the data
 	target += sum(map_rect(
