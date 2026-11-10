@@ -55,7 +55,7 @@ functions{
 		return(lambda_sigma_exposure_MPI);
 	}
 
-	vector lp_reduce( vector global_parameters , vector local_parameters , array[] real real_data , array[] int int_data ) {
+	vector lp_reduce( vector global_parameters , vector local_parameters , data array[] real real_data , data array[] int int_data ) {
 
 		real lp;
 
