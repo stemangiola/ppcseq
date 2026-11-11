@@ -29,10 +29,10 @@ functions{
 	  return log(gamma_rng(a, b));
 	}
 
-	vector[] get_reference_parameters_MPI(int n_shards, int M, int[] G_per_shard, int[,] G_ind, matrix lambda_log, vector sigma, vector exposure_rate){
+	array[] vector get_reference_parameters_MPI(int n_shards, int M, array[] int G_per_shard, array[,] int G_ind, matrix lambda_log, vector sigma, vector exposure_rate){
 
 		int S = rows(exposure_rate);
-		vector[(M*S) + M + S] lambda_sigma_exposure_MPI[n_shards];
+		array[n_shards] vector[(M*S) + M + S] lambda_sigma_exposure_MPI;
 
 		for( i in 1:n_shards ) {
 
@@ -55,7 +55,7 @@ functions{
 		return(lambda_sigma_exposure_MPI);
 	}
 
-	vector lp_reduce( vector global_parameters , vector local_parameters , real[] real_data , int[] int_data ) {
+	vector lp_reduce( vector global_parameters , vector local_parameters , array[] real real_data , array[] int int_data ) {
 
 		real lp;
 
@@ -64,13 +64,13 @@ functions{
 	 	int N = int_data[2];
 	 	int S = int_data[3];
 	 	int G_per_shard = int_data[4];
-	 	int symbol_end[M+1] = int_data[(4+1):(4+1+M)];
-	 	int sample_idx[N] = int_data[(4+1+M+1):(4+1+M+1+N-1)];
-	 	int counts[N] = int_data[(4+1+M+1+N-1+1):(4+1+M+1+N-1+N)];
+	 	array[M+1] int symbol_end = int_data[(4+1):(4+1+M)];
+	 	array[N] int sample_idx = int_data[(4+1+M+1):(4+1+M+1+N-1)];
+	 	array[N] int counts = int_data[(4+1+M+1+N-1+1):(4+1+M+1+N-1+N)];
 
 	 	// Data to exclude for outliers
 	 	int size_exclude = int_data[(4+1+M+1+N-1+N+1)];
-		int to_exclude[size_exclude] = int_data[(4+1+M+1+N-1+N+1+1):(4+1+M+1+N-1+N+1+size_exclude)]; // we are lucky for packaging it is the last variabe
+		array[size_exclude] int to_exclude = int_data[(4+1+M+1+N-1+N+1+1):(4+1+M+1+N-1+N+1+size_exclude)]; // we are lucky for packaging it is the last variabe
 
 		// Parameters unpack
 	 	vector[G_per_shard*S] lambda_MPI = local_parameters[1:(G_per_shard*S)];
@@ -147,15 +147,15 @@ data {
 	int<lower=0> G;
 	int<lower=0> S;
   int n_shards;
-	int<lower=0> counts[n_shards, N];
-	int<lower=0> symbol_end[n_shards, M+1];
-	int<lower=0> G_ind[n_shards, M];
-	int<lower=0> sample_idx[n_shards, N];
-	int<lower=0> G_per_shard[n_shards];
-	int<lower=0> G_per_shard_idx[n_shards + 1];
+	array[n_shards, N] int<lower=0> counts;
+	array[n_shards, M+1] int<lower=0> symbol_end;
+	array[n_shards, M] int<lower=0> G_ind;
+	array[n_shards, N] int<lower=0> sample_idx;
+	array[n_shards] int<lower=0> G_per_shard;
+	array[n_shards + 1] int<lower=0> G_per_shard_idx;
 
 	int<lower=0> CP; // Counts package size
-  int<lower=0> counts_package[n_shards, CP];
+  array[n_shards, CP] int<lower=0> counts_package;
 
 	int<lower=1> C; // Covariates
 	matrix[S,C] X; // Design matrix
@@ -174,7 +174,7 @@ data {
 transformed data {
 
   vector[0] global_parameters;
-  real real_data[n_shards, 0];
+  array[n_shards, 0] real real_data;
 
 }
 parameters {
@@ -257,7 +257,7 @@ model {
 
 }
 generated quantities{
-	vector[how_many_to_check] counts_rng[S];
+	array[S] vector[how_many_to_check] counts_rng;
 
 	for(g in 1:how_many_to_check) for(s in 1:S)
 	// Make the overdispersion bigger making sigma smaller. Because inferring on truncated data with naive NB underestimate overdispersion
